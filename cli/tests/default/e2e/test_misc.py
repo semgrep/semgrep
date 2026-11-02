@@ -576,3 +576,65 @@ def test_critical_severity(run_semgrep_on_copied_files: RunSemgrep, posix_snapsh
         ).stdout,
         "results.json",
     )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+@pytest.mark.parametrize("output_format", [OutputFormat.TEXT, OutputFormat.JSON])
+def test_structured_execution_logs(
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, output_format
+):
+    log_file = tmp_path / "events.jsonl"
+    result = run_semgrep_on_copied_files(
+        "rules/eqeq.yaml",
+        target_name="basic/stupid.py",
+        env={"SEMGREP_LOG_JSON_FILE": str(log_file)},
+        quiet=False,
+        output_format=output_format,
+    )
+    events = [json.loads(line) for line in log_file.read_text().splitlines()]
+    summary = next(event for event in events if event["message"] == "scan summary")
+    if output_format == OutputFormat.JSON:
+        assert summary["attributes"]["scan.findings.count"] == len(
+            json.loads(result.stdout)["results"]
+        )
+    assert {
+        "scan plan prepared",
+        "rules selected",
+        "finding reported",
+        "command completed",
+    } <= {event["message"] for event in events}
+    finding = next(event for event in events if event["message"] == "finding reported")
+    assert finding["attributes"]["rule.id"]
+    assert finding["attributes"]["file.path"].endswith("stupid.py")
+    assert finding["attributes"]["finding.preview"]
+    assert all("event" not in event for event in events)
+    assert all(event["message"] == event["message"].lower() for event in events)
+    assert all("_" not in key for event in events for key in event["attributes"])
+    assert summary["attributes"]["scan.targets.count"] == 1
+    assert summary["attributes"]["scan.rules.executed.count"] == 3
+    for phase in ("scan", "analysis"):
+        phase_events = [
+            event["message"]
+            for event in events
+            if event["attributes"].get("phase.name") == phase
+        ]
+        assert phase_events == [f"{phase} started", f"{phase} completed"]
+    assert '"schema.version"' not in result.stderr
+    baseline = run_semgrep_on_copied_files(
+        "rules/eqeq.yaml",
+        target_name="basic/stupid.py",
+        quiet=False,
+        output_format=output_format,
+    )
+    assert result.stderr == baseline.stderr
+    if output_format == OutputFormat.JSON:
+        assert (
+            json.loads(result.stdout)["results"]
+            == json.loads(baseline.stdout)["results"]
+        )
+    else:
+        assert result.stdout == baseline.stdout
+        assert "Scan Status" in result.raw_stderr
+        assert "Scan Summary" in result.raw_stderr
+        assert "Finding" in result.raw_stdout

@@ -45,6 +45,7 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.state import get_state
+from semgrep.structured_logging import log
 from semgrep.subproject import collect_skipped_subprojects
 from semgrep.subproject import subproject_to_stats
 from semgrep.target_manager import ALL_PRODUCTS
@@ -674,6 +675,10 @@ class ScanHandler:
         # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
         logger.debug(f"Sending findings and ignores blob")
 
+        scan_log = log.bind(**{"scan.id": self.scan_id})
+        scan_log.info(
+            "uploading scan results",
+        )
         results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/results",
@@ -689,15 +694,25 @@ class ScanHandler:
             for error in resp_errors:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
+                scan_log.warning(
+                    "server returned a scan warning",
+                    **{"warning.message": message},
+                )
 
             if "task_id" in res:
                 complete.task_id = res["task_id"]
 
             progress_bar.update(results_task, completed=100)
+            scan_log.info(
+                "scan results uploaded",
+            )
 
         except requests.RequestException as exc:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
+        scan_log.info(
+            "finalizing scan",
+        )
         complete_task = progress_bar.add_task("Finalizing scan")
         # The largest scans we've seen so far can take up to 30
         # minutes to wait for completion. Eventually, this wait may
@@ -735,6 +750,15 @@ class ScanHandler:
 
             if success or complete.final_attempt:
                 progress_bar.update(complete_task, completed=100)
+                scan_log.info(
+                    "scan finalized"
+                    if success
+                    else "scan results are still processing",
+                    **{
+                        "scan.results.ready": success,
+                        "scan.finalization.final.attempt": complete.final_attempt,
+                    },
+                )
                 return ret
             progress_bar.advance(complete_task)
             sleep(5 if datetime.now().replace(tzinfo=None) < slow_down_after else 30)
