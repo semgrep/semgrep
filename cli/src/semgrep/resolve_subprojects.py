@@ -53,6 +53,9 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+# Cap on the precomputed .error text carried into the scan output.
+_MAX_PRECOMPUTED_ERROR_CHARS = 4096
+
 
 def to_sca_error(
     err: Union[out.DependencyParserError, out.ScaResolutionError],
@@ -237,7 +240,7 @@ def attach_auxillary_sboms(
     subprojects: list[out.Subproject],
     dependency_resolution_config: DependencyResolutionConfig,
     dependency_aware_rules: List[Rule],
-) -> list[out.Subproject]:
+) -> Tuple[list[out.Subproject], list[out.UnresolvedSubproject]]:
     """
     For each subproject, look up a precomputed CycloneDX SBOM in the
     precomputed dependencies directory and, if found, wrap the subproject's
@@ -245,14 +248,16 @@ def attach_auxillary_sboms(
 
     Files are expected at ``<dir>/head/<subproject_id>.cdx.json`` or
     ``<dir>/base/<subproject_id>.cdx.json`` depending on whether this is a
-    baseline scan.
+    baseline scan. A ``<subproject_id>.error`` file in place of the SBOM makes
+    the subproject unresolved (UnresolvedFailed) rather than resolved locally.
     """
     precomputed_dir = dependency_resolution_config.precomputed_dependencies_dir
     if precomputed_dir is None:
-        return subprojects
+        return subprojects, []
 
     subdir = "base" if dependency_resolution_config.is_baseline_scan else "head"
     result: list[out.Subproject] = []
+    failed: list[out.UnresolvedSubproject] = []
     unmatched: list[tuple[out.Subproject, str]] = []
     rule_ecosystems = {
         ecosystem for rule in dependency_aware_rules for ecosystem in rule.ecosystems
@@ -267,6 +272,7 @@ def attach_auxillary_sboms(
             continue
         dep_source_id = generate_dependency_source_id(subproject.dependency_source)
         sbom_path = precomputed_dir / subdir / (dep_source_id + ".cdx.json")
+        error_path = precomputed_dir / subdir / (dep_source_id + ".error")
         if sbom_path.exists():
             resolvable_count += 1
             sbom = out.Sbom(
@@ -283,6 +289,9 @@ def attach_auxillary_sboms(
                 ecosystem=subproject.ecosystem,
             )
             logger.verbose(f"Using precomputed SBOM for {subproject.root_dir}")
+        elif error_path.exists():
+            failed.append(_precomputed_failure(subproject, error_path))
+            continue
         elif (
             not dependency_resolution_config.restrict_resolution_to_rule_ecosystems
             or subproject.ecosystem in rule_ecosystems
@@ -303,7 +312,36 @@ def attach_auxillary_sboms(
                 f"No precomputed SBOM for subproject at {subproject.root_dir} "
                 f"(expected file name: {expected_name})"
             )
-    return result
+    return result, failed
+
+
+def _precomputed_failure(
+    subproject: out.Subproject, error_path: Path
+) -> out.UnresolvedSubproject:
+    message = error_path.read_text(errors="replace").strip()[
+        :_MAX_PRECOMPUTED_ERROR_CHARS
+    ]
+    logger.verbose(
+        f"Precomputed dependency resolution failed for {subproject.root_dir}"
+    )
+    error = out.ScaResolutionError(
+        type_=out.ResolutionErrorKind(
+            out.ResolutionCmdFailed_(
+                out.ResolutionCmdFailed(
+                    command="precomputed dependency resolution",
+                    message=message,
+                )
+            )
+        ),
+        dependency_source_file=out.Fpath(
+            str(get_all_source_files(subproject.dependency_source)[0])
+        ),
+    )
+    return out.UnresolvedSubproject(
+        info=subproject,
+        reason=out.UnresolvedReason(out.UnresolvedFailed()),
+        errors=[to_sca_error(error)],
+    )
 
 
 @simple_profiling
@@ -460,9 +498,10 @@ def resolve_subprojects(
     )
 
     # attach precomputed SBOMs to relevant subprojects
-    relevant_subprojects = attach_auxillary_sboms(
+    relevant_subprojects, precomputed_failures = attach_auxillary_sboms(
         relevant_subprojects, config, dependency_aware_rules
     )
+    irrelevant_subprojects = irrelevant_subprojects + precomputed_failures
 
     # Subprojects in an ecosystem that none of the rules look at cannot produce
     # a finding, so they are not worth resolving. This runs after the SBOMs are
