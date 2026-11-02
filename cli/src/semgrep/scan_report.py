@@ -14,13 +14,18 @@
 # Prelude
 ##############################################################################
 # Helpers to run_scan.py to report scan status
+import logging
 import sys
+from collections import Counter
 from textwrap import wrap
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Union
 
+from boltons.iterutils import get_path
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.table import Table
@@ -36,6 +41,11 @@ from semgrep.core_runner import Plan
 from semgrep.rule import Rule
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.structured_logging import best_effort_events
+from semgrep.structured_logging import log
+from semgrep.subproject import count_resolved_dependencies
+from semgrep.subproject import get_display_paths
+from semgrep.subproject import subproject_sort_key
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
@@ -171,6 +181,142 @@ def _print_scan_plan_header(
     console.print(summary_line + ":")
 
 
+@best_effort_events
+def _emit_scan_plan(
+    target_manager: TargetManager,
+    sast_plan: Plan,
+    sca_plan: Plan,
+    code_enabled: Optional[bool],
+) -> None:
+    products = [
+        ("code", out.Product(out.SAST())),
+        ("secrets", out.Product(out.Secrets())),
+    ]
+    log.info(
+        "scan plan prepared",
+        **{
+            "scan.targets.count": len(
+                target_manager.get_all_files(product=SAST_PRODUCT)
+            ),
+            "scan.targets.git.tracked.only": target_manager.respect_git_ignore,
+            "scan.rules.code.count": sum(
+                isinstance(r.product.value, out.SAST) for r in sast_plan.rules
+            ),
+            "scan.rules.secrets.count": sum(
+                isinstance(r.product.value, out.Secrets) for r in sast_plan.rules
+            ),
+            "scan.rules.supply.chain.count": len(sca_plan.rules),
+            "scan.code.enabled": code_enabled,
+        },
+    )
+    for name, product in products:
+        by_language = sast_plan.split_by_lang_label_for_product(product)
+        origins = Counter(
+            get_path(r.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
+            for r in sast_plan.rules
+            if r.product == product
+        )
+        log.info(
+            "rules selected",
+            **{
+                "scan.product": name,
+                "rules.count": sast_plan.rule_count_for_product(product),
+                "rules.languages": [
+                    {
+                        "language": language,
+                        "rules.count": mapping.rule_count,
+                        "files.count": mapping.file_count,
+                    }
+                    for language, mapping in sorted(by_language.items())
+                    if mapping.rule_count
+                ],
+                "rules.origins": [
+                    {"origin": origin, "rules.count": count}
+                    for origin, count in sorted(origins.items())
+                ],
+            },
+        )
+    if any(isinstance(r.product.value, out.Secrets) for r in sast_plan.rules):
+        log.info(
+            "secrets configuration selected",
+            **{
+                "secrets.ai.augmented.rules": any(
+                    is_secrets_ai_ruleset(r.metadata)
+                    for r in filter(is_secret_rule, sast_plan.rules)
+                )
+            },
+        )
+    counts = sca_plan.counts_by_ecosystem()
+    for project in sorted(sca_plan.all_subprojects or [], key=subproject_sort_key):
+        attributes: Dict[str, Any] = {
+            "dependency.source.paths": [
+                str(p) for p in get_display_paths(project.info.dependency_source)
+            ]
+        }
+        if isinstance(project, out.ResolvedSubproject):
+            methods = {
+                out.LockfileParsing(): "lockfile",
+                out.DynamicResolution(): "local.build",
+                out.SbomParsing(): "sbom",
+            }
+            attributes.update(
+                {
+                    "dependency.resolution.method": methods[
+                        project.resolution_method.value
+                    ],
+                    "dependency.ecosystem": project.ecosystem.kind.lower(),
+                    "dependencies.count": count_resolved_dependencies(
+                        project.resolved_dependencies
+                    ),
+                    "rules.count": counts[project.ecosystem].rules,
+                }
+            )
+            log.info("dependency source resolved", **attributes)
+        else:
+            reasons = {
+                out.UnresolvedFailed(): "failed",
+                out.UnresolvedSkipped(): "skipped",
+                out.UnresolvedUnsupported(): "unsupported",
+                out.UnresolvedDisabled(): "disabled",
+            }
+            reason = reasons[project.reason.value]
+            attributes.update(
+                {
+                    "dependency.resolution.reason": reason,
+                    "dependency.ecosystem": None,
+                    "dependencies.count": None,
+                    "rules.count": None,
+                }
+            )
+            if reason == "disabled":
+                attributes["dependency.resolution.enable.flag"] = "--allow-local-builds"
+            log.log(
+                logging.WARNING if reason == "failed" else logging.INFO,
+                "dependency source " + reason,
+                **attributes,
+            )
+    analysis_names = {
+        "reachable": "reachability",
+        "legacy": "basic",
+        "malicious": "malicious",
+        "upgrade-only": "basic",
+    }
+    analysis_counts = Counter(
+        analysis_names.get(r.metadata.get("sca-kind", ""), "unknown")
+        for r in sca_plan.rules
+    )
+    if sca_plan.rules or sca_plan.all_subprojects:
+        log.info(
+            "supply chain analysis planned",
+            **{
+                "analysis.types": [
+                    {"analysis.type": kind, "rules.count": count}
+                    for kind, count in sorted(analysis_counts.items())
+                ]
+            },
+        )
+
+
 def _print_tables(tables: List[Table]) -> None:
     columns = Columns(tables, padding=(1, 8))
 
@@ -225,6 +371,16 @@ def _print_sast_table(
 
 
 def _print_sca_parse_error(error: out.DependencyParserError) -> None:
+    log.warning(
+        "dependency source parsing failed",
+        **{
+            "file.path": error.path.value,
+            "error.reason": error.reason,
+            "file.line": error.line,
+            "file.column": error.col,
+            "source.text": error.text,
+        },
+    )
     # These are zero indexed but most editors are one indexed
     line_prefix = f"{error.line} | "
     path = error.path.value
@@ -251,6 +407,42 @@ def _print_sca_parse_error(error: out.DependencyParserError) -> None:
 
 
 def _print_sca_resolution_error(error: out.ScaResolutionError) -> None:
+    kind = error.type_.value
+    kind_names = {
+        out.UnsupportedManifest: "unsupported.manifest",
+        out.MissingRequirement: "missing.requirement",
+        out.ResolutionCmdFailed_: "command.failed",
+        out.ParseDependenciesFailed: "dependencies.parse.failed",
+        out.ScaParseError: "lockfile.parse.failed",
+        out.IncompleteDependencyResolution_: "incomplete.resolution",
+        out.ResourceInaccessible_: "resource.inaccessible",
+    }
+    attributes: Dict[str, Any] = {
+        "dependency.source.path": error.dependency_source_file.value,
+        "error.kind": kind_names[type(kind)],
+    }
+    if isinstance(
+        kind,
+        (
+            out.ResolutionCmdFailed_,
+            out.IncompleteDependencyResolution_,
+            out.ResourceInaccessible_,
+        ),
+    ):
+        attributes.update(
+            {"error.command": kind.value.command, "error.message": kind.value.message}
+        )
+        if isinstance(kind, out.ResourceInaccessible_):
+            attributes["registry.url"] = kind.value.registry_url
+    elif isinstance(kind, (out.MissingRequirement, out.ParseDependenciesFailed)):
+        attributes["error.message"] = kind.value
+    elif isinstance(kind, out.ScaParseError):
+        attributes["error.parser"] = kind.value.to_json()
+    log.warning(
+        "dependency resolution failed",
+        **attributes,
+    )
+
     def format_resolution_error_message(message: str) -> str:
         # the Ocaml code returns error messages with \n instead of newlines,
         # which makes the error output look messy. We switch back to using real
@@ -458,6 +650,7 @@ def print_scan_status(
     )
 
     plans = [sast_plan, sca_plan]
+    _emit_scan_plan(target_manager, sast_plan, sca_plan, code_enabled)
 
     executed_rule_count = sum(
         max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
