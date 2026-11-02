@@ -1629,6 +1629,8 @@ def test_empty_repo_run(
 @pytest.mark.osemfail
 def test_outputs(
     git_tmp_path_with_commit,
+    tmp_path,
+    mocked_scan_id,
     snapshot,
     format,
     mock_autofix,
@@ -1641,6 +1643,7 @@ def test_outputs(
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
+    events_path = tmp_path / "events.jsonl"
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only", format],
@@ -1648,12 +1651,39 @@ def test_outputs(
         strict=False,
         assert_exit_code=None,
         output_format=None,
-        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        env={
+            "SEMGREP_APP_TOKEN": "fake_key",
+            "SEMGREP_LOG_JSON_FILE": str(events_path),
+        },
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(),
         "results.txt",
+    )
+
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    assert all("event" not in event for event in events)
+    by_message = {event["message"]: event for event in events}
+    assert {
+        "scan environment initialized",
+        "scan initialized",
+        "scan engine selected",
+        "full scan selected",
+        "uploading scan results",
+        "scan results uploaded",
+        "finalizing scan",
+        "scan finalized",
+        "scan result links available",
+        "ci scan completed",
+    } <= by_message.keys()
+    initialized = by_message["scan initialized"]["attributes"]
+    assert initialized["scan.id"] == mocked_scan_id
+    assert initialized["scan.products"]
+    assert by_message["scan engine selected"]["attributes"]["engine.kind"] == "oss"
+    assert by_message["scan result links available"]["attributes"]["scan.results.urls"]
+    assert (
+        by_message["ci scan completed"]["attributes"]["exit.code"] == result.exit_code
     )
 
 
