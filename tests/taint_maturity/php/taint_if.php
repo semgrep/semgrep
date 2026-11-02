@@ -6,7 +6,7 @@ function test1($cond)
     $x = "tainted";
   else
     $x = "safe";
-  //ruleid: taint-maturity
+  //ruleid: deepruleid: taint-maturity
   sink($x);
 }
 
