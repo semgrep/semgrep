@@ -115,6 +115,7 @@ repos:
           - pydantic~=2.12.2
           - requests~=2.22
           - rich~=13.5.2
+          - structlog~=26.1.0
           - tomli~=2.0.1
           - opentelemetry-api~=1.37.0
           - opentelemetry-sdk~=1.37.0
