@@ -18,8 +18,10 @@ from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError
 from tests.conftest import str_containing
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import SemgrepCoreError
 from semgrep.error_handler import ErrorHandler
 
 
@@ -260,3 +262,67 @@ def test_capture_error_real_chained_exception_from_git(
     assert "<REDACTED>" in captured
     # The non-secret context that aids debugging should still be there.
     assert "gitlab.example.com" in captured
+
+
+def make_core_error(message: str, details: str) -> SemgrepCoreError:
+    return SemgrepCoreError(
+        code=2,
+        level=out.ErrorSeverity(out.Error_()),
+        spans=None,
+        core=out.CoreError(
+            error_type=out.ErrorType(out.FatalError()),
+            severity=out.ErrorSeverity(out.Error_()),
+            location=out.Location(
+                path=out.Fpath("customer/secret_project.py"),
+                start=out.Position(line=1, col=1, offset=0),
+                end=out.Position(line=1, col=1, offset=0),
+            ),
+            rule_id=out.RuleId("rules.some-rule"),
+            message=message,
+            details=details,
+        ),
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("in_flight", [True, False])
+def test_capture_error_omits_core_error_text(error_handler, in_flight) -> None:
+    """The core error's message, details, and path stay out of the payload;
+    its type and rule are kept."""
+    err = make_core_error(
+        message="Failure \"unexpected `API_KEY = 'hunter2'`\"",
+        details="Raised at Foo.bar with hunter2 in scope",
+    )
+    try:
+        raise err
+    except Exception as e:
+        if in_flight:
+            error_handler.capture_error()
+        else:
+            caught = e
+    if not in_flight:
+        error_handler.capture_error(caught)
+
+    captured = error_handler.payload["error"]
+    assert "hunter2" not in captured
+    assert "secret_project.py" not in captured
+    assert "Traceback" in captured
+    assert "SemgrepCoreError:" in captured
+    assert "rules.some-rule" in captured
+
+
+@pytest.mark.quick
+def test_send_core_error_through_wrapper(fail_open_mock) -> None:
+    # Built outside failing_command: the traceback quotes the raising line.
+    err = make_core_error(message="`hunter2` was unexpected", details="")
+
+    @handle_command_errors
+    def failing_command():
+        raise err
+
+    with pytest.raises(SystemExit):
+        failing_command()
+
+    payload = fail_open_mock.last_request.json()
+    assert "hunter2" not in payload["error"]
+    assert "SemgrepCoreError:" in payload["error"]
