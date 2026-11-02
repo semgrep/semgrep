@@ -10,6 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import logging
 import os
 import re
 import subprocess
@@ -28,6 +29,7 @@ from typing import Sequence
 
 from semgrep import telemetry
 from semgrep.state import get_state
+from semgrep.structured_logging import log
 from semgrep.util import manually_search_file
 from semgrep.util import redact_credentials
 from semgrep.verbose_logging import getLogger
@@ -571,6 +573,29 @@ class BaselineHandler:
                     self._remove_worktree_with_check(tmpdir)
                     logger.debug("Finished cleaning up git worktree")
 
+    def _log_commits(self, revision_range: str, *, missing: bool) -> None:
+        if not log.is_enabled_for(logging.INFO):
+            return
+        try:
+            commits = git_check_output(
+                ["git", "log", "--format=%H%x09%s", revision_range]
+            )
+        except Exception:
+            # Optional metadata collection must not interrupt the scan.
+            return
+        log.info(
+            "baseline commits missing" if missing else "scan commits selected",
+            **{
+                "git.revision.range": revision_range,
+                "git.commits": [
+                    {"commit.id": sha, "commit.subject": subject}
+                    for line in commits.splitlines()
+                    for sha, _, subject in [line.partition("\t")]
+                ],
+                "git.history.may.be.shallow": True,
+            },
+        )
+
     @telemetry.trace()
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
@@ -584,6 +609,7 @@ class BaselineHandler:
                 ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
             )
             logger.info(indent(log, "    "))
+            self._log_commits(f"{merge_base_sha}..HEAD", missing=False)
 
         if merge_base_sha != base_commit_sha:
             logger.warning(
@@ -599,6 +625,7 @@ class BaselineHandler:
                 ]
             )
             logger.info(indent(log, "    ").rstrip())
+            self._log_commits(f"{merge_base_sha}..{base_commit_sha}", missing=True)
 
             logger.info(
                 "  Any finding these commits fixed will look like a new finding in the current branch."
