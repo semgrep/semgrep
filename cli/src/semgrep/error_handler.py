@@ -20,12 +20,33 @@ from attr import define
 from attr import Factory
 from attr import field
 
+from semgrep.error import error_type_string
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
+from semgrep.error import SemgrepCoreError
 from semgrep.util import redact_credentials
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def _format_core_error(e: SemgrepCoreError) -> str:
+    """
+    Like traceback.format_exception, but the last line is built from the
+    error's type, rule, and exit code instead of str(e): the core message can
+    quote scanned source code, the details carry the core's exception and
+    backtrace, and the location is a path in the customer's repository.
+    """
+    import traceback
+
+    frames = "".join(traceback.format_tb(e.__traceback__))
+    rule = f" (rule {e.core.rule_id.value})" if e.core.rule_id else ""
+    return (
+        "Traceback (most recent call last):\n"
+        f"{frames}"
+        f"{type(e).__name__}: {error_type_string(e.core.error_type)}{rule}, "
+        f"exit code {e.code}\n"
+    )
 
 
 @define
@@ -59,7 +80,10 @@ class ErrorHandler:
         import traceback
 
         # The traceback is POSTed to the fail-open endpoint; scrub before store.
-        if sys.exc_info()[0] is not None:
+        current = sys.exc_info()[1] or e
+        if isinstance(current, SemgrepCoreError):
+            self.payload["error"] = redact_credentials(_format_core_error(current))
+        elif sys.exc_info()[0] is not None:
             self.payload["error"] = redact_credentials("".join(traceback.format_exc()))
         elif e is not None:
             exc_type = e.__class__
