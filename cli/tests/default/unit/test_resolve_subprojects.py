@@ -26,7 +26,9 @@ from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
 from semgrep.resolve_subprojects import attach_auxillary_sboms
 from semgrep.resolve_subprojects import filter_subprojects_by_rule_ecosystems
+from semgrep.resolve_subprojects import find_subprojects
 from semgrep.resolve_subprojects import match_subprojects
+from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rule import Rule
 from semgrep.run_scan import resolve_dependencies
 from semgrep.subproject import collect_skipped_subprojects
@@ -514,7 +516,10 @@ def _npm_subproject(root: str) -> out.Subproject:
 
 
 def _precomputed_deps_config(
-    precomputed_dir: Path, *, restrict_to_rule_ecosystems: bool = False
+    precomputed_dir: Path,
+    *,
+    restrict_to_rule_ecosystems: bool = False,
+    is_baseline_scan: bool = False,
 ) -> DependencyResolutionConfig:
     return DependencyResolutionConfig(
         allow_local_builds=False,
@@ -523,6 +528,7 @@ def _precomputed_deps_config(
         download_dependency_source_code=False,
         precomputed_dependencies_dir=precomputed_dir,
         restrict_resolution_to_rule_ecosystems=restrict_to_rule_ecosystems,
+        is_baseline_scan=is_baseline_scan,
     )
 
 
@@ -536,11 +542,12 @@ def test_attach_auxillary_sboms_warns_when_no_sbom_matches(
     (tmp_path / "head" / "wrong-id.cdx.json").write_text("{}")
     subproject = _npm_subproject("app")
 
-    result = attach_auxillary_sboms(
+    result, failed = attach_auxillary_sboms(
         [subproject], _precomputed_deps_config(tmp_path), []
     )
 
     assert not isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert failed == []
     warnings = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warnings) == 1
     assert str(tmp_path / "head") in warnings[0].getMessage()
@@ -559,7 +566,7 @@ def test_attach_auxillary_sboms_warns_on_partial_match(
     (tmp_path / "head").mkdir()
     (tmp_path / "head" / sbom_name).write_text("{}")
 
-    result = attach_auxillary_sboms(
+    result, _ = attach_auxillary_sboms(
         [matched, unmatched], _precomputed_deps_config(tmp_path), []
     )
 
@@ -594,7 +601,7 @@ def test_attach_auxillary_sboms_ignores_unsupported_ecosystems(
     (tmp_path / "head").mkdir()
     (tmp_path / "head" / sbom_name).write_text("{}")
 
-    result = attach_auxillary_sboms(
+    result, _ = attach_auxillary_sboms(
         [matched, unsupported], _precomputed_deps_config(tmp_path), []
     )
 
@@ -635,12 +642,138 @@ def test_attach_auxillary_sboms_no_warning_when_sbom_matches(
     (tmp_path / "head").mkdir()
     (tmp_path / "head" / sbom_name).write_text("{}")
 
-    result = attach_auxillary_sboms(
+    result, failed = attach_auxillary_sboms(
         [subproject], _precomputed_deps_config(tmp_path), []
     )
 
     assert isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert failed == []
     assert not [r for r in caplog.records if r.levelname == "WARNING"]
+
+
+def _write_precomputed(tmp_path: Path, subdir: str, name: str, text: str) -> None:
+    (tmp_path / subdir).mkdir(parents=True, exist_ok=True)
+    (tmp_path / subdir / name).write_text(text)
+
+
+def _resolution_error_message(unresolved: out.UnresolvedSubproject) -> str:
+    [error] = unresolved.errors
+    assert isinstance(error.value, out.SCAResol)
+    kind = error.value.value.type_.value
+    assert isinstance(kind, out.ResolutionCmdFailed_)
+    return kind.value.message
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_reports_precomputed_error_as_failed(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An .error file without an SBOM makes the subproject UnresolvedFailed
+    with the executor's message, and it is not counted as falling back."""
+    subproject = _npm_subproject("app")
+    dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+    _write_precomputed(tmp_path, "head", dep_source_id + ".error", "build broke\n")
+
+    result, failed = attach_auxillary_sboms(
+        [subproject], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert result == []
+    assert [(f.info, f.reason) for f in failed] == [
+        (subproject, out.UnresolvedReason(out.UnresolvedFailed()))
+    ]
+    assert _resolution_error_message(failed[0]) == "build broke"
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_caps_precomputed_error(tmp_path: Path) -> None:
+    subproject = _npm_subproject("app")
+    dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+    _write_precomputed(tmp_path, "head", dep_source_id + ".error", "x" * 100_000)
+
+    _, failed = attach_auxillary_sboms(
+        [subproject], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert 0 < len(_resolution_error_message(failed[0])) <= 4096
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("with_stray_error", [False, True])
+def test_attach_auxillary_sboms_prefers_sbom_over_error(
+    tmp_path: Path, with_stray_error: bool
+) -> None:
+    subproject = _npm_subproject("app")
+    dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+    _write_precomputed(tmp_path, "head", dep_source_id + ".cdx.json", "{}")
+    if with_stray_error:
+        _write_precomputed(tmp_path, "head", dep_source_id + ".error", "stale\n")
+
+    result, failed = attach_auxillary_sboms(
+        [subproject], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert failed == []
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("is_baseline_scan", [False, True])
+def test_attach_auxillary_sboms_reads_error_from_scan_phase_subdir(
+    tmp_path: Path, is_baseline_scan: bool
+) -> None:
+    """Only the .error file for the current phase (head/base) counts."""
+    subproject = _npm_subproject("app")
+    dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+    _write_precomputed(tmp_path, "base", dep_source_id + ".error", "base broke\n")
+    (tmp_path / "head").mkdir()
+    config = _precomputed_deps_config(tmp_path, is_baseline_scan=is_baseline_scan)
+
+    result, failed = attach_auxillary_sboms([subproject], config, [])
+
+    if is_baseline_scan:
+        assert result == []
+        assert _resolution_error_message(failed[0]) == "base broke"
+    else:
+        assert result == [subproject]
+        assert failed == []
+
+
+@pytest.mark.kinda_slow
+def test_resolve_subprojects_does_not_resolve_precomputed_failures(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A precomputed failure reaches the unresolved output without any local
+    resolution being attempted."""
+    make_repo_with_lockfile(monkeypatch, tmp_path)
+    rules = [make_depends_on_rule("rules.pypi-rule", "pypi")]
+    target_manager = TargetManager(scanning_root_strings=frozenset([Path(".")]))
+    [subproject], _ = find_subprojects(target_manager, True, rules)
+    dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+    _write_precomputed(tmp_path, "precomputed/head", dep_source_id + ".error", "boom")
+
+    def fail_if_called(*args: object, **kwargs: object) -> None:
+        raise AssertionError("local resolution attempted")
+
+    monkeypatch.setattr(
+        "semgrep.resolve_subprojects.resolve_dependency_source", fail_if_called
+    )
+    config = DependencyResolutionConfig(
+        allow_local_builds=False,
+        ptt_enabled=False,
+        resolve_untargeted_subprojects=True,
+        download_dependency_source_code=False,
+        precomputed_dependencies_dir=tmp_path / "precomputed",
+    )
+
+    unresolved, resolved, _ = resolve_subprojects(target_manager, rules, config)
+
+    assert resolved == {}
+    assert [u.reason for u in unresolved] == [
+        out.UnresolvedReason(out.UnresolvedFailed())
+    ]
+    assert _resolution_error_message(unresolved[0]) == "boom"
 
 
 # Please don't use @patch because it can't be typechecked and makes refactoring
