@@ -24,7 +24,9 @@ from semgrep.mcp.server import CodePath
 from semgrep.mcp.server import McpError
 from semgrep.mcp.server import validate_local_files
 from semgrep.mcp.utilities.utils import ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR
+from semgrep.mcp.utilities.utils import first_workspace_dir
 from semgrep.mcp.utilities.utils import get_workspace_dir
+from semgrep.mcp.utilities.utils import list_workspace_dirs
 
 
 @pytest.fixture
@@ -133,3 +135,42 @@ def test_workspace_dir_is_decoded(layout: dict[str, Path], tmp_path: Path) -> No
         [CodePath(path=str(workspace / "app.py"))], workspace_dir
     )
     assert [f.path for f in files] == ["app.py"]
+
+
+@pytest.mark.quick
+def test_multi_root_workspace(layout: dict[str, Path], tmp_path: Path) -> None:
+    """A VS Code multi-root workspace reports one root per folder."""
+    first, second = layout["workspace"], tmp_path / "second"
+    second.mkdir()
+    (second / "lib.py").write_text("print('lib')")
+
+    async def list_roots() -> ListRootsResult:
+        return ListRootsResult(
+            roots=[
+                Root(uri=FileUrl(first.as_uri())),
+                Root(uri=FileUrl(second.as_uri())),
+            ]
+        )
+
+    ctx = SimpleNamespace(
+        request_context=SimpleNamespace(session=SimpleNamespace(list_roots=list_roots))
+    )
+    workspace_dirs = asyncio.run(list_workspace_dirs(ctx))  # type: ignore[arg-type]
+    assert workspace_dirs == [str(first), str(second)]
+    workspace_dir = first_workspace_dir(workspace_dirs)
+    assert workspace_dir == str(first)
+    assert asyncio.run(get_workspace_dir(ctx)) == str(first)  # type: ignore[arg-type]
+
+    files = validate_local_files(
+        [CodePath(path=str(first / "app.py")), CodePath(path=str(second / "lib.py"))],
+        workspace_dir,
+        workspace_dirs[1:],
+    )
+    assert [(f.path, f.content) for f in files] == [
+        ("app.py", "print('hello')"),
+        ("lib.py", "print('lib')"),
+    ]
+    with pytest.raises(McpError, match="outside the workspace"):
+        validate_local_files(
+            [CodePath(path=str(layout["secret"]))], workspace_dir, workspace_dirs[1:]
+        )

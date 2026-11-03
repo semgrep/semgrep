@@ -50,6 +50,7 @@ from semgrep.mcp.utilities.utils import ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR
 from semgrep.mcp.utilities.utils import ENCODING
 from semgrep.mcp.utilities.utils import ENCODING_ERRORS
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
+from semgrep.mcp.utilities.utils import first_workspace_dir
 from semgrep.mcp.utilities.utils import get_authorization_server_url
 from semgrep.mcp.utilities.utils import get_current_user_from_jwt
 from semgrep.mcp.utilities.utils import get_deployment_id
@@ -61,6 +62,7 @@ from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import get_workspace_dir
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.mcp.utilities.utils import is_oauth_authenticated
+from semgrep.mcp.utilities.utils import list_workspace_dirs
 from semgrep.mcp.utilities.utils import re_identity_string
 from semgrep.mcp.utilities.utils import scan_outside_workspace_allowed
 from semgrep.metrics import Finding as MetricsFinding
@@ -230,6 +232,22 @@ def resolve_within_workspace(path: str, workspace_dir: str) -> str:
     return safe_join(root.as_posix(), resolved.relative_to(root).as_posix())
 
 
+def resolve_within_any_workspace(path: str, workspace_dirs: list[str]) -> str:
+    """
+    Like resolve_within_workspace, but accepts a path inside any of the
+    workspace's roots.
+
+    Raises:
+        ValueError: If the path is outside every root
+    """
+    for workspace_dir in workspace_dirs:
+        try:
+            return resolve_within_workspace(path, workspace_dir)
+        except ValueError:
+            continue
+    raise ValueError(f"{path} is outside the workspace")
+
+
 def validate_absolute_path(path_to_validate: str, param_name: str) -> str:
     """Validates an absolute path to ensure it's safe to use"""
     if not Path(path_to_validate).is_absolute():
@@ -363,7 +381,9 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
 
 
 def validate_local_files(
-    local_files: list[CodePath], workspace_dir: str | None
+    local_files: list[CodePath],
+    workspace_dir: str | None,
+    other_workspace_dirs: list[str] | None = None,
 ) -> list[CodeFile]:
     """
     Validates the local_files parameter for semgrep scan using Pydantic validation.
@@ -374,6 +394,8 @@ def validate_local_files(
         local_files: List of singleton dictionaries with a "path" key
         workspace_dir: The client's workspace root. When empty, the server's
             working directory is used instead (see cwd_workspace_dir).
+        other_workspace_dirs: The client's other roots, for a multi-root
+            workspace. Files inside any of them are read too.
 
     Raises:
         McpError: If validation fails
@@ -421,7 +443,9 @@ def validate_local_files(
             read_path = (
                 path
                 if allow_outside or workspace_dir is None
-                else resolve_within_workspace(path, workspace_dir)
+                else resolve_within_any_workspace(
+                    path, [workspace_dir, *(other_workspace_dirs or [])]
+                )
             )
             contents = Path(read_path).read_text(
                 encoding=ENCODING, errors=ENCODING_ERRORS
@@ -1229,7 +1253,8 @@ async def semgrep_scan(
       - scan code files for other issues
     """
 
-    workspace_dir = await get_workspace_dir(ctx)
+    workspace_dirs = await list_workspace_dirs(ctx)
+    workspace_dir = first_workspace_dir(workspace_dirs)
 
     # Implementer's note:
     # This is one possible entry point for regular scanning, depending on whether
@@ -1237,7 +1262,9 @@ async def semgrep_scan(
     # If the server is local, only this tool will be available, and not the
     # `semgrep_scan_remote` tool.
 
-    validated_local_files = validate_local_files(code_files, workspace_dir)
+    validated_local_files = validate_local_files(
+        code_files, workspace_dir, (workspace_dirs or [])[1:]
+    )
 
     return await semgrep_scan_core(ctx, workspace_dir, validated_local_files)
 
