@@ -34,8 +34,8 @@
                       [{ s =
                          (DefStmt
                             ({ name =
-                               (EPattern
-                                  (PatId (("x", _),
+                               (EN
+                                  (Id (("x", _),
                                      { id_resolved =
                                        ref ((Some (LocalVar, _)));
                                        id_resolved_alternatives = ref ([]);
@@ -407,8 +407,8 @@
                                    [{ s =
                                       (DefStmt
                                          ({ name =
-                                            (EPattern
-                                               (PatId (("x", _),
+                                            (EN
+                                               (Id (("x", _),
                                                   { id_resolved =
                                                     ref ((Some (LocalVar, _)));
                                                     id_resolved_alternatives =
