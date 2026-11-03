@@ -16,7 +16,9 @@ from pathlib import Path
 import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.dependency_aware_rule import generate_reachable_sca_findings
+from semgrep.dependency_aware_rule import generate_unreachable_sca_findings
 from semgrep.dependency_aware_rule import SubprojectDependencyIndex
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -824,9 +826,9 @@ def test_reachable_non_gradle_subproject_ignores_module_scoping(
 
 # A requirements.txt can list the same package twice: once unpinned in the
 # hand-written section (direct) and once pinned by pip-compile (transitive).
-# The unpinned direct copy can never be what the rule matched, so it must not
-# suppress the reachable finding on the pinned transitive copy. A pinned
-# direct copy still does.
+# The pinned copy names the installed release, so the unpinned direct copy
+# yields no finding of its own and must not suppress the reachable finding on
+# the pinned transitive copy. A pinned direct copy still does.
 def _requirements_dep(version, *, direct, package="requests"):
     return ResolvedDependency(
         (
@@ -915,14 +917,15 @@ def test_reachable_unpinned_direct_does_not_suppress_pinned_transitive(
 # The direct-over-transitive preference between two packages the rule lists
 # (foo vs foo-special) is about presence, not version: a hand-written
 # `foo>=2.0` still says the code uses foo, so a transitive foo-special match
-# stays suppressed exactly as with a pinned `foo==2.0.0`. The pinned direct
-# foo matches the rule itself and is reported; the unpinned ones never match.
+# stays suppressed exactly as with a pinned `foo==2.0.0`. The direct foo is
+# reported itself: the pinned one matches the rule's range, and the unpinned
+# ones overlap it, so each yields a finding on foo.
 @pytest.mark.quick
 @pytest.mark.parametrize(
     "direct_version, expected_packages",
     [
-        (">=2.0", []),
-        ("", []),
+        (">=2.0", ["foo"]),
+        ("", ["foo"]),
         ("2.0.0", ["foo"]),
     ],
 )
@@ -964,3 +967,116 @@ def test_reachable_unpinned_direct_still_suppresses_sibling_transitive(
     )
     assert errors == []
     assert [_paired_dependency(m).package for m in matches] == expected_packages
+
+
+# A requirements.txt line declared as a range, with no pinned copy of the
+# package, is matched by overlap with the advisory range: every release the
+# declaration admits is a candidate installed release.
+RANGE_RULE_JSON = {
+    "id": "py-sca",
+    "pattern": "bad()",
+    "r2c-internal-project-depends-on": {
+        "namespace": "pypi",
+        "package": "requests",
+        "version": "<2.28.0",
+    },
+    "message": "oh no",
+    "languages": ["python"],
+    "severity": "WARNING",
+}
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "declared_version, expected_versions",
+    [
+        (">=2.0", [">=2.0"]),
+        ("", [""]),
+        ("~=2.27.0", ["~=2.27.0"]),
+        (">=2.28.0", []),
+        ("==2.28.*", []),
+    ],
+)
+def test_reachable_range_declaration_matches_by_overlap(
+    tmp_path, monkeypatch, declared_version, expected_versions
+):
+    _layout(tmp_path, monkeypatch, ["pkg/app.py"])
+    subproject = _requirements_subproject(
+        [_requirements_dep(declared_version, direct=True)]
+    )
+    rule = Rule.from_json(RANGE_RULE_JSON)
+    index = SubprojectDependencyIndex.from_subproject(subproject)
+    matches, errors, _ = generate_reachable_sca_findings(
+        [_code_match("pkg/app.py")],
+        rule,
+        {Ecosystem(Pypi()): [(subproject, index)]},
+        gradle_module_attribution=False,
+    )
+    assert errors == []
+    assert [_paired_dependency(m).version for m in matches] == expected_versions
+    for match in matches:
+        sca_match = match.match.extra.sca_match
+        assert sca_match is not None
+        assert sca_match.reachable is True
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "declared_version, expected_versions",
+    [
+        (">=2.0", [">=2.0"]),
+        ("", [""]),
+        (">=2.28.0", []),
+    ],
+)
+def test_unreachable_range_declaration_matches_by_overlap(
+    tmp_path, monkeypatch, declared_version, expected_versions
+):
+    _layout(tmp_path, monkeypatch, ["pkg/app.py"])
+    # A lockfile-only match reads its lines back from the lockfile.
+    (tmp_path / "requirements.txt").write_text(f"requests{declared_version}\n")
+    subproject = _requirements_subproject(
+        [_requirements_dep(declared_version, direct=True)]
+    )
+    rule = Rule.from_json(RANGE_RULE_JSON)
+    index = SubprojectDependencyIndex.from_subproject(subproject)
+    matches, errors = generate_unreachable_sca_findings(
+        rule,
+        lambda _path, _dep: False,
+        {Ecosystem(Pypi()): [(subproject, index)]},
+        enable_transitive_reachability=False,
+        fips_mode=False,
+    )
+    assert errors == []
+    assert [_paired_dependency(m).version for m in matches] == expected_versions
+    for match in matches:
+        sca_match = match.match.extra.sca_match
+        assert sca_match is not None
+        assert sca_match.reachable is False
+
+
+# The same shadowing applies to the flat matcher used for lockfile-only
+# findings and rule prefiltering: a pinned copy of the package names the
+# installed release, so the range line yields no finding of its own.
+@pytest.mark.quick
+def test_dependencies_range_match_any_drops_range_shadowed_by_pinned_copy():
+    pattern = ScaPattern(
+        ecosystem=Ecosystem(Pypi()), package="requests", semver_range="<2.28.0"
+    )
+    unpinned = _requirements_dep(">=2.0", direct=True).value[0]
+    pinned = _requirements_dep("2.20.0", direct=False).value[0]
+    other_package = _requirements_dep("", direct=True, package="flask").value[0]
+
+    matched = [
+        dep.version
+        for _, dep in dependencies_range_match_any(
+            [pattern], [unpinned, pinned, other_package]
+        )
+    ]
+    assert matched == ["2.20.0"]
+
+    matched_without_pin = [
+        dep.version
+        for _, dep in dependencies_range_match_any([pattern], [unpinned, other_package])
+    ]
+    assert matched_without_pin == [">=2.0"]
