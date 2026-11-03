@@ -3051,6 +3051,7 @@ type dump_rule_partitions_params = {
   n_partitions: int;
   output_dir: fpath;
   ?strategy: string option;
+  ?heavy_rule_ids: string list option;
 }
 
 type scan_params
