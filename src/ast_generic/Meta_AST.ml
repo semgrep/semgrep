@@ -554,6 +554,7 @@ and vof_special = function
   | ConcatString v1 ->
       let v1 = vof_interpolated_kind v1 in
       OCaml.VSum ("ConcatString", [ v1 ])
+  | TemplateString -> OCaml.VSum ("TemplateString", [])
   | Spread -> OCaml.VSum ("Spread", [])
   | InterpolatedElement -> OCaml.VSum ("InterpolatedElement", [])
   | HashSplat -> OCaml.VSum ("HashSplat", [])
