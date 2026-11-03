@@ -2208,7 +2208,8 @@ type dump_rule_partitions_params =
   rules: raw_json;
   n_partitions: int;
   output_dir: fpath;
-  strategy: string option
+  strategy: string option;
+  heavy_rule_ids: string list option
 }
 
 (**
@@ -36320,6 +36321,17 @@ let write_dump_rule_partitions_params : _ -> dump_rule_partitions_params -> _ = 
       )
         ob x;
     );
+    (match x.heavy_rule_ids with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"heavy_rule_ids\":";
+      (
+        write__string_list
+      )
+        ob x;
+    );
     Buffer.add_char ob '}';
 )
 let string_of_dump_rule_partitions_params ?(len = 1024) x =
@@ -36334,6 +36346,7 @@ let read_dump_rule_partitions_params = (
     let field_n_partitions = ref (None) in
     let field_output_dir = ref (None) in
     let field_strategy = ref (None) in
+    let field_heavy_rule_ids = ref (None) in
     try
       Yojson.Safe.read_space p lb;
       Yojson.Safe.read_object_end lb;
@@ -36370,6 +36383,14 @@ let read_dump_rule_partitions_params = (
             | 12 -> (
                 if String.unsafe_get s pos = 'n' && String.unsafe_get s (pos+1) = '_' && String.unsafe_get s (pos+2) = 'p' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 't' && String.unsafe_get s (pos+6) = 'i' && String.unsafe_get s (pos+7) = 't' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'o' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 's' then (
                   1
+                )
+                else (
+                  -1
+                )
+              )
+            | 14 -> (
+                if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'v' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'r' && String.unsafe_get s (pos+7) = 'u' && String.unsafe_get s (pos+8) = 'l' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'i' && String.unsafe_get s (pos+12) = 'd' && String.unsafe_get s (pos+13) = 's' then (
+                  4
                 )
                 else (
                   -1
@@ -36413,6 +36434,16 @@ let read_dump_rule_partitions_params = (
                 Some (
                   (
                     Atdgen_runtime.Oj_run.read_string
+                  ) p lb
+                )
+              );
+            )
+          | 4 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_heavy_rule_ids := (
+                Some (
+                  (
+                    read__string_list
                   ) p lb
                 )
               );
@@ -36462,6 +36493,14 @@ let read_dump_rule_partitions_params = (
                     -1
                   )
                 )
+              | 14 -> (
+                  if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'v' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'r' && String.unsafe_get s (pos+7) = 'u' && String.unsafe_get s (pos+8) = 'l' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'i' && String.unsafe_get s (pos+12) = 'd' && String.unsafe_get s (pos+13) = 's' then (
+                    4
+                  )
+                  else (
+                    -1
+                  )
+                )
               | _ -> (
                   -1
                 )
@@ -36504,6 +36543,16 @@ let read_dump_rule_partitions_params = (
                   )
                 );
               )
+            | 4 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_heavy_rule_ids := (
+                  Some (
+                    (
+                      read__string_list
+                    ) p lb
+                  )
+                );
+              )
             | _ -> (
                 Yojson.Safe.skip_json p lb
               )
@@ -36517,6 +36566,7 @@ let read_dump_rule_partitions_params = (
             n_partitions = (match !field_n_partitions with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "n_partitions");
             output_dir = (match !field_output_dir with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "output_dir");
             strategy = !field_strategy;
+            heavy_rule_ids = !field_heavy_rule_ids;
           }
          : dump_rule_partitions_params)
       )
