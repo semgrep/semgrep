@@ -1,0 +1,1 @@
+Rust: a pattern can now use `...` as a match arm. For example, `match $X { ... }` finds all match expressions. Before, such patterns failed with `Invalid pattern for Rust`. The position of the `...` among the arms does not change the match: the engine matches case arms in any order, as it does for other languages.
