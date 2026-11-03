@@ -1,0 +1,1 @@
+Handle Python mapping-pattern rest captures during generic AST conversion.
