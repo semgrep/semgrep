@@ -1,0 +1,5 @@
+Fixed Go `make([]T, n)` and `make(map[K]V, n)` patterns wrongly matching
+one-element slice and map composite literals such as `[]T{x}` and
+`map[K]V{k: v}`. Slice, array, and map composite literals now lower to a
+generic container instead of the same node as `make`, so the two are no
+longer conflated.
