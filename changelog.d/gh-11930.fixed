@@ -1,0 +1,1 @@
+Go: Match statement sequences that begin in an `if` initializer and continue after the conditional. Preserve initializer scope and multiple-variable short-declaration bindings when matching metavariables, avoiding incorrect matches between shadowed variables.
