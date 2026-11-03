@@ -197,19 +197,29 @@ def setrlimits_preexec_fn() -> None:
 
     # Have candidates in case os unable to set certain limit
     potential_soft_limits = [
-        int(
-            hard_limit / 3
-        ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
-        int(hard_limit / 4),
-        old_soft_limit * 100,
-        old_soft_limit * 10,
-        old_soft_limit * 5,
         1000000000,
         512000000,
         51200000,
         5120000,  # Magic numbers that seems to work for most cases
         old_soft_limit,
     ]
+    # An unlimited limit is RLIM_INFINITY: -1 (or -3) before Python 3.15 and
+    # 2**64 - 1 from 3.15 on. Fractions or multiples of it are not real limits
+    # (from 3.15 on, hard_limit / 3 is a ~6 EB stack that semgrep-core crashes
+    # on), so derive candidates only from finite limits.
+    if hard_limit != resource.RLIM_INFINITY:
+        potential_soft_limits += [
+            int(
+                hard_limit / 3
+            ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
+            int(hard_limit / 4),
+        ]
+    if old_soft_limit != resource.RLIM_INFINITY:
+        potential_soft_limits += [
+            old_soft_limit * 100,
+            old_soft_limit * 10,
+            old_soft_limit * 5,
+        ]
 
     # Reverse sort so maximum possible soft limit is set
     potential_soft_limits.sort(reverse=True)
