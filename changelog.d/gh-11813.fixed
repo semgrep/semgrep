@@ -1,0 +1,1 @@
+Preserve source positions when adjacent string literal components are fused, including literals split across source lines.
