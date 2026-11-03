@@ -231,6 +231,13 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    "--x-heavy-rule-id",
+    "heavy_rule_ids",
+    multiple=True,
+    type=str,
+    hidden=True,
+)
+@click.option(
     "--x-partial-config",
     "partial_config",
     type=click.Path(allow_dash=True, path_type=Path),
@@ -374,6 +381,7 @@ def ci(
     dump_n_rule_partitions: Optional[int],
     dump_rule_partitions_dir: Optional[Path],
     dump_rule_partitions_strategy: Optional[str],
+    heavy_rule_ids: Tuple[str, ...],
     partial_config: Optional[Path],
     partial_output: Optional[Path],
     x_group_taint_rules: bool,
@@ -483,10 +491,11 @@ def ci(
         dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None
         if dump_n_rule_partitions:
             dump_rule_partitions_params = out.DumpRulePartitionsParams(
-                out.RawJson([]),  # rules will be populated later before actual dumping
-                dump_n_rule_partitions,
-                out.Fpath(str(dump_rule_partitions_dir)),
-                dump_rule_partitions_strategy,
+                rules=out.RawJson([]),  # populated later before actual dumping
+                n_partitions=dump_n_rule_partitions,
+                output_dir=out.Fpath(str(dump_rule_partitions_dir)),
+                strategy=dump_rule_partitions_strategy,
+                heavy_rule_ids=list(heavy_rule_ids) or None,
             )
 
         if partial_config and not partial_output:

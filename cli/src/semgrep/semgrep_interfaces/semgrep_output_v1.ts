@@ -1163,6 +1163,7 @@ export type DumpRulePartitionsParams = {
   n_partitions: number /*int*/;
   output_dir: Fpath;
   strategy?: string;
+  heavy_rule_ids?: string[];
 }
 
 export type ScanParams = {
@@ -4905,6 +4906,7 @@ export function writeDumpRulePartitionsParams(x: DumpRulePartitionsParams, conte
     'n_partitions': _atd_write_required_field('DumpRulePartitionsParams', 'n_partitions', _atd_write_int, x.n_partitions, x),
     'output_dir': _atd_write_required_field('DumpRulePartitionsParams', 'output_dir', writeFpath, x.output_dir, x),
     'strategy': _atd_write_optional_field(_atd_write_string, x.strategy, x),
+    'heavy_rule_ids': _atd_write_optional_field(_atd_write_array(_atd_write_string), x.heavy_rule_ids, x),
   };
 }
 
@@ -4914,6 +4916,7 @@ export function readDumpRulePartitionsParams(x: any, context: any = x): DumpRule
     n_partitions: _atd_read_required_field('DumpRulePartitionsParams', 'n_partitions', _atd_read_int, x['n_partitions'], x),
     output_dir: _atd_read_required_field('DumpRulePartitionsParams', 'output_dir', readFpath, x['output_dir'], x),
     strategy: _atd_read_optional_field(_atd_read_string, x['strategy'], x),
+    heavy_rule_ids: _atd_read_optional_field(_atd_read_array(_atd_read_string), x['heavy_rule_ids'], x),
   };
 }
 
