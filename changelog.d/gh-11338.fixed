@@ -1,0 +1,4 @@
+The deep expression operator `<... e ...>` now parses in OCaml patterns.  It
+was previously rejected with "Invalid pattern for OCaml: Stdlib.Parsing.Parse_error"
+because
+the lexer's generic infix-operator rule shadowed the `<...` token.
