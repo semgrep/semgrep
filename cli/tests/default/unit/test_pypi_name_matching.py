@@ -135,3 +135,37 @@ def test_rule_prefilter_matches_across_spellings():
         ecosystem=PYPI, package="zope.interface", semver_range="<6.0.0"
     )
     assert list(dependencies_range_match_any([pattern], [dep])) == [(pattern, dep)]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("declared", ["", ">=5.0", ">=6.0"])
+def test_pinned_copy_shadows_normalized_range_declaration(declared):
+    deps = [
+        _dep("Zope.Interface", declared),
+        _dep("zope-interface", "5.4.0"),
+    ]
+    pattern = out.ScaPattern(
+        ecosystem=PYPI, package="zope_interface", semver_range="<6.0.0"
+    )
+    assert _matches(_index(deps), pattern.package, pattern.semver_range) == [
+        ("zope_interface", "zope-interface", "5.4.0")
+    ]
+    assert list(
+        dependencies_range_match_any([pattern], [dep.value[0] for dep in deps])
+    ) == [(pattern, deps[1].value[0])]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "declared,expected_count", [("", 1), (">=5.0", 1), (">=6.0", 0)]
+)
+def test_normalized_range_declaration_matches_by_overlap(declared, expected_count):
+    deps = [_dep("Zope.Interface", declared)]
+    assert len(_matches(_index(deps), "zope_interface", "<6.0.0")) == expected_count
+    pattern = out.ScaPattern(
+        ecosystem=PYPI, package="zope_interface", semver_range="<6.0.0"
+    )
+    assert (
+        len(list(dependencies_range_match_any([pattern], [deps[0].value[0]])))
+        == expected_count
+    )

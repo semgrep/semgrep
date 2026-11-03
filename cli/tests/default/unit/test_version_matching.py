@@ -159,9 +159,8 @@ def test_npm_matches(expression, candidate, match):
 
 
 # A requirement that is not pinned to a single release is reported with its
-# PEP 440 specifier (or "") as the version. It stays in the inventory but is
-# not matched for the purpose of generating a finding, whatever the advisory
-# range, until SC-4200 decides how to report a possibly-affected range.
+# PEP 440 specifier (or "") as the version. Every one of these shapes counts
+# as unpinned.
 @pytest.mark.quick
 @pytest.mark.parametrize(
     "version",
@@ -178,11 +177,55 @@ def test_npm_matches(expression, candidate, match):
         "*",
     ],
 )
-@pytest.mark.parametrize("ecosystem", [Ecosystem(Pypi()), Ecosystem(Npm())])
-def test_unpinned_versions_produce_no_finding(ecosystem, version):
+def test_specifier_versions_are_unpinned(version):
     assert is_unpinned_version(version)
-    assert is_in_range(ecosystem, "<99.0.0", version) is False
-    assert is_in_range(ecosystem, ">=0.0.1", version) is False
+
+
+# A pypi requirement declared as a range matches an advisory when some release
+# satisfies both the declared range and the advisory range. A bare name ("")
+# or an unreadable specifier ("*") admits every release.
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "advisory_range, declared, match",
+    [
+        ("<5.4", ">=5.0", True),
+        ("<5.4", ">=5.4", False),
+        ("<5.4", ">5.3.1", True),
+        ("<5.4", "", True),
+        ("<5.4", "   ", True),
+        ("<5.4", "*", True),
+        ("<5.4", ">=5.4.0", False),
+        (">=1.0,<2.0", "~=1.4", True),
+        (">=1.0,<2.0", "~=2.0", False),
+        (">=1.0,<2.0", "~=1.9.5", True),
+        (">=1.0,<2.0", "==1.5.*", True),
+        (">=1.0,<2.0", "==2.*", False),
+        (">=1.0,<2.0", "==1.0", True),
+        (">=1.0,<2.0", "==2.0", False),
+        ("==1.0", "!=1.0", False),
+        ("<2", "!=1.0", True),
+        ("<2", "!=1.*", True),
+        (">=2.0,<3.0", ">=1,<2", False),
+        (">=2.0,<3.0", "<=2.0", True),
+        (">2.0", "<=2.0", False),
+        (">=2.0", "<2.0", False),
+        ("<1.26", "===1.0", True),
+        ("<1.26", "===not-a-release", True),
+        ("<1.26", ">=1.0,!=1.5,<1.26", True),
+        ("<1.26", ">=1.26,<2", False),
+    ],
+)
+def test_pypi_declared_range_matches_by_overlap(advisory_range, declared, match):
+    assert is_in_range(Ecosystem(Pypi()), advisory_range, declared) is match
+
+
+# No npm parser reports a specifier as a version, so an unpinned version only
+# ever matches under pypi.
+@pytest.mark.quick
+@pytest.mark.parametrize("version", ["", ">=2.0", "~=1.26", "*"])
+def test_npm_unpinned_versions_produce_no_finding(version):
+    assert is_in_range(Ecosystem(Npm()), "<99.0.0", version) is False
+    assert is_in_range(Ecosystem(Npm()), ">=0.0.1", version) is False
 
 
 @pytest.mark.quick
