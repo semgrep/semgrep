@@ -33,6 +33,9 @@ let name_tests : (string * Lang.t * Fpath.t * success) list =
     ("js relative path", Js, "./a/b.c/foo.js", OK);
     ("js absolute path", Js, "/a/b.c/foo.js", OK);
     ("js double extension", Js, "foo.bar.js", OK);
+    ("js uppercase extension", Js, "foo.JS", OK);
+    ("cpp uppercase extension", Cpp, "foo.CPP", OK);
+    ("cpp mixed-case extension", Cpp, "foo.Cpp", OK);
     ("min js", Js, "foo.min.js", XFAIL);
     ("not js", Js, "foo.bar", XFAIL);
     ("jsx", Js, "foo.jsx", OK);
