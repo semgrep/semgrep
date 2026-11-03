@@ -2208,7 +2208,8 @@ type dump_rule_partitions_params =
   rules: raw_json;
   n_partitions: int;
   output_dir: fpath;
-  strategy: string option
+  strategy: string option;
+  heavy_rule_ids: string list option
 }
 
 (**
