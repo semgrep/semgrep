@@ -36,6 +36,7 @@ from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.matchers.gradle import GradleMatcher
 from semdep.package_restrictions import dependencies_range_match_any
 from semdep.package_restrictions import dependency_match_key
+from semdep.package_restrictions import drop_shadowed_unpinned_copies
 from semdep.package_restrictions import is_in_range
 from semdep.package_restrictions import is_unpinned_version
 from semgrep.dependency_path import DependencyParentIndex
@@ -299,7 +300,7 @@ class SubprojectDependencyIndex:
         """
         for pattern in sca_patterns:
             key = dependency_match_key(pattern.ecosystem, pattern.package)
-            candidates = self.index.get(key, [])
+            candidates = drop_shadowed_unpinned_copies(self.index.get(key, []))
             for candidate in candidates:
                 if (
                     pattern.ecosystem == candidate.ecosystem
@@ -600,12 +601,13 @@ def generate_reachable_sca_findings(
                     and found_dep.transitivity.value == out.Direct()
                 }
                 # The subset whose direct copy names a definitive installed
-                # version. A direct dependency with no pinned version (see
-                # is_unpinned_version) cannot itself be what the rule matched,
-                # so it must not suppress a match on a pinned transitive copy
-                # of the same package. Otherwise adding `foo>=2.0` to
-                # requirements.txt would hide a reachable finding on a
-                # vulnerable transitive `foo` that was reported before.
+                # version. An unpinned direct copy (see is_unpinned_version)
+                # next to a pinned copy of the same package yields no match of
+                # its own, since the pinned copy names the installed release,
+                # so it must not suppress the match on that pinned transitive
+                # copy either. Otherwise adding `foo>=2.0` to requirements.txt
+                # would hide a reachable finding on a vulnerable transitive
+                # `foo` that was reported before.
                 pinned_direct_pattern_packages = {
                     dependency_match_key(found_dep.ecosystem, found_dep.package)
                     for found_dep in deps
