@@ -141,7 +141,7 @@ TOO_MUCH_DATA = "<SKIPPED DATA (too many entries; use --max-log-list-entries)>"
 # to include in output. Prevents minified JS from producing enormous output.
 # 0 means unlimited.
 # coupling: with Output.ml
-DEFAULT_MAX_MATCH_CONTEXT_SIZE = 0
+DEFAULT_MAX_MATCH_CONTEXT_SIZE = 2000
 TOO_MUCH_CONTEXT = "... [truncated; adjust with --max-match-context-size]"
 
 
