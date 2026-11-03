@@ -1,0 +1,1 @@
+Fix `make all` to install the Python CLI and its development dependencies with uv from the existing lockfile instead of invoking pipenv.
