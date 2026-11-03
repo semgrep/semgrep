@@ -221,6 +221,20 @@ let test_is_dir_or_lnk_or_reg () =
         "" false
         (UFile.is_dir_or_lnk_or_reg (Fpath.v "missing")))
 
+let test_file_type_dockerfile () =
+  let check filename =
+    let typ = File_type.file_type_of_file (Fpath.v filename) in
+    Alcotest.(check bool)
+      filename true
+      (match typ with
+      | File_type.Config File_type.Dockerfile -> true
+      | _ -> false)
+  in
+  check "foo.Dockerfile";
+  check "foo.Containerfile";
+  check "foo.dockerfile";
+  check "foo.containerfile"
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -228,6 +242,7 @@ let test_is_dir_or_lnk_or_reg () =
 let tests =
   Testo.categorize "File"
     [
+      t "file_type_dockerfile" test_file_type_dockerfile;
       t "input_line LF" (fun () ->
           with_string "foo\nbar\n" (fun chan ->
               let str1 = input_line chan in

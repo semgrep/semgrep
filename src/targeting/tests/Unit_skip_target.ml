@@ -86,6 +86,14 @@ let cases : (string * string * string * expected) list =
     ("source .py with PNG magic", ".py", magic "\x89PNG\r\n\x1a\n", NotBinary);
     ("text .txt with PDF magic", ".txt", "%PDF- just text\n", NotBinary);
     ("text .txt starting with MZ", ".txt", "MZ but plain text\n", NotBinary);
+    ( "Dockerfile with PNG magic",
+      ".Dockerfile",
+      magic "\x89PNG\r\n\x1a\n",
+      NotBinary );
+    ( "Containerfile with PNG magic",
+      ".Containerfile",
+      magic "\x89PNG\r\n\x1a\n",
+      NotBinary );
     (* --- NotBinary: a known binary category but no magic match. --- *)
     (* .svg is Media but unkeyed and its XML body matches nothing. *)
     ("SVG XML (.svg)", ".svg", "<?xml version=\"1.0\"?><svg></svg>", NotBinary);
