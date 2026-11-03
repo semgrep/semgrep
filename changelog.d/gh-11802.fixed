@@ -1,0 +1,1 @@
+semgrep-core no longer crashes with `Unix_error: Cannot allocate memory io_uring_queue_init` when several scans run at once under a small memlock limit (e.g. pre-commit in Docker or Kubernetes). On Linux, semgrep-core now uses Eio's posix backend unless `EIO_BACKEND` is set.

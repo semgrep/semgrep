@@ -6,6 +6,7 @@
    collections
    eio
    eio_main
+   unix
    eio.mock
    logs
  )
