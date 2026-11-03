@@ -24,7 +24,9 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.gradle_build import GradleSubproject
 from semgrep.simple_profiling import simple_profiling
+from semgrep.types import fake_target_of_path
 from semgrep.types import Target
 
 
@@ -443,6 +445,13 @@ class ClosestSubprojectFinder:
             self.subproject_index[subproject.ecosystem].append(
                 (subproject, Path(subproject.root_dir.value))
             )
+        gradle_metadata = next(
+            (sub for sub in subprojects if isinstance(sub, GradleSubproject)), None
+        )
+        self.gradle_ownership = gradle_metadata.ownership if gradle_metadata else ()
+        self.gradle_checkout_dir = (
+            gradle_metadata.checkout_dir if gradle_metadata else None
+        )
         for ecosystem in self.subproject_index:
             # sort each ecosystem's subprojects in order of decreasing root_dir length
             self.subproject_index[ecosystem].sort(
@@ -473,6 +482,20 @@ class ClosestSubprojectFinder:
             ecosystem (Ecosystem): The ecosystem to consider subprojects for
         """
         sorted_candidates = self.subproject_index[ecosystem]
+        if ecosystem == out.Ecosystem(out.Maven()) and self.gradle_ownership:
+            assert self.gradle_checkout_dir is not None
+            resolved_path = (self.gradle_checkout_dir / path.fpath).resolve()
+            for directory, owner in self.gradle_ownership:
+                if resolved_path.is_relative_to(directory):
+                    return next(
+                        (
+                            candidate
+                            for candidate, root in sorted_candidates
+                            if owner is not None
+                            and (self.gradle_checkout_dir / root).resolve() == owner
+                        ),
+                        None,
+                    )
 
         path_parents = set([path, *path.fpath.parents])
         for candidate, candidate_root_path in sorted_candidates:
@@ -487,19 +510,9 @@ def find_closest_resolved_subproject(
     path: Path, ecosystem: out.Ecosystem, candidates: List[out.ResolvedSubproject]
 ) -> Optional[out.ResolvedSubproject]:
     """ """
-    sorted_candidates = sorted(
-        candidates, key=lambda x: len(Path(x.info.root_dir.value).parts), reverse=True
-    )
-
-    for candidate in sorted_candidates:
-        for parent in [path, *path.parents]:
-            if (
-                Path(candidate.info.root_dir.value) == parent
-                and candidate.ecosystem == ecosystem
-            ):
-                return candidate
-
-    return None
+    finder = ClosestSubprojectFinder([candidate.info for candidate in candidates])
+    info = finder.find_closest_subproject(fake_target_of_path(path), ecosystem)
+    return next((candidate for candidate in candidates if candidate.info is info), None)
 
 
 def subproject_sort_key(

@@ -12,6 +12,7 @@
 #
 import sys
 from dataclasses import dataclass
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict
 from typing import FrozenSet
@@ -32,6 +33,8 @@ from semdep.subproject_matchers import MATCHERS
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep import telemetry
 from semgrep.console import console
+from semgrep.gradle_build import discover_gradle_ownership
+from semgrep.gradle_build import GradleSubproject
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
@@ -183,6 +186,9 @@ def find_subprojects(
     target_manager: TargetManager,
     resolve_untargeted_subprojects: bool,
     dependency_aware_rules: list[Rule],
+    allow_local_builds: bool = False,
+    gradle_module_attribution: bool = False,
+    local_build_env: Optional[Dict[str, str]] = None,
 ) -> tuple[list[out.Subproject], list[out.UnresolvedSubproject]]:
     # First, find all subprojects. We ignore the baseline handler because we want
     # to _identify_, but not necessarily resolve, even unchanged subprojects.
@@ -217,6 +223,13 @@ def find_subprojects(
         extra_glob_patterns_to_include_git_untracked_files=get_all_subproject_identifying_glob_filters(),
     )
     found_subprojects = match_subprojects(dependency_source_files, MATCHERS)
+    if allow_local_builds and not gradle_module_attribution:
+        found_subprojects = discover_gradle_ownership(
+            found_subprojects,
+            frozenset(target.fpath for target in dependency_source_files),
+            tuple(target_manager.scanning_root_strings),
+            local_build_env or {},
+        )
 
     # A subproject is relevant if one of its dependency source files is a target
     # or there exist a code target for which find_closest_subproject is that
@@ -277,11 +290,7 @@ def attach_auxillary_sboms(
             new_dep_source = out.DependencySource(
                 out.AuxillarySBOM((sbom, subproject.dependency_source))
             )
-            subproject = out.Subproject(
-                root_dir=subproject.root_dir,
-                dependency_source=new_dep_source,
-                ecosystem=subproject.ecosystem,
-            )
+            subproject = replace(subproject, dependency_source=new_dep_source)
             logger.verbose(f"Using precomputed SBOM for {subproject.root_dir}")
         elif (
             not dependency_resolution_config.restrict_resolution_to_rule_ecosystems
@@ -337,10 +346,27 @@ def filter_changed_subprojects(
     all_dependency_source_targets = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=False
     )
-    all_dependency_source_fpaths = fpaths_of_targets(all_dependency_source_targets)
+    all_dependency_source_fpaths = {
+        path.resolve() for path in fpaths_of_targets(all_dependency_source_targets)
+    }
+    if any(isinstance(subproject, GradleSubproject) for subproject in subprojects):
+        all_dependency_source_fpaths.update(
+            target.fpath.resolve()
+            for target in target_manager.get_all_files(product=SCA_PRODUCT)
+        )
+        if target_manager.baseline_handler:
+            status = target_manager.baseline_handler.status
+            all_dependency_source_fpaths.update(
+                path.resolve()
+                for path in [*status.added, *status.modified, *status.removed]
+            )
     for subproject in subprojects:
         source_files = get_all_source_files(subproject.dependency_source)
-        if not all_dependency_source_fpaths.isdisjoint(source_files):
+        if isinstance(subproject, GradleSubproject):
+            source_files.extend(subproject.build_inputs)
+        if not all_dependency_source_fpaths.isdisjoint(
+            path.resolve() for path in source_files
+        ):
             # one of the source files for this subproject changed, so we should keep it
             relevant_subprojects.add(HashableSubproject(subproject))
 
@@ -456,7 +482,12 @@ def resolve_subprojects(
         4. Dependency source paths that were used in the resolution process
     """
     relevant_subprojects, irrelevant_subprojects = find_subprojects(
-        target_manager, config.resolve_untargeted_subprojects, dependency_aware_rules
+        target_manager,
+        config.resolve_untargeted_subprojects,
+        dependency_aware_rules,
+        allow_local_builds=config.allow_local_builds,
+        gradle_module_attribution=config.gradle_module_attribution,
+        local_build_env=config.local_build_env,
     )
 
     # attach precomputed SBOMs to relevant subprojects
@@ -565,11 +596,19 @@ def dump_subprojects_and_exit(
     dump_subprojects_to_path: Path,
     resolve_untargeted_subprojects: bool,
     restrict_resolution_to_rule_ecosystems: bool = False,
+    allow_local_builds: bool = False,
+    gradle_module_attribution: bool = False,
+    local_build_env: Optional[Dict[str, str]] = None,
 ) -> None:
     dependency_aware_rules: List[Rule] = [r for r in rules if r.project_depends_on]
 
     relevant_subprojects, irrelevant_subprojects = find_subprojects(
-        target_manager, resolve_untargeted_subprojects, dependency_aware_rules
+        target_manager,
+        resolve_untargeted_subprojects,
+        dependency_aware_rules,
+        allow_local_builds=allow_local_builds,
+        gradle_module_attribution=gradle_module_attribution,
+        local_build_env=local_build_env,
     )
 
     # Note that, unlike resolve_subprojects, this plan does not model precomputed
