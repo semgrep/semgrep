@@ -1124,6 +1124,9 @@ let children_regexps : (string * Run.exp option) list = [
   Some (
     Seq [
       Token (Name "identifier");
+      Opt (
+        Token (Name "type_parameter_list");
+      );
       Token (Literal "=");
       Alt [|
         Token (Name "simple_type");
@@ -1208,17 +1211,32 @@ let children_regexps : (string * Run.exp option) list = [
         Token (Name "type_alias");
         Seq [
           Token (Literal "(");
-          Repeat (
+          Opt (
             Seq [
               Alt [|
                 Token (Name "type_spec");
                 Token (Name "type_alias");
               |];
-              Alt [|
-                Token (Name "pat_1d78758");
-                Token (Literal ";");
-                Token (Literal "\000");
-              |];
+              Repeat (
+                Seq [
+                  Alt [|
+                    Token (Name "pat_1d78758");
+                    Token (Literal ";");
+                    Token (Literal "\000");
+                  |];
+                  Alt [|
+                    Token (Name "type_spec");
+                    Token (Name "type_alias");
+                  |];
+                ];
+              );
+              Opt (
+                Alt [|
+                  Token (Name "pat_1d78758");
+                  Token (Literal ";");
+                  Token (Literal "\000");
+                |];
+              );
             ];
           );
           Token (Literal ")");
@@ -4165,11 +4183,15 @@ and trans_type_alias ((kind, body) : mt) : CST.type_alias =
   match body with
   | Children v ->
       (match v with
-      | Seq [v0; v1; v2] ->
+      | Seq [v0; v1; v2; v3] ->
           (
             trans_identifier (Run.matcher_token v0),
-            Run.trans_token (Run.matcher_token v1),
-            (match v2 with
+            Run.opt
+              (fun v -> trans_type_parameter_list (Run.matcher_token v))
+              v1
+            ,
+            Run.trans_token (Run.matcher_token v2),
+            (match v3 with
             | Alt (0, v) ->
                 `Simple_type (
                   trans_simple_type (Run.matcher_token v)
@@ -4341,15 +4363,15 @@ and trans_type_declaration ((kind, body) : mt) : CST.type_declaration =
                   trans_type_alias (Run.matcher_token v)
                 )
             | Alt (2, v) ->
-                `LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR (
+                `LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR (
                   (match v with
                   | Seq [v0; v1; v2] ->
                       (
                         Run.trans_token (Run.matcher_token v0),
-                        Run.repeat
+                        Run.opt
                           (fun v ->
                             (match v with
-                            | Seq [v0; v1] ->
+                            | Seq [v0; v1; v2] ->
                                 (
                                   (match v0 with
                                   | Alt (0, v) ->
@@ -4363,21 +4385,63 @@ and trans_type_declaration ((kind, body) : mt) : CST.type_declaration =
                                   | _ -> assert false
                                   )
                                   ,
-                                  (match v1 with
-                                  | Alt (0, v) ->
-                                      `Pat_1d78758 (
-                                        trans_pat_1d78758 (Run.matcher_token v)
+                                  Run.repeat
+                                    (fun v ->
+                                      (match v with
+                                      | Seq [v0; v1] ->
+                                          (
+                                            (match v0 with
+                                            | Alt (0, v) ->
+                                                `Pat_1d78758 (
+                                                  trans_pat_1d78758 (Run.matcher_token v)
+                                                )
+                                            | Alt (1, v) ->
+                                                `SEMI (
+                                                  Run.trans_token (Run.matcher_token v)
+                                                )
+                                            | Alt (2, v) ->
+                                                `NUL (
+                                                  Run.trans_token (Run.matcher_token v)
+                                                )
+                                            | _ -> assert false
+                                            )
+                                            ,
+                                            (match v1 with
+                                            | Alt (0, v) ->
+                                                `Type_spec (
+                                                  trans_type_spec (Run.matcher_token v)
+                                                )
+                                            | Alt (1, v) ->
+                                                `Type_alias (
+                                                  trans_type_alias (Run.matcher_token v)
+                                                )
+                                            | _ -> assert false
+                                            )
+                                          )
+                                      | _ -> assert false
                                       )
-                                  | Alt (1, v) ->
-                                      `SEMI (
-                                        Run.trans_token (Run.matcher_token v)
+                                    )
+                                    v1
+                                  ,
+                                  Run.opt
+                                    (fun v ->
+                                      (match v with
+                                      | Alt (0, v) ->
+                                          `Pat_1d78758 (
+                                            trans_pat_1d78758 (Run.matcher_token v)
+                                          )
+                                      | Alt (1, v) ->
+                                          `SEMI (
+                                            Run.trans_token (Run.matcher_token v)
+                                          )
+                                      | Alt (2, v) ->
+                                          `NUL (
+                                            Run.trans_token (Run.matcher_token v)
+                                          )
+                                      | _ -> assert false
                                       )
-                                  | Alt (2, v) ->
-                                      `NUL (
-                                        Run.trans_token (Run.matcher_token v)
-                                      )
-                                  | _ -> assert false
-                                  )
+                                    )
+                                    v2
                                 )
                             | _ -> assert false
                             )
