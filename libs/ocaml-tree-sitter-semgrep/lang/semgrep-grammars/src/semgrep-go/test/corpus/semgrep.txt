@@ -47,3 +47,291 @@ var d = " /* text */ \x41"
     (interpreted_string_literal))))
   (var_declaration (var_spec (identifier) (expression_list
     (interpreted_string_literal (interpreted_string_literal_content) (escape_sequence))))))
+
+==================
+Reserved keyword prefixes remain complete identifiers
+==================
+var typeName = 1
+var typeͺ = 2
+typeͺ()
+---
+(source_file
+  (var_declaration
+    (var_spec
+      (identifier)
+      (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      (identifier)
+      (expression_list
+        (int_literal))))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list))))
+
+==================
+Predeclared names remain identifiers
+==================
+var any = comparable
+any
+any()
+obj.any()
+func comparable(any int, new ...int) { sink(any, new...) }
+---
+(source_file
+  (var_declaration
+    (var_spec
+      (identifier)
+      (expression_list
+        (identifier))))
+  (expression_statement
+    (identifier))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list)))
+  (expression_statement
+    (call_expression
+      (selector_expression
+        (identifier)
+        (field_identifier))
+      (argument_list)))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_identifier))
+      (variadic_parameter_declaration
+        (identifier)
+        (type_identifier)))
+    (block
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)
+              (variadic_argument
+                (identifier)))))))))
+
+==================
+Parameter types and native variadic ellipses
+==================
+func f([]string, int, map[int]int, error) ([]string, int, map[int]int, error) {}
+func g(x, y int, rest ...string) { f(x, rest...); a := [...]int{1, 2}; g(a[0]) }
+---
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter_declaration
+        (slice_type
+          (type_identifier)))
+      (parameter_declaration
+        (type_identifier))
+      (parameter_declaration
+        (map_type
+          (type_identifier)
+          (type_identifier)))
+      (parameter_declaration
+        (type_identifier)))
+    (parameter_list
+      (parameter_declaration
+        (slice_type
+          (type_identifier)))
+      (parameter_declaration
+        (type_identifier))
+      (parameter_declaration
+        (map_type
+          (type_identifier)
+          (type_identifier)))
+      (parameter_declaration
+        (type_identifier)))
+    (block))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (identifier)
+        (type_identifier))
+      (variadic_parameter_declaration
+        (identifier)
+        (type_identifier)))
+    (block
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)
+              (variadic_argument
+                (identifier)))))
+        (short_var_declaration
+          (expression_list
+            (identifier))
+          (expression_list
+            (composite_literal
+              (implicit_length_array_type
+                (type_identifier))
+              (literal_value
+                (literal_element
+                  (int_literal))
+                (literal_element
+                  (int_literal))))))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (index_expression
+                (identifier)
+                (int_literal)))))))))
+
+==================
+Grouped and generic aliases
+==================
+type (A = B)
+type (Values[T any] /* alias */ = map[string]T)
+---
+(source_file
+  (type_declaration
+    (type_alias
+      (type_identifier)
+      (type_identifier)))
+  (type_declaration
+    (type_alias
+      (type_identifier)
+      (type_parameter_list
+        (type_parameter_declaration
+          (identifier)
+          (type_constraint
+            (type_identifier))))
+      (comment)
+      (map_type
+        (type_identifier)
+        (type_identifier)))))
+
+==================
+Chained indices and map types
+==================
+value := table[key]
+f(table[key], table[key][next])
+var m map[string]map[int]int
+make(map[string]int, n)
+---
+(source_file
+  (short_var_declaration
+    (expression_list
+      (identifier))
+    (expression_list
+      (index_expression
+        (identifier)
+        (identifier))))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list
+        (index_expression
+          (identifier)
+          (identifier))
+        (index_expression
+          (index_expression
+            (identifier)
+            (identifier))
+          (identifier)))))
+  (var_declaration
+    (var_spec
+      (identifier)
+      (map_type
+        (type_identifier)
+        (map_type
+          (type_identifier)
+          (type_identifier)))))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list
+        (map_type
+          (type_identifier)
+          (type_identifier))
+        (identifier)))))
+
+==================
+Named statement lists preserve all statements
+==================
+func f() { first(); second() }
+switch value { case 1: first(); second(); default: last() }
+switch value.(type) { case int: first(); default: last() }
+select { case value := <-ch: use(value); default: last() }
+---
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list))))))
+  (expression_switch_statement
+    (identifier)
+    (expression_case
+      (expression_list
+        (int_literal))
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))
+    (default_case
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list))))))
+  (type_switch_statement
+    (identifier)
+    (type_case
+      (type_identifier)
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))
+    (default_case
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list))))))
+  (select_statement
+    (communication_case
+      (receive_statement
+        (expression_list
+          (identifier))
+        (unary_expression
+          (identifier)))
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier))))))
+    (default_case
+      (statement_list
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))))
