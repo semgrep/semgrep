@@ -1,6 +1,6 @@
 File: semgrep-grammars/src/tree-sitter-go/LICENSE
 Git repo name: tree-sitter-go
-Latest commit in repo: 3c3775faa968158a8b4ac190a7fda867fd5fb748
+Latest commit in repo: 1547678a9da59885853f5f5cc8a99cc203fa2e2c
 Last change in file:
   commit d29ad53a4310a943880ae40c7050f8562bf84f33
   Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
@@ -10,21 +10,61 @@ Last change in file:
 ---
 File: semgrep-grammars/src/tree-sitter-go/grammar.js
 Git repo name: tree-sitter-go
-Latest commit in repo: 3c3775faa968158a8b4ac190a7fda867fd5fb748
+Latest commit in repo: 1547678a9da59885853f5f5cc8a99cc203fa2e2c
 Last change in file:
-  commit 658507ecbbe4991fa2c655da17b5d63d07215bfd
-  Author: Amaan Qureshi <amaanq12@gmail.com>
-  Date:   Sun Nov 24 14:23:08 2024 -0500
+  commit 179ca03b3ac7da8ed7466fc4a8b6b445c3c968da
+  Author: Amaan Qureshi <contact@amaanq.com>
+  Date:   Fri Aug 29 02:08:04 2025 -0400
   
-      fix: correct raw string literal parsing
+      feat: expose statement list
+      
+      Co-authored-by: Diego Marcilio <diego.marcilio@uber.com>
 ---
 File: semgrep-grammars/src/semgrep-go/grammar.js
-Git repo name: nouakchott
-Latest commit in repo: e2140c03b13f562d3f6cd3803a3d087ef8f4b00c
+Git repo name: semgrep-proprietary
+Latest commit in repo: b993e276b1ba58ccdd0bf1215872ab0c334bd68c
 Last change in file:
-  commit 3bf8c544484c75150e293f84d51ca222e0613f38
-  Author: t <t@example.com>
-  Date:   Thu Sep 24 12:09:17 2026 -0600
+  commit b993e276b1ba58ccdd0bf1215872ab0c334bd68c
+  Author: Marc-André Laverdière <marc-andre@semgrep.com>
+  Date:   Fri Oct 30 16:13:32 2026 -0600
   
-      chore: remove unrelated grammar automation changes
+      feat: load grammar wrapper guidance and default to Sol 6.1 High (#7414)
+      
+      ## What
+      
+      - Load optional wrapper-local `AGENTS.md` guidance during grammar,
+      converter, and validation repair.
+      - Add Scala guidance from the v0.25.1 update and default agents to
+      GPT-6.1-Sol High.
+      - Refresh the pricing catalog and remove stale release cutoffs
+      
+      ## Why?
+      Repeated failures updating Scala showed that some languages grammars
+      have pecularities that we can't really encode in the skills.
+      
+      I ran an unattended test comparing Sol 6.1 medium/high vs Astra 6.0 low
+      and Sol high gave the best results.
+      
+      Test plan:
+      - Existing / updated unit tests.
+      - Unattended Scala v0.25.1 dry run at `a80c2b1d84`: validated with the
+      locked default Sol High configuration; core, core-test, Forge and six
+      in-repo rules suites passed; 191 Scala tests passed (nine new parsing
+      fixtures and sixteen pattern tests).
+      
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] N/A An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---
