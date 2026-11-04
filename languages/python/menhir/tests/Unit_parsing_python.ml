@@ -68,6 +68,19 @@ let tests =
     [
       t "Python 3.15 lazy imports" lazy_imports;
       t "Python 3.15 unpacking comprehension kinds" comprehension_kinds;
+      t "dictionary spread container kinds" (fun () ->
+          List.iter
+            (fun source ->
+              match generic_program source with
+              | [
+               {
+                 AST_generic.s = ExprStmt ({ e = Container (Dict, _); _ }, _);
+                 _;
+               };
+              ] ->
+                  ()
+              | _ -> Alcotest.fail ("expected dictionary: " ^ source))
+            [ "{**mapping}"; "{'key': 1, **mapping}" ]);
       t "lazy remains an identifier" (fun () ->
           let stmts =
             generic_program

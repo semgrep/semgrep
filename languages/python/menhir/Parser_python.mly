@@ -91,10 +91,10 @@ let mk_str ii =
 let lazy_imports (keyword, tok) imports =
   if keyword <> "lazy" then raise Parsing.Parse_error;
   List.map (function
-    | ImportAs _ as import -> LazyImport (tok, import)
-    | ImportFrom (_, ([ ("__future__", _) ], None), _) ->
+    | ImportAs (_, t, name, alias) -> ImportAs (Lazy tok, t, name, alias)
+    | ImportFrom (_, _, ([ ("__future__", _) ], None), _) ->
         raise Parsing.Parse_error
-    | ImportFrom _ as import -> LazyImport (tok, import)
+    | ImportFrom (_, t, name, aliases) -> ImportFrom (Lazy tok, t, name, aliases)
     | _ -> raise Parsing.Parse_error) imports
 
 %}
@@ -272,7 +272,7 @@ import_stmt:
 
 import_name: IMPORT list_sep(dotted_as_name, ",")
   { $2 |> List.map (fun (v1, v2) -> let dots = None in
-         ImportAs ($1, (v1, dots), v2))   }
+         ImportAs (Eager, $1, (v1, dots), v2))   }
 
 dotted_as_name:
   | dotted_name         { $1, None }
@@ -287,9 +287,9 @@ import_from:
   | FROM name_and_level IMPORT "*"
       { [ImportAll ($1, $2, $4)] }
   | FROM name_and_level IMPORT "(" list_comma(import_as_name) ")"
-      { [ImportFrom ($1, $2, $5)] }
+      { [ImportFrom (Eager, $1, $2, $5)] }
   | FROM name_and_level IMPORT list_comma(import_as_name)
-      { [ImportFrom ($1, $2, $4)] }
+      { [ImportFrom (Eager, $1, $2, $4)] }
 
 name_and_level:
   | dot_level dotted_name {

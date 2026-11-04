@@ -98,6 +98,15 @@ let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.unsafe_fake_bracket
 
+let import_directive mode kind =
+  let directive = G.d kind in
+  let attrs =
+    match mode with
+    | Eager -> []
+    | Lazy tok -> [ G.attr G.Lazy tok ]
+  in
+  G.DirectiveStmt { directive with G.d_attrs = attrs } |> G.s
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -244,6 +253,7 @@ let rec expr env (x : expr) =
           v
           |> List.for_all (function
             | KeyVal _
+            | PowInline _
             (* semgrep-ext: ... should not count *)
             | Key (Ellipsis _) ->
                 true
@@ -898,28 +908,16 @@ and stmt_aux env x =
       let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
-  | LazyImport (t, import) ->
-      stmt_aux env import
-      |> List.map (fun st ->
-          match st.G.s with
-          | G.DirectiveStmt directive ->
-              G.DirectiveStmt
-                {
-                  directive with
-                  G.d_attrs = G.attr G.Lazy t :: directive.G.d_attrs;
-                }
-              |> G.s
-          | _ -> raise Impossible)
-  | ImportAs (t, v1, v2) ->
+  | ImportAs (mode, t, v1, v2) ->
       let mname = module_name env v1
       and nopt = option (ident_and_id_info env) v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, mname, nopt) |> G.d) |> G.s ]
+      [ import_directive mode (G.ImportAs (t, mname, nopt)) ]
   | ImportAll (t, v1, v2) ->
       let mname = module_name env v1 and v2 = info v2 in
       [ G.DirectiveStmt (G.ImportAll (t, mname, v2) |> G.d) |> G.s ]
-  | ImportFrom (t, v1, v2) ->
+  | ImportFrom (mode, t, v1, v2) ->
       let v1 = module_name env v1 and v2 = list (import_from_kind env) v2 in
-      [ G.DirectiveStmt (G.ImportFrom (t, v1, v2) |> G.d) |> G.s ]
+      [ import_directive mode (G.ImportFrom (t, v1, v2)) ]
   | Global (t, v1)
   | NonLocal (t, v1) ->
       let v1 = list (name env) v1 in
