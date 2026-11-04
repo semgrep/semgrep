@@ -1,0 +1,10 @@
+rules:
+  - id: unpacking-taint
+    languages: [python]
+    message: Taint survives comprehension unpacking
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)

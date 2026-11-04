@@ -254,8 +254,15 @@ let rec expr env (x : expr) =
       in
       G.Container (kind, (t1, v', t2)) |> G.e
   | DictOrSet (CompForIf (l, (v1, v2), r)) ->
+      let kind =
+        match v1 with
+        | KeyVal _
+        | PowInline _ ->
+            G.Dict
+        | Key _ -> G.Set
+      in
       let e1 = comprehension2 env dictorset_elt v1 v2 in
-      G.Comprehension (G.Dict, (l, e1, r)) |> G.e
+      G.Comprehension (kind, (l, e1, r)) |> G.e
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list (expr env) v2 in
       G.Call (G.Special (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg)) |> G.e
@@ -891,6 +898,18 @@ and stmt_aux env x =
       let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
+  | LazyImport (t, import) ->
+      stmt_aux env import
+      |> List.map (fun st ->
+          match st.G.s with
+          | G.DirectiveStmt directive ->
+              G.DirectiveStmt
+                {
+                  directive with
+                  G.d_attrs = G.attr G.Lazy t :: directive.G.d_attrs;
+                }
+              |> G.s
+          | _ -> raise Impossible)
   | ImportAs (t, v1, v2) ->
       let mname = module_name env v1
       and nopt = option (ident_and_id_info env) v2 in

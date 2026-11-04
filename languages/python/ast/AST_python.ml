@@ -406,6 +406,7 @@ type stmt =
       tok * expr (* body *) * expr option (* glob *) * expr option (* local *)
   (* python3: for With, For, and FunctionDef *)
   | Async of tok * stmt
+  | LazyImport of tok * stmt (* PEP 810: wraps ImportAs or ImportFrom. *)
   | ImportAs of tok * module_name (* name *) * name option (* asname *)
   | ImportAll of tok * module_name * tok (* * *)
   | ImportFrom of tok * module_name (* module *) * alias list (* names *)
