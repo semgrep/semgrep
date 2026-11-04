@@ -11,9 +11,14 @@
 # LICENSE for more details.
 #
 """Unit tests for semgrep.error module."""
+from pathlib import Path
+
 import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import DependencyResolutionSemgrepError
+from semgrep.error import sanitize_resolution_error_kind
+from semgrep.error import sanitize_resolution_output
 from semgrep.error import SemgrepCoreError
 
 
@@ -170,3 +175,158 @@ class TestCiScanResultsSkippedPaths:
 
         # Verify skipped_paths is present as an empty list
         assert json_dict.get("skipped_paths") == []
+
+
+SECRET = "hunter2"
+REGISTRY = f"https://ci-user:{SECRET}@registry.example.com/simple"
+
+
+def _cmd_failed(command: str, message: str) -> out.ResolutionErrorKind:
+    return out.ResolutionErrorKind(
+        out.ResolutionCmdFailed_(out.ResolutionCmdFailed(command, message))
+    )
+
+
+def _as_cmd_failed(kind: out.ResolutionErrorKind) -> out.ResolutionCmdFailed:
+    assert isinstance(kind.value, out.ResolutionCmdFailed_)
+    return kind.value.value
+
+
+class TestSanitizeResolutionErrorKind:
+    @pytest.mark.quick
+    def test_redacts_credentials_in_command_and_output(self):
+        kind = _cmd_failed(
+            f"pip install --index-url {REGISTRY} .",
+            f"ERROR: could not reach {REGISTRY}/pkg",
+        )
+        sanitized = sanitize_resolution_error_kind(kind).to_json()
+        assert SECRET not in str(sanitized)
+        assert "registry.example.com" in str(sanitized)
+
+    @pytest.mark.quick
+    def test_truncates_registry_url(self):
+        kind = out.ResolutionErrorKind(
+            out.ResourceInaccessible_(
+                out.ResourceInaccessible(
+                    "mvn", "https://registry.example.com/" + "a" * 50000, "401"
+                )
+            )
+        )
+        sanitized_kind = sanitize_resolution_error_kind(kind).value
+        assert isinstance(sanitized_kind, out.ResourceInaccessible_)
+        sanitized = sanitized_kind.value
+        assert sanitized.registry_url is not None
+        assert sanitized.registry_url.startswith("https://registry.example.com/")
+        assert len(sanitized.registry_url) < 2100
+
+    @pytest.mark.quick
+    def test_redacts_registry_url_of_inaccessible_resource(self):
+        kind = out.ResolutionErrorKind(
+            out.ResourceInaccessible_(
+                out.ResourceInaccessible("mvn", REGISTRY, "401 Unauthorized")
+            )
+        )
+        assert SECRET not in str(sanitize_resolution_error_kind(kind).to_json())
+
+    @pytest.mark.quick
+    def test_redacts_missing_requirement_and_parse_failure(self):
+        for kind in (
+            out.ResolutionErrorKind(out.MissingRequirement(f"set {REGISTRY}")),
+            out.ResolutionErrorKind(out.ParseDependenciesFailed(f"saw {REGISTRY}")),
+        ):
+            assert SECRET not in str(sanitize_resolution_error_kind(kind).to_json())
+
+    @pytest.mark.quick
+    def test_keeps_start_of_command_and_end_of_output(self):
+        kind = _cmd_failed("START " + "c" * 5000, "o" * 5000 + " THE-REASON")
+        sanitized = _as_cmd_failed(sanitize_resolution_error_kind(kind))
+        assert sanitized.command.startswith("START ")
+        assert len(sanitized.command) < 2100
+        assert sanitized.message.endswith("THE-REASON")
+        assert len(sanitized.message) < 2100
+
+    @pytest.mark.quick
+    def test_redacts_before_truncating(self):
+        # A credential that straddles the cut must not leave a piece behind:
+        # here the command is cut after the first 3 characters of the secret.
+        prefix = f"https://ci-user:{SECRET[:3]}"
+        padding = "x" * (2000 - len(prefix))
+        kind = _cmd_failed(padding + REGISTRY + "/tail", "")
+        sanitized = _as_cmd_failed(sanitize_resolution_error_kind(kind)).command
+        assert len(sanitized) <= 2003
+        assert SECRET[:3] not in sanitized.replace("example", "")
+
+    @pytest.mark.quick
+    def test_other_kinds_are_unchanged(self):
+        kind = out.ResolutionErrorKind(out.UnsupportedManifest())
+        assert sanitize_resolution_error_kind(kind) == kind
+
+
+class TestDependencyResolutionCliError:
+    @pytest.mark.quick
+    def test_message_is_short_and_does_not_repeat_the_command(self):
+        command = "gradlew " + "--flag " * 300
+        error = DependencyResolutionSemgrepError(
+            type_=sanitize_resolution_error_kind(
+                _cmd_failed(command, "x" * 5000 + "\nUnable to locate a Java Runtime.")
+            ),
+            dependency_source_file=Path("build.gradle"),
+        )
+        cli_error = error.to_CliError()
+        message = cli_error.message
+        assert message is not None
+        assert message.startswith(
+            "Failed to resolve dependencies for build.gradle. Resolution Command Failed: "
+        )
+        assert message.endswith("Unable to locate a Java Runtime.")
+        assert "--flag" not in message
+        assert len(message) < 500
+        # the details are still there, once, in the error type
+        assert "--flag" in str(cli_error.to_json()["type"])
+
+    @pytest.mark.quick
+    def test_message_without_output(self):
+        error = DependencyResolutionSemgrepError(
+            type_=out.ResolutionErrorKind(out.UnsupportedManifest()),
+            dependency_source_file=Path("x/pom.xml"),
+        )
+        assert (
+            error.to_CliError().message
+            == "Failed to resolve dependencies for x/pom.xml. Unsupported Manifest"
+        )
+
+
+class TestLockfileParseError:
+    @staticmethod
+    def _error(detail):
+        return DependencyResolutionSemgrepError(
+            type_=out.ResolutionErrorKind(
+                out.ScaParseError(out.ScaParserName(out.PPnpmLock()))
+            ),
+            dependency_source_file=Path("pnpm-lock.yaml"),
+            detail=detail,
+        )
+
+    @pytest.mark.quick
+    def test_message_has_the_reason(self):
+        error = self._error("no lockfileVersion found in lockfile")
+        assert error.to_CliError().message == (
+            "Failed to resolve dependencies for pnpm-lock.yaml. "
+            "Lockfile Parse Error: no lockfileVersion found in lockfile"
+        )
+        assert "Lockfile Parse Error (no lockfileVersion found" in str(error)
+
+    @pytest.mark.quick
+    def test_message_without_reason(self):
+        assert self._error(None).to_CliError().message == (
+            "Failed to resolve dependencies for pnpm-lock.yaml. Lockfile Parse Error"
+        )
+
+
+class TestSanitizeResolutionOutput:
+    @pytest.mark.quick
+    def test_redacts_then_keeps_the_end(self):
+        s = sanitize_resolution_output("o" * 5000 + f" {REGISTRY}/x THE-REASON")
+        assert SECRET not in s
+        assert s.endswith("THE-REASON")
+        assert len(s) < 2100
