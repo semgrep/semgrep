@@ -74,6 +74,31 @@ class TestRedactCredentials:
         assert "git fetch" in out
 
     @pytest.mark.quick
+    @pytest.mark.parametrize(
+        "s",
+        [
+            # urlsplit rejects these (the stray "]" looks like an IPv6 host), which
+            # must not make the credentials survive.
+            "[https://ci-user:hunter2@registry.example.com]",
+            "see [https://ci-user:hunter2@registry.example.com] for details",
+            "[https://ci-user:hunter2@registry.example.com/repo]",
+            "(https://ci-user:hunter2@registry.example.com)",
+            "<https://ci-user:hunter2@registry.example.com>",
+        ],
+    )
+    def test_url_credentials_in_brackets(self, s):
+        out = redact_credentials(s)
+        assert "hunter2" not in out
+        assert "ci-user" not in out
+        assert "registry.example.com" in out
+
+    @pytest.mark.quick
+    def test_url_credentials_with_an_at_sign_in_the_password_in_brackets(self):
+        out = redact_credentials("[https://ci-user:pa@ss@registry.example.com]")
+        assert "pa@ss" not in out
+        assert "registry.example.com" in out
+
+    @pytest.mark.quick
     def test_authorization_header(self):
         s = "headers = {'Authorization': 'Bearer abcdef.secret-token-123'}"
         out = redact_credentials(s)
