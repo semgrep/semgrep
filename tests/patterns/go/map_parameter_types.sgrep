@@ -1,0 +1,1 @@
+func $NAME([]string, int, map[int]int, error) { ... }

@@ -925,17 +925,19 @@ and type_switch_header (env : env)
   let e = TypeSwitchExpr (v3, v6) in
   (v1, v2 e)
 
-and type_alias (env : env) ((v1, v2, v3) : CST.type_alias) =
-  let v1 =
-    identifier env v1
-    (* identifier *)
-  in
-  let v2 =
-    token env v2
-    (* "=" *)
-  in
-  let v3 = type_ env v3 in
-  DTypeAlias (v1, v2, v3)
+and type_alias (env : env) ((name, params, equals, ty) : CST.type_alias) =
+  let name = identifier env name in
+  let equals = token env equals in
+  let ty = type_ env ty in
+  match params with
+  | None -> DTypeAlias (name, equals, ty)
+  | Some params ->
+      DGenericTypeAlias (name, type_parameter_list env params, equals, ty)
+
+and type_spec_or_alias (env : env) (x : CST.anon_choice_type_spec_579fc52) =
+  match x with
+  | `Type_spec x -> type_spec env x
+  | `Type_alias x -> type_alias env x
 
 and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) : stmt =
   let v1 =
@@ -1551,28 +1553,14 @@ and declaration (env : env) (x : CST.declaration) =
         match v2 with
         | `Type_spec x -> [ type_spec env x ]
         | `Type_alias x -> [ type_alias env x ]
-        | `LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR (v1, v2, v3) ->
-            let _v1 =
-              token env v1
-              (* "(" *)
-            in
-            let v2 =
-              List.map
-                (fun (v1, v2) ->
-                  let v1 =
-                    match v1 with
-                    | `Type_spec x -> type_spec env x
-                    | `Type_alias x -> type_alias env x
-                  in
-                  let _v2 = anon_choice_pat_1d78758_89f618f env v2 in
-                  v1)
-                v2
-            in
-            let _v3 =
-              token env v3
-              (* ")" *)
-            in
-            v2
+        | `LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR
+            (_left, specs, _right) -> (
+            match specs with
+            | None -> []
+            | Some (first, rest, terminator) ->
+                let _ = trailing_terminator env terminator in
+                type_spec_or_alias env first
+                :: List.map (fun (_, spec) -> type_spec_or_alias env spec) rest)
       in
       v2
   | `Var_decl (v1, v2) ->
