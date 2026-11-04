@@ -75,22 +75,20 @@ let lexical_error msg lexbuf =
    and doesn't descend any deeper.
 *)
 
-(* TODO: move tok Tok.ml *)
-let shorten_string s =
-  if String.length s > 200 then String.sub s 0 200 ^ " ... (truncated)" else s
-
 (*
    For error messages.
    - should be useful to a human reader
    - should not raise an exception
+   - must not include the token's text: it is customer source code, and
+     these messages end up in logs and traces that leave the machine.
+     The location printed alongside is enough to find it.
 *)
 let show_token_value (x : Tok.t) : string =
+  let bytes s = spf "<%d bytes>" (String.length s) in
   match x with
-  | OriginTok loc -> spf "%S" (shorten_string loc.str)
-  | FakeTok (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
-  | ExpandedTok (first_loc, _) ->
-      (* not sure about this *)
-      spf "%S" (shorten_string first_loc.str)
+  | OriginTok loc -> bytes loc.str
+  | FakeTok (fake, _opt_loc) -> "fake " ^ bytes fake
+  | ExpandedTok (first_loc, _) -> bytes first_loc.str
   | Ab -> "abstract token"
 
 let show_token_value_and_location (x : Tok.t) =
@@ -102,8 +100,10 @@ let string_of_exn e =
   let p = show_token_value_and_location in
   match e with
   (* TODO?  | NoTokenLocation msg -> Some (spf "Parse_info.NoTokenLocation (%s)" msg) *)
-  | Lexical_error (msg, tok) ->
-      Some (spf "Parsing_error.Lexical_error (%s, %s)" msg (p tok))
+  (* Lexers usually append the offending text to the message, so it is left
+     out here like the token's text. Core_error still shows it to the user. *)
+  | Lexical_error (_msg, tok) ->
+      Some (spf "Parsing_error.Lexical_error (%s)" (p tok))
   | Syntax_error tok -> Some (spf "Parsing_error.Syntax_error (%s)" (p tok))
   | Ast_builder_error (msg, tok) ->
       Some (spf "Parsing_error.Ast_builder_error (%s, %s)" msg (p tok))

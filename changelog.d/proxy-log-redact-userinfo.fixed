@@ -1,0 +1,3 @@
+Semgrep no longer logs credentials embedded in a proxy URL (for example
+`HTTPS_PROXY=http://user:password@proxy:8080`) when it reports the configured
+proxy settings.
