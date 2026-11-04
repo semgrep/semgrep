@@ -52,9 +52,13 @@ from semgrep.console import Title
 from semgrep.constants import MemoryPolicy
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
+from semgrep.error import default_level
+from semgrep.error import DependencyResolutionSemgrepError
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
+from semgrep.error import sanitize_resolution_error_kind
+from semgrep.error import sanitize_resolution_output
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
@@ -76,6 +80,7 @@ from semgrep.simple_profiling import profiling
 from semgrep.state import get_state
 from semgrep.structured_logging import log
 from semgrep.subproject import find_resolution_failures
+from semgrep.subproject import ResolutionFailure
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.types import FilteredMatches
@@ -83,6 +88,50 @@ from semgrep.types import TargetInfoAccumulator
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def _resolution_failure_errors(failure: ResolutionFailure) -> List[SemgrepError]:
+    """
+    The errors that say why a subproject's dependency resolution failed, for
+    the structured output (e.g. the `errors` of the JSON output).
+
+    There is one per error the resolver reported, and one per lockfile parse
+    error. If there are none (e.g. the resolver crashed), there is a generic
+    one, so that the failure is never silent.
+
+    The resolver's command and output, and the reason a lockfile could not be
+    parsed, may contain credentials and can be long, and this output is often
+    stored, so they are redacted and truncated. The line of the lockfile that
+    could not be parsed (`text`) is left out, since it could hold credentials.
+    """
+    errors: List[SemgrepError] = [
+        DependencyResolutionSemgrepError(
+            type_=sanitize_resolution_error_kind(error.type_),
+            dependency_source_file=Path(error.dependency_source_file.value),
+            code=FATAL_EXIT_CODE,
+            level=default_level,
+        )
+        for error in failure.errors
+    ]
+    errors.extend(
+        DependencyResolutionSemgrepError(
+            type_=out.ResolutionErrorKind(out.ScaParseError(parse_error.parser)),
+            dependency_source_file=Path(parse_error.path.value),
+            code=FATAL_EXIT_CODE,
+            level=default_level,
+            detail=sanitize_resolution_output(parse_error.reason),
+        )
+        for parse_error in failure.parse_errors
+    )
+    if errors:
+        return errors
+    return [
+        SemgrepError(
+            f"Failed to resolve dependencies for {failure.describe()}",
+            code=FATAL_EXIT_CODE,
+        )
+    ]
+
 
 # Conversion of product codes to product names
 PRODUCT_NAMES_MAP = {
@@ -1198,6 +1247,15 @@ def ci(
             logger.error(f"  Dependency resolution failed for {failed_subprojects}:")
             for failure in resolution_failures:
                 logger.error(f"    - {failure.describe()}")
+            # So that the JSON (and other structured) output says why the scan
+            # failed, not only the exit code.
+            output_handler.record_dependency_resolution_errors(
+                [
+                    error
+                    for failure in resolution_failures
+                    for error in _resolution_failure_errors(failure)
+                ]
+            )
 
         # Run a separate scan for historical. This is due to the split in how the
         # file targeting works. If file targeting could all be handled in the same
