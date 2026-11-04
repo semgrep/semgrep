@@ -11,12 +11,12 @@
 # LICENSE for more details.
 #
 import sys
+import click
 from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import NoReturn
 from typing import Optional
-
 from semgrep import state
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import is_semgrep_error_already_reported
@@ -53,6 +53,10 @@ def handle_command_errors(func: Callable) -> Callable:
                 logger.error(e.format_for_terminal())
                 mark_semgrep_error_as_reported(e)
             exit_code = e.code
+            exc = e
+        except click.UsageError as e:
+            e.show()
+            exit_code = 2
             exc = e
         except Exception as e:  # noqa: W0718
             logger.exception(e)
