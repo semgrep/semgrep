@@ -4,6 +4,7 @@
  (wrapped false)
  (libraries
    parser_python.menhir
+   parser_python.ast_generic
    commons
    commons2
    alcotest

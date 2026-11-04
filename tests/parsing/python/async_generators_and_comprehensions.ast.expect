@@ -274,7 +274,7 @@
                                     facts = <opaque> },
                                   _,
                                   { e =
-                                    (Comprehension (Dict,
+                                    (Comprehension (Set,
                                        (_,
                                         ({ e =
                                            (N

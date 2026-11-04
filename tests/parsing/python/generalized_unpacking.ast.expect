@@ -586,7 +586,7 @@
               facts = <opaque> },
             _,
             { e =
-              (Container (Set,
+              (Container (Dict,
                  (_,
                   [{ e =
                      (Call (
@@ -662,7 +662,7 @@
               facts = <opaque> },
             _,
             { e =
-              (Container (Set,
+              (Container (Dict,
                  (_,
                   [{ e =
                      (Container (Tuple,

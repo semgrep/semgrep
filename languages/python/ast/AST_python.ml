@@ -337,6 +337,10 @@ and pattern =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(** Import evaluation timing; star imports are always eager. *)
+type import_mode = Eager | Lazy of tok [@@deriving show { with_path = false }]
+
 type stmt =
   | ExprStmt of expr (* value *)
   (* The left exprs should be lvalues: Name, List, Tuple, Subscript,
@@ -406,9 +410,11 @@ type stmt =
       tok * expr (* body *) * expr option (* glob *) * expr option (* local *)
   (* python3: for With, For, and FunctionDef *)
   | Async of tok * stmt
-  | ImportAs of tok * module_name (* name *) * name option (* asname *)
+  | ImportAs of
+      import_mode * tok * module_name (* name *) * name option (* asname *)
   | ImportAll of tok * module_name * tok (* * *)
-  | ImportFrom of tok * module_name (* module *) * alias list (* names *)
+  | ImportFrom of
+      import_mode * tok * module_name (* module *) * alias list (* names *)
   (* should be allowed just at the toplevel *)
   | FunctionDef of function_definition
   | ClassDef of class_definition
