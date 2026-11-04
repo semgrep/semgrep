@@ -4,8 +4,6 @@
 
   Run [36m`semgrep SUBCOMMAND --help`[39m for more information on each subcommand
 
-  If no subcommand is passed, will show a welcome message with usage info
-
 [4mOptions[24m:
   -h, --help  Show this message and exit.
 
