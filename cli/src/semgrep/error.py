@@ -28,6 +28,7 @@ from semgrep.constants import Colors
 from semgrep.error_location import Position
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
+from semgrep.util import redact_credentials
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -555,9 +556,13 @@ class DependencyResolutionSemgrepError(SemgrepError):
         dependency_source_file: Path,
         code: int = OK_EXIT_CODE,
         level: out.ErrorSeverity = warning_level,
+        # Why the lockfile could not be parsed, for `ScaParseError`, whose kind
+        # only has the name of the parser.
+        detail: Optional[str] = None,
     ) -> None:
         self.error_type = type_
         self.dependency_source_file = dependency_source_file
+        self.detail = detail
         super().__init__(*args, code=code, level=level)
 
     def __str__(self) -> str:
@@ -573,6 +578,8 @@ class DependencyResolutionSemgrepError(SemgrepError):
                 return f"Incomplete Dependency Resolution (command: {err.value.value.command}) (message: {err.value.value.message})"
             elif isinstance(err.value, out.ResourceInaccessible_):
                 return f"Resource Inaccessible (command: {err.value.value.command}) (registry_url: {err.value.value.registry_url}) (message: {err.value.value.message})"
+            elif isinstance(err.value, out.ScaParseError):
+                return f"Lockfile Parse Error ({self.detail})"
             else:
                 return f"Parsing dependency output failed ({err.value.value})"
 
@@ -580,6 +587,116 @@ class DependencyResolutionSemgrepError(SemgrepError):
 
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.DependencyResolutionError(self.error_type))
+
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
+        # The command and its output are in the error type, so the message only
+        # says what failed and how the output ended, instead of repeating them.
+        label, detail = self._label_and_detail()
+        message = (
+            f"Failed to resolve dependencies for {self.dependency_source_file}. {label}"
+        )
+        # Collapse whitespace so that the message stays on one line.
+        detail = " ".join(detail.split()) if detail else ""
+        if detail:
+            message += f": {_truncate_end(detail, _MAX_MESSAGE_OUTPUT_CHARS)}"
+        return dataclasses.replace(base, message=message)
+
+    def _label_and_detail(self) -> Tuple[str, Optional[str]]:
+        err = self.error_type.value
+        if isinstance(err, out.UnsupportedManifest):
+            return "Unsupported Manifest", None
+        elif isinstance(err, out.MissingRequirement):
+            return "Missing Requirement", err.value
+        elif isinstance(err, out.ResolutionCmdFailed_):
+            return "Resolution Command Failed", err.value.message
+        elif isinstance(err, out.IncompleteDependencyResolution_):
+            return "Incomplete Dependency Resolution", err.value.message
+        elif isinstance(err, out.ResourceInaccessible_):
+            return "Resource Inaccessible", err.value.message
+        elif isinstance(err, out.ScaParseError):
+            return "Lockfile Parse Error", self.detail
+        else:
+            return "Parsing dependency output failed", str(err.value)
+
+
+# Limits for the command and the output of a failed resolution command, which
+# come from third-party tools and can be very long.
+_MAX_COMMAND_CHARS = 2000
+_MAX_OUTPUT_CHARS = 2000
+# How much of the end of the output goes in the (short) error message.
+_MAX_MESSAGE_OUTPUT_CHARS = 300
+
+
+def _truncate_start(s: str, max_len: int) -> str:
+    """Keep the start of [s]: the interesting part of a command comes first."""
+    return s if len(s) <= max_len else s[:max_len] + "..."
+
+
+def _truncate_end(s: str, max_len: int) -> str:
+    """Keep the end of [s]: a command usually prints why it failed last."""
+    return s if len(s) <= max_len else "..." + s[-max_len:]
+
+
+def sanitize_resolution_output(s: str) -> str:
+    """Redact credentials from, then truncate, the output of a resolution step."""
+    return _truncate_end(redact_credentials(s), _MAX_OUTPUT_CHARS)
+
+
+def sanitize_resolution_error_kind(
+    kind: out.ResolutionErrorKind,
+) -> out.ResolutionErrorKind:
+    """
+    Redact credentials from, and limit the size of, the command and the output
+    in a resolution error, for output that is stored or passed on (e.g. JSON).
+
+    They come from package managers, whose output can contain registry
+    credentials (`redact_credentials` only knows the common shapes, see there).
+    Credentials are redacted before truncating so that cutting a string cannot
+    leave part of one behind.
+    """
+
+    def command(s: str) -> str:
+        return _truncate_start(redact_credentials(s), _MAX_COMMAND_CHARS)
+
+    output = sanitize_resolution_output
+
+    err = kind.value
+    if isinstance(err, out.ResolutionCmdFailed_):
+        return out.ResolutionErrorKind(
+            out.ResolutionCmdFailed_(
+                out.ResolutionCmdFailed(
+                    command=command(err.value.command),
+                    message=output(err.value.message),
+                )
+            )
+        )
+    elif isinstance(err, out.IncompleteDependencyResolution_):
+        return out.ResolutionErrorKind(
+            out.IncompleteDependencyResolution_(
+                out.IncompleteDependencyResolution(
+                    command=command(err.value.command),
+                    message=output(err.value.message),
+                )
+            )
+        )
+    elif isinstance(err, out.ResourceInaccessible_):
+        registry_url = err.value.registry_url
+        return out.ResolutionErrorKind(
+            out.ResourceInaccessible_(
+                out.ResourceInaccessible(
+                    command=command(err.value.command),
+                    registry_url=(
+                        None if registry_url is None else command(registry_url)
+                    ),
+                    message=output(err.value.message),
+                )
+            )
+        )
+    elif isinstance(err, out.MissingRequirement):
+        return out.ResolutionErrorKind(out.MissingRequirement(output(err.value)))
+    elif isinstance(err, out.ParseDependenciesFailed):
+        return out.ResolutionErrorKind(out.ParseDependenciesFailed(output(err.value)))
+    return kind
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
