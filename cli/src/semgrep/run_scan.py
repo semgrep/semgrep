@@ -170,6 +170,15 @@ def list_targets_and_exit(
 def dump_partitions_and_exit(
     rules: List[Rule], params: out.DumpRulePartitionsParams
 ) -> None:
+    # Only Code is supported now, and anything that looks like SCA is filtered out.
+    sca_product = out.Product(out.SCA())
+    sca_rule_ids = [r.id for r in rules if r.product == sca_product]
+    if sca_rule_ids:
+        logger.warning(
+            f"Skipping {len(sca_rule_ids)} Supply Chain rule(s). Not supported: "
+            f"{', '.join(sca_rule_ids)}"
+        )
+        rules = [r for r in rules if r.product != sca_product]
     params.rules = out.RawJson({"rules": [r.raw for r in rules]})
     ok = dump_rule_partitions(params)
     if not ok:
