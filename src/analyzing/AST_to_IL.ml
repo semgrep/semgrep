@@ -1056,6 +1056,19 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       let xs = bracket_keep (List.map (map_expr env)) xs in
       let kind = map_composite_kind ~g_expr kind in
       mk_e (Composite (kind, xs)) eorig
+  | G.Comprehension
+      ( G.Dict,
+        ( _,
+          ( {
+              G.e =
+                G.Call
+                  ({ e = G.Special (G.Spread, _); _ }, (_, [ G.Arg mapping ], _));
+              _;
+            },
+            xs ),
+          _ ) ) ->
+      let mapping = map_comp_to_nested_loop env mapping xs in
+      mk_e (RecordOrDict [ Spread mapping ]) eorig
   | G.Comprehension (kind, (b1, (e, xs), b2)) ->
       let loop = map_comp_to_nested_loop env e xs in
       let kind = map_composite_kind ~g_expr kind in
@@ -1318,7 +1331,7 @@ and map_comp_to_nested_loop env e xs : exp =
   let fresh = fresh_lval env (G.fake "comp") in
   let assign = mk_s (Instr (mk_i (Assign (fresh, e')) (related_exp e))) in
   let rec fold_comps env = function
-    | [] -> [ assign ]
+    | [] -> ss @ [ assign ]
     | comp :: stmts -> (
         match comp with
         | G.CompFor (t_for, pat, t_in, iter) ->
@@ -1334,7 +1347,7 @@ and map_comp_to_nested_loop env e xs : exp =
             let st = fold_comps env stmts in
             ss @ [ mk_s (If (t_if, e', st, [])) ])
   in
-  fold_comps env xs @ ss |> add_stmts env;
+  fold_comps env xs |> add_stmts env;
   mk_e (Fetch fresh) (related_exp e)
 
 and map_record env ((_tok, origfields, _) as record_def) : exp =

@@ -38,6 +38,8 @@ annotated `.py` target). Patterns use the pfff parser and may lag tree-sitter ta
 | 3.13 | Type-parameter defaults | UNSUPPORTED — `type X[T = …] = …` → `ERROR` (LANG-545) |
 | 3.14 | Unparenthesized exception type lists in `except` / `except*` (PEP 758) | `pep758_except`, `pep758_except_no_alias`, `pep758_except_dotted` |
 | 3.14 | t-strings | UNSUPPORTED — `t"…"` → `ERROR` (`parsing_todo/python/t_strings.py`, LANG-544) |
+| 3.15 | Lazy imports (PEP 810) | `pep810_lazy_import` |
+| 3.15 | Unpacking comprehensions (PEP 798) | `pep798_unpacking_comprehension` |
 
 ## Pattern-language limitations
 

@@ -88,6 +88,15 @@ let mk_str ii =
   let s = Tok.content_of_tok ii in
   Literal( Str (s, ii))
 
+let lazy_imports (keyword, tok) imports =
+  if keyword <> "lazy" then raise Parsing.Parse_error;
+  List.map (function
+    | ImportAs _ as import -> LazyImport (tok, import)
+    | ImportFrom (_, ([ ("__future__", _) ], None), _) ->
+        raise Parsing.Parse_error
+    | ImportFrom _ as import -> LazyImport (tok, import)
+    | _ -> raise Parsing.Parse_error) imports
+
 %}
 
 (*************************************************************************)
@@ -256,6 +265,9 @@ sgrep_spatch_pattern:
 import_stmt:
   | import_name { $1 }
   | import_from { $1 }
+  (* lazy is a soft keyword, so it remains NAME in the lexer. *)
+  | NAME import_name { lazy_imports $1 $2 }
+  | NAME import_from { lazy_imports $1 $2 }
 
 
 import_name: IMPORT list_sep(dotted_as_name, ",")

@@ -1,0 +1,21 @@
+rules:
+  - id: unpack-list
+    languages: [python]
+    message: Unpacking list comprehension
+    severity: WARNING
+    pattern: '[*$ITEMS for $ITEMS in $GROUPS]'
+  - id: unpack-set
+    languages: [python]
+    message: Unpacking set comprehension
+    severity: WARNING
+    pattern: '{*$ITEMS for $ITEMS in $GROUPS}'
+  - id: unpack-dict
+    languages: [python]
+    message: Unpacking dictionary comprehension
+    severity: WARNING
+    pattern: '{**$MAPPING for $MAPPING in $MAPPINGS}'
+  - id: unpack-generator
+    languages: [python]
+    message: Unpacking generator expression
+    severity: WARNING
+    pattern: '(*$ITEMS for $ITEMS in $GROUPS)'

@@ -1,0 +1,21 @@
+rules:
+  - id: lazy-only
+    languages: [python]
+    message: Lazy import
+    severity: WARNING
+    pattern: lazy import $MODULE
+  - id: lazy-from-only
+    languages: [python]
+    message: Lazy from import
+    severity: WARNING
+    pattern: lazy from $MODULE import $NAME
+  - id: import-json
+    languages: [python]
+    message: JSON import, eager or lazy
+    severity: WARNING
+    pattern: import json
+  - id: resolved-json-call
+    languages: [python]
+    message: JSON call through an imported alias
+    severity: WARNING
+    pattern: json.loads(...)

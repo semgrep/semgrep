@@ -1,0 +1,481 @@
+[{ s =
+   (DirectiveStmt
+      { d = (ImportAs (_, (DottedName [("json", _)]), None));
+        d_attrs = [(KeywordAttr (Lazy, _))] });
+   s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportAs (_, (DottedName [("os", _); ("path", _)]),
+            (Some (("path", _),
+                   { id_resolved =
+                     ref ((Some ((ImportedModule ["os"; "path"]), _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }))
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportAs (_, (DottedName [("collections", _)]),
+            (Some (("collections_alias", _),
+                   { id_resolved =
+                     ref ((Some ((ImportedModule ["collections"]), _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }))
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("pathlib", _)]),
+            [(Direct
+                (("Path", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["pathlib"; "Path"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
+              ]
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [(".", _)]),
+            [(Direct
+                (("sibling", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["."; "sibling"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
+              ]
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("..", _); ("package", _)]),
+            [(Aliased (("first", _),
+                (("renamed", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity [".."; "package"; "first"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
+                ));
+              (Direct
+                 (("second", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity [".."; "package"; "second"]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (Unknown);
+                    id_flags = ref (0); id_info_id = _ }))
+              ]
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("lazy", _)]),
+            [(Aliased (("lazy", _),
+                (("lazy_alias", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["lazy"; "lazy"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
+                ))
+              ]
+            ));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAs (_, (DottedName [("decimal", _)]), None));
+         d_attrs = [(KeywordAttr (Lazy, _))] });
+    s_range = None };
+  { s =
+    (If (_,
+       (Cond
+          { e =
+            (N
+               (Id (("enabled", _),
+                  { id_resolved = ref (None);
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (Unknown);
+                    id_flags = ref (0); id_info_id = _ }
+                  )));
+            e_id = 0; e_range = None; is_implicit_return = false;
+            facts = <opaque> }),
+       { s =
+         (Block
+            (_,
+             [{ s =
+                (DirectiveStmt
+                   { d =
+                     (ImportAs (_, (DottedName [("optional_dependency", _)]),
+                        None));
+                     d_attrs = [(KeywordAttr (Lazy, _))] });
+                s_range = None }
+               ],
+             _));
+         s_range = None },
+       None));
+    s_range = None };
+  { s =
+    (OtherStmtWithStmt (OSWS_With,
+       [(E
+           { e =
+             (Call (
+                { e =
+                  (N
+                     (Id (("context", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> },
+                (_, [], _)));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> })
+         ],
+       { s =
+         (Block
+            (_,
+             [{ s =
+                (DirectiveStmt
+                   { d =
+                     (ImportFrom (_, (DottedName [("tools", _)]),
+                        [(Direct
+                            (("helper", _),
+                             { id_resolved =
+                               ref ((Some ((ImportedEntity
+                                              ["tools"; "helper"]),
+                                           _)));
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }))
+                          ]
+                        ));
+                     d_attrs = [(KeywordAttr (Lazy, _))] });
+                s_range = None }
+               ],
+             _));
+         s_range = None }
+       ));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("lazy", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("int", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref (Unknown); id_flags = ref (4);
+                      id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e = (L (Int ((Some 1L), _))); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("lazy", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("int", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref ((Lit (Int ((Some 1L), _))));
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(ArgKwd (("lazy", _),
+                 { e =
+                   (N
+                      (Id (("lazy", _),
+                         { id_resolved = ref ((Some (Global, _)));
+                           id_resolved_alternatives = ref ([]);
+                           id_type =
+                           ref ((Some { t =
+                                        (TyN
+                                           (Id (("int", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] }));
+                           id_svalue = ref ((Lit (Int ((Some 1L), _))));
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> }
+                 ))
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (DotAccess (
+            { e =
+              (N
+                 (Id (("obj", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            (FN
+               (Id (("lazy", _),
+                  { id_resolved = ref ((Some (Global, _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type =
+                    ref ((Some { t =
+                                 (TyN
+                                    (Id (("int", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (Unknown);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )));
+                                 t_attrs = [] }));
+                    id_svalue = ref (Unknown); id_flags = ref (0);
+                    id_info_id = _ }
+                  )))
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportAs (_, (DottedName [("lazy", _)]),
+            (Some (("lazy", _),
+                   { id_resolved =
+                     ref ((Some ((ImportedModule ["lazy"]), _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }))
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("lazy", _)]),
+            [(Direct
+                (("lazy", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["lazy"; "lazy"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("lazy", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("int", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _);
+             fparams =
+             (_,
+              [(Param
+                  { pname = (Some ("lazy", _));
+                    ptype =
+                    (Some { t =
+                            (TyExpr
+                               { e =
+                                 (N
+                                    (Id (("int", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (Unknown);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 });
+                            t_attrs = [] });
+                    pdefault = None; pattrs = [];
+                    pinfo =
+                    { id_resolved = ref ((Some (Parameter, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyExpr
+                                      { e =
+                                        (N
+                                           (Id (("int", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> });
+                                   t_attrs = [] }));
+                      id_svalue = ref (Unknown); id_flags = ref (0);
+                      id_info_id = _ }
+                    })
+                ],
+              _);
+             frettype =
+             (Some { t =
+                     (TyExpr
+                        { e =
+                          (N
+                             (Id (("int", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> });
+                     t_attrs = [] });
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (Return (_,
+                            (Some { e =
+                                    (N
+                                       (Id (("lazy", _),
+                                          { id_resolved =
+                                            ref ((Some (Parameter, _)));
+                                            id_resolved_alternatives =
+                                            ref ([]);
+                                            id_type =
+                                            ref ((Some { t =
+                                                         (TyExpr
+                                                            { e =
+                                                              (N
+                                                                 (Id (
+                                                                    (
+                                                                    "int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (Unknown);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              e_id = 0;
+                                                              e_range = None;
+                                                              is_implicit_return =
+                                                              false;
+                                                              facts =
+                                                              <opaque> });
+                                                         t_attrs = [] }));
+                                            id_svalue = ref (Unknown);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> }),
+                            _));
+                         s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None }
+  ]
