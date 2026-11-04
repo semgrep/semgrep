@@ -1,0 +1,1 @@
+Explain why semgrep exits with a nonzero status when --error is set and findings are found
