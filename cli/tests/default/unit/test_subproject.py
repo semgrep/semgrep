@@ -870,6 +870,10 @@ class TestFindResolutionFailures:
         assert failure.dependency_sources == (Path("build.gradle"),)
         assert failure.reasons == ("Resolution Command Failed",)
         assert failure.describe() == "build.gradle: Resolution Command Failed"
+        # the resolver's error, with its details, is kept for the JSON output
+        (error,) = failure.errors
+        assert isinstance(error.type_.value, out.ResolutionCmdFailed_)
+        assert error.type_.value.value.command == "gradlew"
 
     @pytest.mark.quick
     def test_failed_with_unparseable_tool_output(self):
@@ -889,12 +893,29 @@ class TestFindResolutionFailures:
         (failure,) = find_resolution_failures([sub])
         assert failure.reasons == ("Unsupported Manifest", "Resolution Command Failed")
 
+    # A lockfile that fails to parse entirely (reported by a Python parser)
+    @pytest.mark.quick
+    def test_failed_lockfile_parse_keeps_the_parse_error(self):
+        parse_error = out.DependencyParserError(
+            path=out.Fpath("pnpm-lock.yaml"),
+            parser=out.ScaParserName(out.PPnpmLock()),
+            reason="no lockfileVersion found in lockfile",
+        )
+        sub = self._unresolved(
+            out.UnresolvedFailed(), [out.ScaError(out.SCAParse(parse_error))]
+        )
+        (failure,) = find_resolution_failures([sub])
+        assert failure.parse_errors == (parse_error,)
+        assert failure.errors == ()
+        assert failure.reasons == ("Lockfile Parse Error",)
+
     # Row 6: failed without reporting any error (e.g. the resolver RPC crashed)
     @pytest.mark.quick
     def test_failed_without_any_error(self):
         sub = self._unresolved(out.UnresolvedFailed())
         (failure,) = find_resolution_failures([sub])
         assert failure.reasons == ()
+        assert failure.errors == ()
         assert failure.describe() == "build.gradle: no error details were reported"
 
     # Rows 7-9: resolved, but a package manager reported it is incomplete
