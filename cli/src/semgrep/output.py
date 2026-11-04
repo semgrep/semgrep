@@ -237,6 +237,8 @@ class OutputHandler:
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
+        # See `record_dependency_resolution_errors`.
+        self.dependency_resolution_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
         self.is_ci_invocation = False
@@ -363,6 +365,19 @@ class OutputHandler:
                 logger.error(
                     error.format_for_terminal(), extra={"structured_skip": True}
                 )
+
+    def record_dependency_resolution_errors(
+        self, errors: Sequence[SemgrepError]
+    ) -> None:
+        """
+        Include dependency resolution failures in the structured output, e.g.
+        the `errors` of the JSON output, so that it says why the scan failed.
+
+        Unlike `handle_semgrep_errors`, this neither logs the errors (the caller
+        has reported them) nor lets them decide the exit code (the caller does,
+        see `_final_raise`).
+        """
+        self.dependency_resolution_errors.extend(errors)
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:
@@ -929,7 +944,7 @@ class OutputHandler:
         output = formatter.output(  # the rules are used only by the SARIF formatter
             self.rules,
             matches_for_formatter,
-            self.semgrep_structured_errors,
+            [*self.semgrep_structured_errors, *self.dependency_resolution_errors],
             cli_output_extra,
             extra,
             self.severities,
