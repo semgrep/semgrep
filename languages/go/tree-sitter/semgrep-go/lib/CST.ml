@@ -105,6 +105,11 @@ and anon_choice_param_list_29faba4 = [
   | `Simple_type of simple_type
 ]
 
+and anon_choice_type_spec_579fc52 = [
+    `Type_spec of type_spec
+  | `Type_alias of type_alias
+]
+
 and argument_list = (
     Token.t (* "(" *)
   * (
@@ -219,13 +224,18 @@ and declaration = [
       * [
             `Type_spec of type_spec
           | `Type_alias of type_alias
-          | `LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR of (
+          | `LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR of (
                 Token.t (* "(" *)
               * (
-                    [ `Type_spec of type_spec | `Type_alias of type_alias ]
-                  * anon_choice_pat_1d78758_89f618f
+                    anon_choice_type_spec_579fc52
+                  * (
+                        anon_choice_pat_1d78758_89f618f
+                      * anon_choice_type_spec_579fc52
+                    )
+                      list (* zero or more *)
+                  * anon_choice_pat_1d78758_89f618f option
                 )
-                  list (* zero or more *)
+                  option
               * Token.t (* ")" *)
             )
         ]
@@ -616,7 +626,12 @@ and type_ = [
   | `Paren_type of (Token.t (* "(" *) * type_ * Token.t (* ")" *))
 ]
 
-and type_alias = (identifier (*tok*) * Token.t (* "=" *) * type_)
+and type_alias = (
+    identifier (*tok*)
+  * type_parameter_list option
+  * Token.t (* "=" *)
+  * type_
+)
 
 and type_arguments = (
     Token.t (* "[" *)
@@ -986,13 +1001,18 @@ type type_declaration (* inlined *) = (
   * [
         `Type_spec of type_spec
       | `Type_alias of type_alias
-      | `LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR of (
+      | `LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR of (
             Token.t (* "(" *)
           * (
-                [ `Type_spec of type_spec | `Type_alias of type_alias ]
-              * anon_choice_pat_1d78758_89f618f
+                anon_choice_type_spec_579fc52
+              * (
+                    anon_choice_pat_1d78758_89f618f
+                  * anon_choice_type_spec_579fc52
+                )
+                  list (* zero or more *)
+              * anon_choice_pat_1d78758_89f618f option
             )
-              list (* zero or more *)
+              option
           * Token.t (* ")" *)
         )
     ]

@@ -302,6 +302,7 @@ and decl =
   | DVar of ident * type_ option * (* = *) expr option (* value *)
   (* type can be a TStruct to define and name a structure *)
   | DTypeAlias of ident * tok (* = *) * type_
+  | DGenericTypeAlias of ident * type_parameters * tok (* = *) * type_
   (* this introduces a distinct type, with different method set *)
   | DTypeDef of ident * type_parameters option (* generics: *) * type_
 
