@@ -103,11 +103,19 @@ _URL_CANDIDATE_RE = re.compile(r"[a-zA-Z][a-zA-Z0-9+.\-]*://[^\s'\"]+")
 _AUTH_HEADER_RE = re.compile(r"(?i)(authorization['\"]?\s*[:=]\s*['\"]?)[^'\"\r\n]+")
 
 
+# The userinfo of a URL, found without parsing it: `//` up to the last `@`
+# before the next `/` (a password can contain an unescaped `@`).
+_URL_USERINFO_RE = re.compile(r"(//)[^/\s]*@")
+
+
 def _strip_url_userinfo(url: str) -> str:
     try:
         parts = urlsplit(url)
     except ValueError:
-        return url
+        # urlsplit rejects some candidates, e.g. one that ends with the "]" of
+        # a "[https://user:pass@host]" (it takes it for an IPv6 host). Redact
+        # anyway: returning [url] as is would leak its credentials.
+        return _URL_USERINFO_RE.sub(rf"\1{_REDACTED}@", url, count=1)
     if not parts.scheme or not parts.netloc or "@" not in parts.netloc:
         return url
     host_part = parts.netloc.rsplit("@", 1)[-1]
