@@ -11,7 +11,6 @@
 # LICENSE for more details.
 #
 import os
-import re
 import subprocess
 import tempfile
 import urllib
@@ -181,8 +180,12 @@ def clean_project_url(url: str) -> str:
     Returns a clean version of a git project's URL, removing credentials if present
     """
     parts = urllib.parse.urlsplit(url)
-    clean_netloc = re.sub("^.*:.*@(.+)", r"\1", parts.netloc)
-    parts = parts._replace(netloc=clean_netloc)
+    if "@" in parts.netloc:
+        # Strip all userinfo (username, password, or token) up to the last
+        # '@'. The previous colon-based pattern (`^.*:.*@`) never matched
+        # token-only userinfo such as 'https://token@host/repo', leaking the
+        # token into telemetry (#12024).
+        parts = parts._replace(netloc=parts.netloc.rsplit("@", 1)[-1])
     return urllib.parse.urlunsplit(parts)
 
 
