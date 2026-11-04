@@ -655,16 +655,20 @@ let top_func () =
         in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2; vtok = G.no_sc })
         |> G.s
-    | DTypeAlias (v1, v2, v3) ->
-        let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
-        let ent = G.basic_entity v1 in
-        G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
+    | DTypeAlias (name, equals, ty) -> type_alias name None equals ty
+    | DGenericTypeAlias (name, params, equals, ty) ->
+        type_alias name (Some params) equals ty
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
         let tparams = option type_parameters v2 in
         let ty = type_ v3 in
         let ent = G.basic_entity id ?tparams in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
+  and type_alias name params equals ty =
+    let name = ident name and _equals = tok equals and ty = type_ ty in
+    let tparams = option type_parameters params in
+    let ent = G.basic_entity name ?tparams in
+    G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType ty }) |> G.s
   and type_parameters v : G.type_parameters = bracket (list type_parameter) v
   and type_parameter v : G.type_parameter =
     let p = parameter_binding v in

@@ -77,6 +77,7 @@ dependencies = [
   "ruamel.yaml>=0.18.15",
   "ruamel.yaml.clib==0.2.15",
   "semantic-version~=2.10.0",
+  "structlog~=26.1.0",
   "tomli~=2.4.0",
   "typing-extensions~=4.2",
   "urllib3~=2.0",

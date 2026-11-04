@@ -16,7 +16,9 @@
 # Entry point of the 'pysemgrep scan' command
 #
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
+import logging
 import os
+import platform
 import tempfile
 from dataclasses import dataclass
 from itertools import chain
@@ -71,6 +73,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
+from semgrep.structured_logging import log
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.types import FilteredMatches
@@ -939,6 +942,27 @@ def scan(
             force_color=force_color,
             output_format=output_format,
         )
+        if log.is_enabled_for(logging.INFO):
+            log.info(
+                "scan environment initialized",
+                **{
+                    "semgrep.version": __VERSION__,
+                    "python.version": platform.python_version(),
+                },
+            )
+            binary_path = engine_type.get_binary_path()
+            log.info(
+                "scan engine selected",
+                **{
+                    "engine.kind": engine_type.name.lower().replace("_", "."),
+                    "engine.path": str(binary_path) if binary_path else None,
+                    "engine.version": __VERSION__ if not engine_type.is_pro else None,
+                    "engine.requested": requested_engine.name.lower().replace("_", ".")
+                    if requested_engine
+                    else None,
+                    "engine.secrets.required": run_secrets_flag,
+                },
+            )
         if trace:
             logger.verbose(f"Trace ID: {state.telemetry.get_trace_id():x}")
         # to capture the stderr of semgrep-core or to let semgrep-core reuse

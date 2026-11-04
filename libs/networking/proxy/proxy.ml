@@ -13,10 +13,14 @@
 type credentials = { username : string; password : string }
 [@@deriving show, eq]
 
+(* Proxy URLs can embed credentials (http://user:password@host), and the
+   settings are logged, so the derived printer drops the userinfo. *)
+let pp_uri_without_userinfo fmt uri = Uri.pp fmt (Uri.with_userinfo uri None)
+
 type settings = {
-  http_proxy : Uri.t option;
-  https_proxy : Uri.t option;
-  all_proxy : Uri.t option;
+  http_proxy : (Uri.t[@printer pp_uri_without_userinfo]) option;
+  https_proxy : (Uri.t[@printer pp_uri_without_userinfo]) option;
+  all_proxy : (Uri.t[@printer pp_uri_without_userinfo]) option;
   no_proxy : string option;
   (* If we pass in proxy env vars like HTTP_PROXY="http://localhost:8000" PROXY_USER='sal' PROXY_PASSWORD='123',
      they end up being logged. Using [@opaque] here avoids us logging proxy credentials. *)
