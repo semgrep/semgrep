@@ -1,0 +1,5 @@
+Supply Chain: the yarn v1 lockfile parser no longer reports a package named
+"dependencies" with an empty version when a blank line precedes the
+dependencies block of an entry, and it now keeps that entry's dependency
+edges. Entries without a version line are reported as parser errors instead
+of dependencies with an empty version.
