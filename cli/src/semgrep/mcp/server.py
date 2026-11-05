@@ -183,16 +183,19 @@ def safe_join(base_dir: str, untrusted_path: str) -> str:
     if not untrusted_path or untrusted_path == "." or untrusted_path.strip("/") == "":
         return base_path.as_posix()
 
-    # Ensure untrusted path is not absolute
-    # This is soft validation, path traversal is checked later
-    if Path(untrusted_path).is_absolute():
+    # Ensure untrusted path is not absolute. On Windows, pathlib does not
+    # consider root-relative paths ("/Windows/System32", "\\Windows\\Temp")
+    # or drive-relative paths ("D:file.txt") absolute, but joining them to
+    # base_dir still discards the base directory.
+    untrusted = Path(untrusted_path)
+    if untrusted.is_absolute() or untrusted.drive or untrusted.root:
         raise ValueError("Untrusted path must be relative")
 
     # Join and normalize the untrusted path
-    full_path = base_path / Path(untrusted_path)
+    full_path = (base_path / untrusted).resolve()
 
     # Ensure the final path doesn't escape the base directory
-    if not full_path == full_path.resolve():
+    if not full_path.is_relative_to(base_path):
         raise ValueError(
             f"Untrusted path escapes the base directory!: {untrusted_path}"
         )
