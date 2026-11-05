@@ -336,6 +336,12 @@ class ResolutionFailure:
     # Human-readable error kinds, in the order reported. Empty if resolution
     # failed without reporting any error.
     reasons: Tuple[str, ...]
+    # The resolution errors the resolver reported for the subproject, with
+    # their details (e.g. the failed command and its output).
+    errors: Tuple[out.ScaResolutionError, ...] = ()
+    # The lockfile parse errors reported for the subproject, e.g. when a
+    # lockfile could not be parsed at all.
+    parse_errors: Tuple[out.DependencyParserError, ...] = ()
 
     def describe(self) -> str:
         sources = ", ".join(str(p) for p in self.dependency_sources)
@@ -396,6 +402,12 @@ def find_resolution_failures(
                 dependency_sources=tuple(get_display_paths(sub.info.dependency_source)),
                 reasons=tuple(
                     dict.fromkeys(_resolution_error_label(e) for e in reported)
+                ),
+                errors=tuple(
+                    e.value.value for e in reported if isinstance(e.value, out.SCAResol)
+                ),
+                parse_errors=tuple(
+                    e.value.value for e in reported if isinstance(e.value, out.SCAParse)
                 ),
             )
         )

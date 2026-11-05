@@ -1,0 +1,1 @@
+type $NAME = map[string]$VALUE

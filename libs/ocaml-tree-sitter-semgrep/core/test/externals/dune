@@ -63,22 +63,11 @@
  (subdir
   lib
   (rule
-   (deps ../../src/tree_sitter)
-   (targets parser.c)
+   (targets parser.c scanner.c)
    (action
     (concurrent
      (copy ../../src/parser.c parser.c)
-     (copy ../../src/scanner.c scanner.c)
-     ; NOTE: dune doesn't know about how to build these headers or that
-     ; they're deps. That's probably OK, but if we change how those are
-     ; created we may need to modify this.
-     ;
-     ; Ensure we don't try and copy the glob pattern if is is empty
-     (bash
-      "shopt -s nullglob; for file in ../../src/*.h; do cp $file .; done")
-     (progn
-      (bash "mkdir -p tree_sitter/")
-      (bash "cp ../../src/tree_sitter/*.h tree_sitter/")))))
+     (copy ../../src/scanner.c scanner.c))))
   (rule
    (deps
     (:template ../../../bindings.template.c))
@@ -92,6 +81,8 @@
    (foreign_stubs
     (language c)
     (names parser bindings scanner)
+    (include_dirs ../../src)
+    (extra_deps ../../src/tree_sitter)
     (flags
      :standard
      (:include c_flags.sexp)))

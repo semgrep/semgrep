@@ -29,6 +29,8 @@ from typing import TypedDict
 from typing import TypeVar
 from typing import Union
 
+from typing_extensions import NotRequired
+
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
@@ -61,7 +63,9 @@ A = TypeVar("A")
 
 class DependencyDict(TypedDict):
     # Type def for the returned value from parsing dependency fields in yarn.lock
-    version: str
+    # "version" is absent when the lockfile entry has no version line, so that
+    # callers can report the entry instead of treating it as version "".
+    version: NotRequired[str]
     resolved: Union[str, None]
     checksum: Optional[str]
     children: List[Tuple[str, str]]
@@ -75,7 +79,6 @@ def create_dependency_dict(
         raw_dict[key] = value
     dependency_dict = DependencyDict(
         {
-            "version": raw_dict.get("version", ""),
             "resolved": raw_dict.get("resolved", None),
             "checksum": raw_dict.get(
                 "checksum", raw_dict.get("integrity", None)
@@ -83,6 +86,8 @@ def create_dependency_dict(
             "children": children,
         }
     )
+    if "version" in raw_dict:
+        dependency_dict["version"] = raw_dict["version"]
     return dependency_dict
 
 
@@ -132,9 +137,19 @@ def dep_version_pair(dep: str, version: str) -> Tuple[str, str]:
 # my-package-without-version-constraint:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-part1 = regex('"?(@?[^@:]*)', flags=0, group=1)
+# The package name must start with a non-whitespace character, so an indented
+# line such as "  dependencies:" can never be read as an entry header.
+part1 = regex(r'"?(@?[^@:\s][^@:\n]*)', flags=0, group=1)
 part2 = regex('@?([^:,"]*(:?(?!\n)[^:,"]*)*)"?', flags=0, group=1)
 source1 = pair(part1, part2)
+
+# A line break that stays inside one yarn version 1 entry: the newline, any
+# blank lines after it, and a lookahead for the next line being indented.
+# A blank line before "dependencies:" is therefore not an entry boundary.
+entry_newline1 = regex(r"\n(?: *\n)*(?= +\S)")
+
+# One or more blank lines between two yarn version 1 entries
+entry_separator1 = regex(r"\n(?: *\n)+")
 
 # Examples:
 # "@ampproject/remapping@^2.0.0", "@ampproject/remapping@^3.1.0"
@@ -153,10 +168,10 @@ key_value1 = string(" ").many() >> upto(" ").bind(
 )
 
 dependencies1 = (
-    string("\n  dependencies:\n    ")
+    (entry_newline1 >> string("  dependencies:\n    "))
     .optional()
     .bind(
-        lambda title: key_value1.sep_by(string("\n")).map(
+        lambda title: key_value1.sep_by(entry_newline1).map(
             lambda child_info: [
                 dep_version_pair(dep.strip('"'), version) for dep, version in child_info
             ],
@@ -174,20 +189,19 @@ dependencies1 = (
 #   integrity sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==
 #   dependencies:
 #     "@jridgewell/trace-mapping" "^0.3.0"
+# Any further indented lines (for example optionalDependencies) belong to the
+# entry and are skipped.
 yarn_dep1 = mark_line(
     pair(
         multi_source1 << string(":\n"),
-        key_value1.sep_by(string("\n")).bind(
+        key_value1.sep_by(entry_newline1).bind(
             lambda dep_info: dependencies1.map(
                 lambda deps: create_dependency_dict(
                     dependency_info=[x for x in dep_info],
                     children=deps,
                 )
             )
-            << (
-                string("\n  ").optional()
-                >> line.sep_by(string("\n  ")).map(lambda _: None)
-            )
+            << (entry_newline1 >> string("  ") >> line).many().map(lambda _: None)
         ),
     )
 )
@@ -201,7 +215,7 @@ YARN1_PREFIX = """\
 yarn1 = (
     string(YARN1_PREFIX)
     >> string("\n").optional()
-    >> yarn_dep1.sep_by(string("\n\n"))
+    >> yarn_dep1.sep_by(entry_separator1)
     << (string("\n\n") | string("\n")).optional()
 )
 
@@ -359,6 +373,14 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
         return "#".join(s.split("#")[:-1]) if "#" in s else s
 
 
+def has_whitespace_led_package(sources: List[Tuple[str, str]]) -> bool:
+    """
+    True when any package name in an entry header starts with whitespace,
+    which means an indented body line was read as a header.
+    """
+    return any(package != package.lstrip() for package, _ in sources)
+
+
 @telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
@@ -390,7 +412,11 @@ def parse_yarn(
     output = []
     dep_version_map = {}
     for _line_number, (sources, fields) in parsed_lockfile:
-        if len(sources) < 1 or "version" not in fields:
+        if (
+            len(sources) < 1
+            or has_whitespace_led_package(sources)
+            or "version" not in fields
+        ):
             continue
         sources = [
             dep_version_pair(package, version_req) for package, version_req in sources
@@ -400,13 +426,23 @@ def parse_yarn(
     for line_number, (sources, fields) in parsed_lockfile:
         if len(sources) < 1:
             continue
+        if has_whitespace_led_package(sources):
+            errors.append(
+                DependencyParserError(
+                    path=Fpath(str(lockfile_path)),
+                    parser=parser_name,
+                    reason="Entry header starts with whitespace",
+                    line=line_number,
+                )
+            )
+            continue
         if "version" not in fields:
             errors.append(
                 DependencyParserError(
                     path=Fpath(str(lockfile_path)),
                     parser=parser_name,
                     reason="Missing version field",
-                    line_number=line_number,
+                    line=line_number,
                 )
             )
             continue
