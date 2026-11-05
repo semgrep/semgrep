@@ -647,6 +647,7 @@ rules:
     assert "severity" in exc_info.value.long_msg.lower()
 
 
+@pytest.mark.quick
 def test_read_config_at_path_reads_utf8(mocker, tmp_path):
     rule_file = tmp_path / "utf8-rule.yaml"
     contents = (
