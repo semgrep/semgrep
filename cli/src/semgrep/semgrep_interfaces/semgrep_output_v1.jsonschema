@@ -2967,7 +2967,8 @@
         "rules": { "$ref": "#/definitions/raw_json" },
         "n_partitions": { "type": "integer" },
         "output_dir": { "$ref": "#/definitions/fpath" },
-        "strategy": { "type": "string" }
+        "strategy": { "type": "string" },
+        "heavy_rule_ids": { "type": "array", "items": { "type": "string" } }
       }
     },
     "scan_params": {

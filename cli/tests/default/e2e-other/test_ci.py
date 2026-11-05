@@ -1629,6 +1629,8 @@ def test_empty_repo_run(
 @pytest.mark.osemfail
 def test_outputs(
     git_tmp_path_with_commit,
+    tmp_path,
+    mocked_scan_id,
     snapshot,
     format,
     mock_autofix,
@@ -1641,6 +1643,7 @@ def test_outputs(
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
+    events_path = tmp_path / "events.jsonl"
     result = run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only", format],
@@ -1648,12 +1651,39 @@ def test_outputs(
         strict=False,
         assert_exit_code=None,
         output_format=None,
-        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        env={
+            "SEMGREP_APP_TOKEN": "fake_key",
+            "SEMGREP_LOG_JSON_FILE": str(events_path),
+        },
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(),
         "results.txt",
+    )
+
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    assert all("event" not in event for event in events)
+    by_message = {event["message"]: event for event in events}
+    assert {
+        "scan environment initialized",
+        "scan initialized",
+        "scan engine selected",
+        "full scan selected",
+        "uploading scan results",
+        "scan results uploaded",
+        "finalizing scan",
+        "scan finalized",
+        "scan result links available",
+        "ci scan completed",
+    } <= by_message.keys()
+    initialized = by_message["scan initialized"]["attributes"]
+    assert initialized["scan.id"] == mocked_scan_id
+    assert initialized["scan.products"]
+    assert by_message["scan engine selected"]["attributes"]["engine.kind"] == "oss"
+    assert by_message["scan result links available"]["attributes"]["scan.results.urls"]
+    assert (
+        by_message["ci scan completed"]["attributes"]["exit.code"] == result.exit_code
     )
 
 
@@ -2604,12 +2634,25 @@ def _gradle_subproject(path: str) -> out.Subproject:
     )
 
 
-def _resolution_error(kind) -> out.ScaError:
+def _resolution_error(kind, path: str = "build.gradle") -> out.ScaError:
     return out.ScaError(
         out.SCAResol(
             out.ScaResolutionError(
                 type_=out.ResolutionErrorKind(kind),
-                dependency_source_file=out.Fpath("build.gradle"),
+                dependency_source_file=out.Fpath(path),
+            )
+        )
+    )
+
+
+def _parse_error(path: str, reason: str, text: str | None = None) -> out.ScaError:
+    return out.ScaError(
+        out.SCAParse(
+            out.DependencyParserError(
+                path=out.Fpath(path),
+                parser=out.ScaParserName(out.PPnpmLock()),
+                reason=reason,
+                text=text,
             )
         )
     )
@@ -2875,6 +2918,221 @@ def test_dependency_resolution_failure_skipped_for_managed_scans(
     else:
         assert "Dependency resolution failed" not in result.stderr
         assert "CI scan completed successfully" in result.stderr
+
+
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    "options, subprojects, expected_exit_code, expected_errors",
+    [
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            [
+                _resolved("ok/build.gradle"),
+                _unresolved(
+                    "bad/build.gradle",
+                    out.UnresolvedFailed(),
+                    [
+                        _resolution_error(
+                            out.ResolutionCmdFailed_(
+                                out.ResolutionCmdFailed("gradlew", "boom")
+                            ),
+                            "bad/build.gradle",
+                        )
+                    ],
+                ),
+            ],
+            2,
+            [("ResolutionCmdFailed", "bad/build.gradle")],
+            id="failed-with-reported-error",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            [
+                _unresolved(
+                    "a/build.gradle",
+                    out.UnresolvedFailed(),
+                    [
+                        _resolution_error(
+                            out.ResolutionCmdFailed_(
+                                out.ResolutionCmdFailed("gradlew", "boom")
+                            ),
+                            "a/build.gradle",
+                        )
+                    ],
+                ),
+                _resolved(
+                    "b/build.gradle",
+                    [
+                        _resolution_error(
+                            out.ResourceInaccessible_(
+                                out.ResourceInaccessible("gradlew", None, "401")
+                            ),
+                            "b/build.gradle",
+                        )
+                    ],
+                ),
+            ],
+            2,
+            [
+                ("ResolutionCmdFailed", "a/build.gradle"),
+                ("ResourceInaccessible", "b/build.gradle"),
+            ],
+            id="one-error-per-failed-subproject",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            [_unresolved("bad/build.gradle", out.UnresolvedFailed())],
+            2,
+            [(None, "bad/build.gradle: no error details were reported")],
+            id="failed-without-reported-error",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            [
+                _unresolved(
+                    "bad/pnpm-lock.yaml",
+                    out.UnresolvedFailed(),
+                    [
+                        _parse_error(
+                            "bad/pnpm-lock.yaml",
+                            "no lockfileVersion found in lockfile",
+                            # the offending line is left out of the output
+                            text="resolved: https://ci-user:hunter2@registry.example.com/x",
+                        )
+                    ],
+                )
+            ],
+            2,
+            [
+                (
+                    "ScaParseError",
+                    "bad/pnpm-lock.yaml. Lockfile Parse Error: no lockfileVersion found in lockfile",
+                )
+            ],
+            id="lockfile-parse-failure",
+        ),
+        pytest.param(
+            ["--allow-local-builds"],
+            [_unresolved("bad/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="errors-suppressed-by-default",
+        ),
+    ],
+)
+def test_dependency_resolution_failure_in_json_output(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    options,
+    subprojects,
+    expected_exit_code,
+    expected_errors,
+):
+    """
+    SC-3613: the reason for a failed resolution is in the `errors` of the JSON
+    output too, not only in the log, so that pipelines that read the JSON can
+    tell why the scan exited with code 2. When nothing fails the JSON has none.
+    """
+    mocker.patch.object(
+        semgrep.run_scan,
+        "resolve_dependencies",
+        return_value=(
+            [],
+            [e for sub in subprojects for e in sub.errors],
+            [],
+            subprojects,
+            {},
+        ),
+    )
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[*options, "--oss-only", "--json"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=expected_exit_code,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+
+    assert "hunter2" not in result.raw_stdout
+    errors = json.loads(result.raw_stdout)["errors"]
+    assert len(errors) == len(expected_errors)
+    for error, (kind, message_part) in zip(errors, expected_errors):
+        assert error["level"] == "error"
+        assert error["code"] == 2
+        assert message_part in error["message"]
+        if kind is None:
+            assert error["type"] == "SemgrepError"
+        else:
+            assert error["type"][0] == "DependencyResolutionError"
+            assert error["type"][1][0] == kind
+
+
+@pytest.mark.osemfail
+def test_dependency_resolution_failure_json_is_redacted_and_bounded(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """
+    The command and the output of the failed resolution come from package
+    managers: they can contain registry credentials and be very long, and the
+    JSON output is often stored. They are redacted and truncated, and the
+    command is not repeated in the message.
+    """
+    secret = "hunter2"
+    registry = f"https://ci-user:{secret}@registry.example.com/simple"
+    error = _resolution_error(
+        out.ResolutionCmdFailed_(
+            out.ResolutionCmdFailed(
+                f"pip install --index-url {registry} .",
+                "o" * 20000 + f" {registry}/pkg\nUnable to reach the registry",
+            )
+        ),
+        "bad/setup.py",
+    )
+    subprojects = [_unresolved("bad/setup.py", out.UnresolvedFailed(), [error])]
+    mocker.patch.object(
+        semgrep.run_scan,
+        "resolve_dependencies",
+        return_value=([], [error], [], subprojects, {}),
+    )
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--allow-local-builds",
+            "--oss-only",
+            "--json",
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+
+    assert secret not in result.raw_stdout
+    (entry,) = json.loads(result.raw_stdout)["errors"]
+    assert len(json.dumps(entry)) < 6000
+    assert entry["message"].endswith("Unable to reach the registry")
+    assert "pip install" not in entry["message"]
+    assert "pip install" in json.dumps(entry["type"])
 
 
 @pytest.mark.osemfail
