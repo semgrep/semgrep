@@ -1,0 +1,1 @@
+The `semgrep/semgrep` Docker image no longer includes the OpenSSH server (`sshd`) or `sftp-server`. It now installs only the OpenSSH client (`ssh`, `scp`, `ssh-keyscan`, `ssh-agent`, `ssh-add` and `ssh-keygen`), which is all git needs to fetch over SSH. Container scanners will no longer report sshd-only CVEs against the image.
