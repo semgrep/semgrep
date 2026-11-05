@@ -117,6 +117,24 @@ For Python CLI changes (`cli/`):
 For all changes:
 1. `pre-commit run --files /path/to/changed/files` - Run formatters and other pre-commit checks
 
+### Tracing and structured execution logs
+
+- Use OpenTelemetry spans for diagnostic operation timing, parent/child relationships, and failure status. Preserve existing span names and attributes used by telemetry consumers; do not rename spans to supply user-facing messages.
+- Use `semgrep.structured_logging.log` (structlog) for explicit, user-facing scan events and typed metadata: scan configuration, progress, rule and dependency breakdowns, findings summaries, skipped targets, warnings, and outcomes. Span lifecycle records alone do not provide this coverage.
+- Author meaningful messages at the point where the scan behavior is known. Do not generate user-facing messages from function names, internal span names, or terminal formatting, and do not add a separate event code alongside the message.
+- Use lowercase authored messages and dotted attribute keys; preserve original case in paths, rule IDs, and diagnostic text. Pass the message first and bind shared attributes with native structlog APIs:
+
+  ```python
+  from semgrep.structured_logging import log
+
+  scan_log = log.bind(**{"scan.id": scan_id})
+  scan_log.info("uploading scan results")
+  ```
+
+- Choose `info`, `warning`, or `error` for the event's meaning. A non-error span status alone does not establish scan success or distinguish warnings.
+- Trace/span IDs may correlate explicit log records with diagnostic spans; correlation must not replace the messages or make structured logging depend on tracing being enabled, sampled, or remotely exported.
+- Keep `SEMGREP_LOG_JSON_FILE` opt-in execution logs independent of terminal text and scan-result output. Optional logging failures must not change scan behavior; use the existing logging pipeline and avoid sensitive payloads.
+
 ### Development Tools
 This project uses **make** for build orchestration. **IMPORTANT: Never invoke `dune` directly for building or testing** — always use the Makefile targets above. The Makefiles handle path resolution for the monorepo layout. Direct `dune` usage is only appropriate for documentation generation:
 

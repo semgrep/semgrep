@@ -224,6 +224,16 @@ and map_anon_choice_param_list_29faba4 (env : env) (x : CST.anon_choice_param_li
     )
   )
 
+and map_anon_choice_type_spec_579fc52 (env : env) (x : CST.anon_choice_type_spec_579fc52) =
+  (match x with
+  | `Type_spec x -> R.Case ("Type_spec",
+      map_type_spec env x
+    )
+  | `Type_alias x -> R.Case ("Type_alias",
+      map_type_alias env x
+    )
+  )
+
 and map_argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   let v1 = (* "(" *) token env v1 in
   let v2 =
@@ -494,23 +504,29 @@ and map_declaration (env : env) (x : CST.declaration) =
         | `Type_alias x -> R.Case ("Type_alias",
             map_type_alias env x
           )
-        | `LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR (v1, v2, v3) -> R.Case ("LPAR_rep_choice_type_spec_choice_pat_1d78758_RPAR",
+        | `LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR (v1, v2, v3) -> R.Case ("LPAR_opt_choice_type_spec_rep_choice_pat_1d78758_choice_type_spec_opt_choice_pat_1d78758_RPAR",
             let v1 = (* "(" *) token env v1 in
             let v2 =
-              R.List (List.map (fun (v1, v2) ->
-                let v1 =
-                  (match v1 with
-                  | `Type_spec x -> R.Case ("Type_spec",
-                      map_type_spec env x
-                    )
-                  | `Type_alias x -> R.Case ("Type_alias",
-                      map_type_alias env x
-                    )
-                  )
-                in
-                let v2 = map_anon_choice_pat_1d78758_89f618f env v2 in
-                R.Tuple [v1; v2]
-              ) v2)
+              (match v2 with
+              | Some (v1, v2, v3) -> R.Option (Some (
+                  let v1 = map_anon_choice_type_spec_579fc52 env v1 in
+                  let v2 =
+                    R.List (List.map (fun (v1, v2) ->
+                      let v1 = map_anon_choice_pat_1d78758_89f618f env v1 in
+                      let v2 = map_anon_choice_type_spec_579fc52 env v2 in
+                      R.Tuple [v1; v2]
+                    ) v2)
+                  in
+                  let v3 =
+                    (match v3 with
+                    | Some x -> R.Option (Some (
+                        map_anon_choice_pat_1d78758_89f618f env x
+                      ))
+                    | None -> R.Option None)
+                  in
+                  R.Tuple [v1; v2; v3]
+                ))
+              | None -> R.Option None)
             in
             let v3 = (* ")" *) token env v3 in
             R.Tuple [v1; v2; v3]
@@ -1509,13 +1525,20 @@ and map_type_ (env : env) (x : CST.type_) =
     )
   )
 
-and map_type_alias (env : env) ((v1, v2, v3) : CST.type_alias) =
+and map_type_alias (env : env) ((v1, v2, v3, v4) : CST.type_alias) =
   let v1 =
     (* pattern [_\p{L}][_\p{L}\p{Nd}]* *) token env v1
   in
-  let v2 = (* "=" *) token env v2 in
-  let v3 = map_type_ env v3 in
-  R.Tuple [v1; v2; v3]
+  let v2 =
+    (match v2 with
+    | Some x -> R.Option (Some (
+        map_type_parameter_list env x
+      ))
+    | None -> R.Option None)
+  in
+  let v3 = (* "=" *) token env v3 in
+  let v4 = map_type_ env v4 in
+  R.Tuple [v1; v2; v3; v4]
 
 and map_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
   let v1 = (* "[" *) token env v1 in

@@ -51,6 +51,7 @@ from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
+from structlog.contextvars import bound_contextvars
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -107,6 +108,8 @@ from semgrep.simple_profiling import profiling
 from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
 from semgrep.state import SemgrepState
+from semgrep.structured_logging import log
+from semgrep.structured_logging import log_phase
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
@@ -167,6 +170,15 @@ def list_targets_and_exit(
 def dump_partitions_and_exit(
     rules: List[Rule], params: out.DumpRulePartitionsParams
 ) -> None:
+    # Only Code is supported now, and anything that looks like SCA is filtered out.
+    sca_product = out.Product(out.SCA())
+    sca_rule_ids = [r.id for r in rules if r.product == sca_product]
+    if sca_rule_ids:
+        logger.warning(
+            f"Skipping {len(sca_rule_ids)} Supply Chain rule(s). Not supported: "
+            f"{', '.join(sca_rule_ids)}"
+        )
+        rules = [r for r in rules if r.product != sca_product]
     params.rules = out.RawJson({"rules": [r.raw for r in rules]})
     ok = dump_rule_partitions(params)
     if not ok:
@@ -519,6 +531,10 @@ def baseline_run(
         len([match for match in matches if not match.from_transient_scan])
         for matches in rule_matches_by_rule.values()
     )
+    log.info(
+        "current version analysis completed",
+        **{"scan.findings.count": findings_count},
+    )
     logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
     logger.info("")
 
@@ -570,8 +586,16 @@ def baseline_run(
     baseline_targets -= set(baseline_handler.status.added)
 
     if not paths_with_matches:
+        log.info(
+            "baseline scan skipped",
+            **{"baseline.skip.reason": "no.current.findings"},
+        )
         logger.info("Skipping baseline scan, because there are no current findings.")
     elif not baseline_targets:
+        log.info(
+            "baseline scan skipped",
+            **{"baseline.skip.reason": "findings.only.in.added.files"},
+        )
         logger.info(
             "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
         )
@@ -580,7 +604,14 @@ def baseline_run(
         baseline_handler.print_git_log()
         logger.info("")
         try:
-            with baseline_handler.baseline_context():
+            with (
+                bound_contextvars(**{"scan.phase": "baseline"}),
+                baseline_handler.baseline_context(),
+            ):
+                log.info(
+                    "baseline worktree prepared",
+                    **{"baseline.commit": baseline_commit},
+                )
                 rules_of_matches = [
                     rule for rule, matches in rule_matches_by_rule.items() if matches
                 ]
@@ -1046,6 +1077,7 @@ def build_dependencies_by_lockfile(
 # This runs semgrep-core (and also handles SCA and join rules)
 @telemetry.trace()
 @simple_profiling
+@log_phase("analysis")
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -1273,6 +1305,7 @@ class AutofixBehavior(enum.Enum):
 # old: this used to be called semgrep.semgrep_main.main
 @telemetry.trace()
 @simple_profiling
+@log_phase("scan")
 def run_scan(
     *,
     dump_command_for_core: bool = False,
@@ -1765,6 +1798,19 @@ def run_scan(
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
+    )
+
+    log.info(
+        "scan analysis completed",
+        **{
+            "scan.targets.count": len(output_extra.all_targets.targets),
+            "scan.rules.executed.count": executed_rule_count,
+            "scan.rules.missed.count": missed_rule_count,
+            "scan.findings.count": sum(
+                len(matches) for matches in filtered_matches_by_rule.kept.values()
+            ),
+            "scan.errors.count": len(semgrep_errors),
+        },
     )
 
     return (
