@@ -201,9 +201,9 @@ let regression_information ~ext (xs : Fpath.t list) (newscore : Common2.score) :
         | _ -> None
       in
       (* TODO Config_pfff.regression_data_dir *)
-      (* nosemgrep: not-portable-tmp *)
-      let score_path = "/tmp/parsing_stats" in
-      (* nosemgrep: not-portable-tmp *)
+      let score_path =
+        Filename.concat (Filename.get_temp_dir_name ()) "parsing_stats"
+      in
       if Sys_.file_exists score_path then
         dirname_opt
         |> Option.iter (fun dirname ->
