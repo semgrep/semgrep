@@ -1576,6 +1576,12 @@ and map_stmt_expr env ?(is_returned = false) ?g_expr st : exp =
         mk_s (Return (tok, e)) |> add_stmt env;
         map_expr_opt env tok None)
       else e
+  | G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
+      (* OCaml uses this wrapper to prevent deep matching from treating
+       * [else fail ()] as [else ()]. That restriction is only for matching;
+       * analysis should lower the wrapped expression as an ExprStmt. *)
+      map_stmt_expr env ~is_returned ?g_expr
+        { st with s = G.ExprStmt (e, G.fake ";") }
   | G.OtherStmt
       ( OS_Delete,
         ( [ (G.Tk tok as atok); G.E eorig ]
@@ -1850,6 +1856,7 @@ and map_type_opt_with_pre_stmts env opt_ty =
  * languages are assumed to fall through. *)
 and no_switch_fallthrough : Lang.t -> bool = function
   | Go
+  | Ocaml
   | Python
   | Ruby
   | Rust
@@ -2183,6 +2190,9 @@ and map_stmt_aux env st : stmt list =
   | G.Throw (tok, e, _) ->
       let ss, e = map_expr_with_pre_stmts env e in
       ss @ [ mk_s (Throw (tok, e)) ]
+  | G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
+      (* Handle the same OCaml wrapper as map_stmt_expr, in statement position. *)
+      map_stmt_aux env { st with s = G.ExprStmt (e, G.fake ";") }
   | G.OtherStmt (G.OS_ThrowNothing, [ G.Tk tok ]) ->
       (* Python's `raise` without arguments *)
       let eorig = related_tok tok in
