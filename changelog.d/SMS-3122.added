@@ -1,0 +1,1 @@
+Secrets: emit structured, privacy-safe telemetry for custom validator HTTP requests (hostname, port, status, latency, rule/scan correlation)
