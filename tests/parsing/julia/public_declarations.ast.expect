@@ -1,0 +1,160 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("API", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ModuleDef
+          { mbody =
+            (ModuleStruct (None,
+               [{ s =
+                  (DirectiveStmt
+                     { d =
+                       (OtherDirective (("public", _),
+                          [(Anys [(I ("run", _))]);
+                            (Anys [(I ("@inspect", _))]);
+                            (Anys [(I ("+", _))]); (Anys [(I ("helper", _))])
+                            ]
+                          ));
+                       d_attrs = [] });
+                  s_range = None };
+                 { s =
+                   (DirectiveStmt
+                      { d =
+                        (OtherDirective (("export", _),
+                           [(Anys [(I ("exported", _))])]));
+                        d_attrs = [] });
+                   s_range = None };
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("public", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (VarDef
+                          { vinit =
+                            (Some { e =
+                                    (Lambda
+                                       { fkind = (LambdaKind, _);
+                                         fparams = (_, [], _);
+                                         frettype = None;
+                                         fbody =
+                                         (FBExpr
+                                            { e = (L (Int ((Some 1L), _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = true;
+                                              facts = <opaque> })
+                                         });
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                            vtype = None; vtok = None })));
+                   s_range = None };
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("outer", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (VarDef
+                          { vinit =
+                            (Some { e =
+                                    (Lambda
+                                       { fkind = (LambdaKind, _);
+                                         fparams = (_, [], _);
+                                         frettype = None;
+                                         fbody =
+                                         (FBExpr
+                                            { e = (L (Int ((Some 2L), _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = true;
+                                              facts = <opaque> })
+                                         });
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                            vtype = None; vtok = None })));
+                   s_range = None };
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("\240\159\152\128", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (VarDef
+                          { vinit =
+                            (Some { e =
+                                    (Lambda
+                                       { fkind = (LambdaKind, _);
+                                         fparams =
+                                         (_,
+                                          [(Param
+                                              { pname = (Some ("x", _));
+                                                ptype = None;
+                                                pdefault = None; pattrs = [];
+                                                pinfo =
+                                                { id_resolved =
+                                                  ref ((Some (Parameter, _)));
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (Unknown);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                })
+                                            ],
+                                          _);
+                                         frettype = None;
+                                         fbody =
+                                         (FBExpr
+                                            { e =
+                                              (N
+                                                 (Id (("x", _),
+                                                    { id_resolved =
+                                                      ref ((Some (Parameter,
+                                                                  _)));
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = true;
+                                              facts = <opaque> })
+                                         });
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                            vtype = None; vtok = None })));
+                   s_range = None }
+                 ]
+               ))
+            })));
+   s_range = None }
+  ]
