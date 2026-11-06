@@ -68,7 +68,7 @@
                             fbody =
                             (FBExpr
                                { e = (L (Int ((Some 1L), _))); e_id = 0;
-                                 e_range = None; is_implicit_return = false;
+                                 e_range = None; is_implicit_return = true;
                                  facts = <opaque> })
                             })));
                    s_range = None });
@@ -102,7 +102,7 @@
                              fbody =
                              (FBExpr
                                 { e = (L (Int ((Some 1L), _))); e_id = 0;
-                                  e_range = None; is_implicit_return = false;
+                                  e_range = None; is_implicit_return = true;
                                   facts = <opaque> })
                              })));
                     s_range = None })
