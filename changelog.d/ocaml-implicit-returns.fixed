@@ -1,0 +1,1 @@
+OCaml: the last expression of a function body is now treated as the function's result, so taint flows through calls.
