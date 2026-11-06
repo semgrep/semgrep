@@ -221,9 +221,9 @@ RUN apk upgrade --no-cache && \
 # See https://docs.docker.com/develop/security-best-practices/ for more info.
 #
 # Here is why we need the apk packages below:
-# - git, git-lfs, openssh: so that the semgrep docker image can be used in
-#   Github actions (GHA) and get git submodules and use ssh to get those
-#   submodules
+# - git, git-lfs, openssh-client-default: so that the semgrep docker image can
+#   be used in Github actions (GHA) and get git submodules and use ssh to get
+#   those submodules
 # - bash: many users customize their call to semgrep via bash script
 # - jq: useful to process the JSON output of semgrep
 # - curl: useful to connect to some webhooks
@@ -231,7 +231,7 @@ RUN apk upgrade --no-cache && \
 # - py3-setuptools: necessary runtime dependency for opentelemetry
 	'ca-certificates>=20261020-r0' \
 	'ca-certificates-bundle>=20261020-r0' \
-	git git-lfs openssh \
+	git git-lfs openssh-client-default \
 	bash jq curl python3 py3-setuptools
 RUN python3 /tmp/validate-system-ca.py && rm /tmp/validate-system-ca.py
 

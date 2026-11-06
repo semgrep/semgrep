@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 import dataclasses
+import logging
 import os
 import pathlib
 import sys
@@ -53,6 +54,7 @@ from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
+from semgrep.formatter.text import finding_to_line
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
 from semgrep.output_extra import OutputExtra
@@ -62,6 +64,9 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.structured_logging import best_effort_events
+from semgrep.structured_logging import emit_error
+from semgrep.structured_logging import log
 from semgrep.subproject import subproject_to_cli_output_info
 from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
@@ -232,6 +237,8 @@ class OutputHandler:
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
+        # See `record_dependency_resolution_errors`.
+        self.dependency_resolution_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
         self.is_ci_invocation = False
@@ -272,6 +279,9 @@ class OutputHandler:
         timeout_errors = defaultdict(list)
         missing_plugin_errors = []
         for err in errors:
+            if err not in self.error_set:
+                emit_error(err)
+
             if (
                 isinstance(err, SemgrepCoreError)
                 and err.is_timeout()
@@ -352,7 +362,22 @@ class OutputHandler:
                 not (isinstance(error.level.value, out.Warning_))
                 or self.settings.verbose_errors
             ):
-                logger.error(error.format_for_terminal())
+                logger.error(
+                    error.format_for_terminal(), extra={"structured_skip": True}
+                )
+
+    def record_dependency_resolution_errors(
+        self, errors: Sequence[SemgrepError]
+    ) -> None:
+        """
+        Include dependency resolution failures in the structured output, e.g.
+        the `errors` of the JSON output, so that it says why the scan failed.
+
+        Unlike `handle_semgrep_errors`, this neither logs the errors (the caller
+        has reported them) nor lets them decide the exit code (the caller does,
+        see `_final_raise`).
+        """
+        self.dependency_resolution_errors.extend(errors)
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:
@@ -408,6 +433,131 @@ class OutputHandler:
         if self.disable_nosem:
             return self.rule_matches
         return [m for m in self.rule_matches if not m.match.extra.is_ignored]
+
+    @staticmethod
+    def _dotted_metadata(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key.replace("_", "."): OutputHandler._dotted_metadata(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [OutputHandler._dotted_metadata(item) for item in value]
+        return value
+
+    @best_effort_events
+    def _emit_findings(self) -> None:
+        for match in self._matches_for_display():
+            if match.severity not in self.severities:
+                continue
+            attributes: Dict[str, Any] = {
+                "finding.id": match.match_based_id,
+                "rule.id": match.rule_id,
+                "file.path": str(match.path),
+                "file.start.line": match.start.line,
+                "file.start.column": match.start.col,
+                "file.end.line": match.end.line,
+                "file.end.column": match.end.col,
+                "finding.message": match.message,
+                "finding.severity": str(match.severity.to_json()).lower(),
+                "finding.blocking": match.is_blocking,
+                "finding.product": {
+                    out.SAST(): "code",
+                    out.SCA(): "supply.chain",
+                    out.Secrets(): "secrets",
+                }[match.product.value],
+                "finding.fix": match.fix,
+                "finding.preview": "\n".join(
+                    line.plain
+                    for line in finding_to_line(
+                        match,
+                        False,
+                        self.settings.output_per_finding_max_lines_limit,
+                        self.settings.output_per_line_max_chars_limit,
+                        False,
+                        self.settings.max_match_context_size,
+                    )
+                ),
+            }
+            if match.metadata.get("shortlink"):
+                attributes["finding.details.url"] = match.metadata["shortlink"]
+            if match.git_commit:
+                attributes["scan.phase"] = "historical"
+                attributes["finding.git.commit"] = match.git_commit.value
+            if match.git_blob:
+                attributes["finding.git.blob"] = match.git_blob.value
+            if self.settings.dataflow_traces and match.match.extra.dataflow_trace:
+                attributes["finding.dataflow.trace"] = self._dotted_metadata(
+                    match.match.extra.dataflow_trace.to_json()
+                )
+            if match.match.extra.validation_state:
+                attributes["finding.validation.state"] = str(
+                    match.match.extra.validation_state.to_json()
+                ).lower()
+            if match.match.extra.sca_match:
+                sca = match.match.extra.sca_match
+                dependency = sca.dependency_match.found_dependency
+                exposure = match.exposure_type or "undetermined"
+                if sca.kind:
+                    kind = sca.kind.value
+                    if isinstance(
+                        kind, (out.DirectReachable, out.TransitiveReachable_)
+                    ):
+                        exposure = "reachable"
+                    elif isinstance(kind, out.TransitiveUnreachable_):
+                        exposure = "unreachable"
+                    elif isinstance(kind, out.TransitiveUndetermined_):
+                        exposure = "undetermined"
+                    kind_names = {
+                        out.DirectReachable: "direct.reachable",
+                        out.TransitiveReachable_: "transitive.reachable",
+                        out.TransitiveUnreachable_: "transitive.unreachable",
+                        out.TransitiveUndetermined_: "transitive.undetermined",
+                        out.LockfileOnlyMatch: "lockfile.only",
+                    }
+                    attributes["dependency.match.kind"] = kind_names[type(kind)]
+                    if (
+                        isinstance(kind, out.TransitiveReachable_)
+                        and kind.value.explanation
+                    ):
+                        attributes[
+                            "dependency.transitivity.explanation"
+                        ] = kind.value.explanation
+                fix_metadata = match.metadata.get("sca-fix-versions")
+                fixed_versions = sorted(
+                    {
+                        version
+                        for fix in (
+                            fix_metadata if isinstance(fix_metadata, list) else []
+                        )
+                        if isinstance(fix, dict)
+                        for name, version in fix.items()
+                        if name == dependency.package and isinstance(version, str)
+                    }
+                )
+                attributes.update(
+                    {
+                        "dependency.exposure": exposure,
+                        "dependency.vulnerability.id": match.metadata.get(
+                            "sca-vuln-database-identifier"
+                        ),
+                        "dependency.vulnerability.severity": str(
+                            match.metadata["sca-severity"]
+                        ).lower()
+                        if "sca-severity" in match.metadata
+                        else None,
+                        "dependency.fixed.versions": fixed_versions,
+                        "dependency.package": dependency.package,
+                        "dependency.version": dependency.version,
+                        "dependency.ecosystem": dependency.ecosystem.kind.lower(),
+                        "dependency.lockfile.path": sca.dependency_match.lockfile.value,
+                        "dependency.reachable": sca.reachable,
+                        "dependency.transitivity": str(
+                            dependency.transitivity.to_json()
+                        ).lower(),
+                    }
+                )
+            log.info("finding reported", **attributes)
 
     # TODO: why run_scan.scan() calls output() to set the fields why
     # run_scan.run_scan_and_return_json() modify directly the fields instead?
@@ -497,6 +647,8 @@ class OutputHandler:
             final_error = self.semgrep_structured_errors[-1]
             self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
+        self._emit_findings()
+
         if self.has_output:
             for output_destination, output in self._build_outputs():
                 if output_destination:
@@ -557,6 +709,49 @@ class OutputHandler:
                 )
 
             parsed_line = f"\n • Parsed lines: {pretty_print_percentage((total_lines - total_lines_skipped), total_lines)}"
+
+            log.info(
+                "scan summary",
+                **{
+                    "scan.findings.count": num_findings,
+                    "scan.findings.blocking.count": num_blocking_findings,
+                    "scan.rules.executed.count": num_rules,
+                    "scan.rules.missed.count": missed_rule_count,
+                    "scan.targets.count": num_targets,
+                    "scan.lines.total": total_lines,
+                    "scan.lines.skipped": total_lines_skipped,
+                    "scan.lines.parsed.percent": 100
+                    * (total_lines - total_lines_skipped)
+                    / total_lines
+                    if total_lines
+                    else None,
+                    "scan.failure.reason": scan_failure_reason,
+                    "scan.targets.changed.only": bool(
+                        self.ignore_log.target_manager.baseline_handler
+                    ),
+                    "scan.targets.git.tracked.only": self.ignore_log.target_manager.respect_git_ignore,
+                    "scan.targets.max.bytes": self.ignore_log.target_manager.max_target_bytes,
+                    "scan.skipped.includes.count": len(self.ignore_log.cli_includes),
+                    "scan.skipped.excludes.count": len(self.ignore_log.cli_excludes),
+                    "scan.skipped.permissions.count": len(
+                        self.ignore_log.insufficient_permissions
+                    ),
+                    "scan.skipped.size.count": len(self.ignore_log.size_limit),
+                    "scan.skipped.ignore.patterns.count": len(
+                        self.ignore_log.semgrepignored
+                    ),
+                    "scan.skip.information.available": ignore_log is not None,
+                },
+            )
+            if log.is_enabled_for(logging.INFO) and self.settings.verbose_errors:
+                for path, reason in self.ignore_log.list_skipped_paths_with_reason():
+                    log.info(
+                        "scan target skipped",
+                        **{
+                            "file.path": str(path),
+                            "scan.skip.reason": reason.replace("_", "."),
+                        },
+                    )
 
             if not self.settings.verbose_errors and (
                 ignore_log_str or total_lines_skipped
@@ -749,7 +944,7 @@ class OutputHandler:
         output = formatter.output(  # the rules are used only by the SARIF formatter
             self.rules,
             matches_for_formatter,
-            self.semgrep_structured_errors,
+            [*self.semgrep_structured_errors, *self.dependency_resolution_errors],
             cli_output_extra,
             extra,
             self.severities,

@@ -125,7 +125,9 @@ val with_span_result :
   ('a, 'b) result
 (** Like [with_span] but additionally sets the span status to [Error] when the
     function returns [Error _]. If [error_to_string] is provided, its result is
-    used as the span status message. Prefer the [let%trace_result sp = ("name",
+    used as the span status message, which is exported with the trace, so it
+    must not include customer data such as source code, lockfile content, or
+    command output. Prefer the [let%trace_result sp = ("name",
     error_to_string) in] ppx syntax over calling this directly. *)
 
 val with_top_level_span :
