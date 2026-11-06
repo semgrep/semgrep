@@ -1,86 +1,43 @@
-#include <string.h>  // memcpy
-#include <tree_sitter/parser.h>
-#include <wctype.h>
+#include "tree_sitter/parser.h"
 
+/// Block comments and immediate parentheses are easy to parse, but strings
+/// require extra-attention.
+///
+/// The main problems that arise when parsing strings are:
+/// 1. Triple quoted strings allow single quotes inside. e.g. """ "foo" """.
+/// 2. Strings can have arbitrary interpolations, including other strings.
+///    e.g. "echo $("foo")"
+/// 3. Non-standard string literals don't allow interpolations or escape
+///    sequences, but you can always write \" and \`.
+/// All of the above also applies to command literals.
 enum TokenType {
-  BLOCK_COMMENT,
-  IMMEDIATE_PAREN,
-  IMMEDIATE_BRACKET,
-  IMMEDIATE_BRACE,
-  STRING_START,
-  COMMAND_START,
-  IMMEDIATE_STRING_START,
-  IMMEDIATE_COMMAND_START,
-  STRING_END,
-  COMMAND_END,
-  STRING_CONTENT,
-  STRING_CONTENT_NO_INTERP,
+    BLOCK_COMMENT_REST,
+    IMMEDIATE_PAREN,
+    IMMEDIATE_BRACKET,
+    IMMEDIATE_BRACE,
+    IMMEDIATE_STRING_START,
+    IMMEDIATE_COMMAND_START,
+    CONTENT_CMD_1,
+    CONTENT_CMD_1_RAW,
+    CONTENT_CMD_3,
+    CONTENT_CMD_3_RAW,
+    CONTENT_STR_1,
+    CONTENT_STR_1_RAW,
+    CONTENT_STR_3,
+    CONTENT_STR_3_RAW,
+    END_CMD,
+    END_STR,
 };
 
-// Block comments and immediate parentheses are easy to parse, but strings
-// require extra-attention.
-
-// The main problems that arise when parsing strings are:
-// 1. Triple quoted strings allow single quotes inside. e.g. """ "foo" """.
-// 2. Strings can have arbitrary interpolations, including other strings.
-//    e.g. "echo $("foo")"
-// 3. Non-standard string literals don't allow interpolations or escape
-//    sequences, but you can always write \" and \`.
-// All of the above also applies to command literals.
-
-// To efficiently store a delimiter, we take advantage of the fact that:
-// (int)'"' == 34 && 34 % 2 == 0
-// (int)'`' == 96 && 96 % 2 == 0
-// i.e. " and ` have an even numeric representation, so we can store a triple
-// quoted delimiter as (delimiter + 1).
-typedef char Delimiter;
-
-// We use a stack to keep track of the string and command delimiters.
-typedef struct {
-  Delimiter *arr;
-  unsigned len;
-} Stack;
-
-static Stack *new_stack() {
-  Delimiter *arr = malloc(TREE_SITTER_SERIALIZATION_BUFFER_SIZE);
-  if (arr == NULL) abort();
-  Stack *stack = malloc(sizeof(Stack));
-  if (stack == NULL) abort();
-  stack->arr = arr;
-  stack->len = 0;
-  return stack;
+void *tree_sitter_julia_external_scanner_create() {
+    return NULL;
 }
 
-static void free_stack(Stack *stack) {
-  free(stack->arr);
-  free(stack);
-}
+void tree_sitter_julia_external_scanner_destroy(void *payload) {}
 
-static void push(Stack *stack, char c, bool triple) {
-  if (stack->len >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) abort();
-  stack->arr[stack->len++] = triple ? (c + 1) : c;
-}
+unsigned tree_sitter_julia_external_scanner_serialize(void *payload, char *buffer) { return 0; }
 
-static Delimiter pop(Stack *stack) {
-  if (stack->len == 0) abort();
-  return stack->arr[stack->len--];
-}
-
-static unsigned serialize_stack(Stack *stack, char *buffer) {
-  unsigned len = stack->len;
-  memcpy(buffer, stack->arr, len);
-  return len;
-}
-
-static void deserialize_stack(Stack *stack, const char *buffer, unsigned len) {
-  if (len > 0) {
-    memcpy(stack->arr, buffer, len);
-    stack->len = len;
-  } else {
-    stack->len = 0;
-  }
-}
-
+void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
 
 // Scanner functions
 
@@ -88,190 +45,140 @@ static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
 
 static void mark_end(TSLexer *lexer) { lexer->mark_end(lexer); }
 
-static bool scan_string_start(TSLexer *lexer, Stack *stack, char start_char) {
-  if (lexer->lookahead != start_char) return false;
-  advance(lexer);
-  mark_end(lexer);
-  for (unsigned count = 1; count < 3; count++) {
-    if (lexer->lookahead != start_char) {
-      // It's not a triple quoted delimiter.
-      push(stack, start_char, false);
-      return true;
-    }
-    advance(lexer);
-  }
-  mark_end(lexer);
-  push(stack, start_char, true);
-  return true;
-}
-
-static bool scan_string_content(TSLexer *lexer, Stack *stack, bool interp) {
-  if (stack->len == 0) return false;  // Stack is empty. We're not in a string.
-  Delimiter end_char = stack->arr[stack->len - 1];  // peek
-  bool is_triple = false;
-  bool has_content = false;
-  if (end_char % 2 != 0) {
-    is_triple = true;
-    end_char--;
-  }
-  TSSymbol end_symbol = (end_char == '"') ? STRING_END : COMMAND_END;
-  TSSymbol end_content = interp ? STRING_CONTENT : STRING_CONTENT_NO_INTERP;
-  while (lexer->lookahead) {
-    if (interp && lexer->lookahead == '$') {
-      mark_end(lexer);
-      lexer->result_symbol = end_content;
-      return has_content;
-    } else if (lexer->lookahead == '\\') {
-      mark_end(lexer);
-      lexer->result_symbol = end_content;
-      return has_content;
-    } else if (lexer->lookahead == end_char) {
-      if (is_triple) {
+static bool scan_content(TSLexer *lexer, TSSymbol content_symbol, char end_char, unsigned n_delim, bool interp) {
+    TSSymbol end_symbol = (end_char == '"') ? END_STR : END_CMD;
+    bool has_content = false;
+    int32_t next;
+    while ((next = lexer->lookahead)) {
         mark_end(lexer);
-        for (unsigned count = 1; count < 3; count++) {
-          advance(lexer);
-          if (lexer->lookahead != end_char) {
-            mark_end(lexer);
-            lexer->result_symbol = end_content;
-            return true;
-          }
+        if (interp && (next == '$' || next == '\\')) {
+            lexer->result_symbol = content_symbol;
+            return has_content;
+        } else if (next == '\\') {
+            // Parse backslash in raw strings (check escaped delimiters and '\\')
+            advance(lexer);
+            next = lexer->lookahead;
+            if (next == end_char || next == '\\') {
+                lexer->result_symbol = content_symbol;
+                return has_content;
+            }
+        } else {
+            bool is_end_delimiter = true;
+            for (unsigned i = 1; i <= n_delim; i++) {
+                if (lexer->lookahead == end_char) {
+                    advance(lexer);
+                } else {
+                    is_end_delimiter = false;
+                    break;
+                }
+            }
+            if (is_end_delimiter) {
+                if (has_content) {
+                    lexer->result_symbol = content_symbol;
+                    return true;
+                } else {
+                    mark_end(lexer);
+                    lexer->result_symbol = end_symbol;
+                    return true;
+                }
+            }
         }
-      }
-      if (has_content) {
-        lexer->result_symbol = end_content;
-      } else {
-        pop(stack);
         advance(lexer);
-        mark_end(lexer);
-        lexer->result_symbol = end_symbol;
-      }
-      return true;
+        has_content = true;
     }
-    advance(lexer);
-    has_content = true;
-  }
-  return false;
+    return false;
 }
 
 static bool scan_block_comment(TSLexer *lexer) {
-  if (lexer->lookahead != '#') return false;
-  advance(lexer);
-  if (lexer->lookahead != '=') return false;
-  advance(lexer);
-
-  bool after_eq = false;
-  unsigned nesting_depth = 1;
-  for (;;) {
-    switch (lexer->lookahead) {
-      case '=':
-        advance(lexer);
-        after_eq = true;
-        break;
-      case '#':
-        advance(lexer);
-        if (after_eq) {
-          after_eq = false;
-          nesting_depth--;
-          if (nesting_depth == 0) {
-            lexer->result_symbol = BLOCK_COMMENT;
-            return true;
-          }
-        } else {
-          after_eq = false;
-          if (lexer->lookahead == '=') {
-            nesting_depth++;
-            advance(lexer);
-          }
+    // NOTE: The first `#=` is scanned by tree-sitter
+    bool after_eq = false;
+    unsigned nesting_depth = 1;
+    for (;;) {
+        switch (lexer->lookahead) {
+            case '=':
+                advance(lexer);
+                after_eq = true;
+                break;
+            case '#':
+                advance(lexer);
+                if (after_eq) {
+                    after_eq = false;
+                    nesting_depth--;
+                    if (nesting_depth == 0) {
+                        lexer->result_symbol = BLOCK_COMMENT_REST;
+                        return true;
+                    }
+                } else {
+                    after_eq = false;
+                    if (lexer->lookahead == '=') {
+                        advance(lexer);
+                        nesting_depth++;
+                    }
+                }
+                break;
+            case '\0':
+                return false;
+            default:
+                advance(lexer);
+                after_eq = false;
+                break;
         }
-        break;
-      case '\0':
-        return false;
-      default:
-        advance(lexer);
-        after_eq = false;
-        break;
     }
-  }
 }
 
-bool tree_sitter_julia_external_scanner_scan(
-    void *payload,
-    TSLexer *lexer,
-    const bool *valid_symbols
-) {
-  if (valid_symbols[IMMEDIATE_PAREN] && lexer->lookahead == '(') {
-    lexer->result_symbol = IMMEDIATE_PAREN;
-    return true;
-  } else if (valid_symbols[IMMEDIATE_BRACKET] && lexer->lookahead == '[') {
-    lexer->result_symbol = IMMEDIATE_BRACKET;
-    return true;
-  } else if (valid_symbols[IMMEDIATE_BRACE] && lexer->lookahead == '{') {
-    lexer->result_symbol = IMMEDIATE_BRACE;
-    return true;
-  }
+bool tree_sitter_julia_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+    if (valid_symbols[IMMEDIATE_PAREN] && lexer->lookahead == '(') {
+        lexer->result_symbol = IMMEDIATE_PAREN;
+        return true;
+    } else if (valid_symbols[IMMEDIATE_BRACKET] && lexer->lookahead == '[') {
+        lexer->result_symbol = IMMEDIATE_BRACKET;
+        return true;
+    } else if (valid_symbols[IMMEDIATE_BRACE] && lexer->lookahead == '{') {
+        lexer->result_symbol = IMMEDIATE_BRACE;
+        return true;
+    } else if (valid_symbols[IMMEDIATE_STRING_START] && lexer->lookahead == '"') {
+        lexer->result_symbol = IMMEDIATE_STRING_START;
+        return true;
+    } else if (valid_symbols[IMMEDIATE_COMMAND_START] && lexer->lookahead == '`') {
+        lexer->result_symbol = IMMEDIATE_COMMAND_START;
+        return true;
+    }
 
-  if (valid_symbols[IMMEDIATE_STRING_START] &&
-      scan_string_start(lexer, payload, '"')) {
-    lexer->result_symbol = IMMEDIATE_STRING_START;
-    return true;
-  }
+    if (valid_symbols[BLOCK_COMMENT_REST] && scan_block_comment(lexer)) {
+        return true;
+    }
 
-  if (valid_symbols[IMMEDIATE_COMMAND_START] &&
-      scan_string_start(lexer, payload, '`')) {
-    lexer->result_symbol = IMMEDIATE_COMMAND_START;
-    return true;
-  }
+    if (valid_symbols[CONTENT_STR_1] && scan_content(lexer, CONTENT_STR_1, '"', 1, true)) {
+        return true;
+    }
 
-  // content or end
-  if (valid_symbols[STRING_CONTENT] &&
-      scan_string_content(lexer, payload, true)) {
-    return true;
-  }
+    if (valid_symbols[CONTENT_STR_3] && scan_content(lexer, CONTENT_STR_3, '"', 3, true)) {
+        return true;
+    }
 
-  if (valid_symbols[STRING_CONTENT_NO_INTERP] &&
-      scan_string_content(lexer, payload, false)) {
-    return true;
-  }
+    if (valid_symbols[CONTENT_CMD_1] && scan_content(lexer, CONTENT_CMD_1, '`', 1, true)) {
+        return true;
+    }
 
-  // Ignore whitespace
-  while (iswspace(lexer->lookahead)) {
-    lexer->advance(lexer, true);
-  }
+    if (valid_symbols[CONTENT_CMD_3] && scan_content(lexer, CONTENT_CMD_3, '`', 3, true)) {
+        return true;
+    }
 
-  if (valid_symbols[STRING_START] && scan_string_start(lexer, payload, '"')) {
-    lexer->result_symbol = STRING_START;
-    return true;
-  }
+    if (valid_symbols[CONTENT_STR_1_RAW] && scan_content(lexer, CONTENT_STR_1_RAW, '"', 1, false)) {
+        return true;
+    }
 
-  if (valid_symbols[COMMAND_START] && scan_string_start(lexer, payload, '`')) {
-    lexer->result_symbol = COMMAND_START;
-    return true;
-  }
+    if (valid_symbols[CONTENT_STR_3_RAW] && scan_content(lexer, CONTENT_STR_3_RAW, '"', 3, false)) {
+        return true;
+    }
 
-  if (valid_symbols[BLOCK_COMMENT] && scan_block_comment(lexer)) {
-    return true;
-  }
+    if (valid_symbols[CONTENT_CMD_1_RAW] && scan_content(lexer, CONTENT_CMD_1_RAW, '`', 1, false)) {
+        return true;
+    }
 
-  return false;
-}
+    if (valid_symbols[CONTENT_CMD_3_RAW] && scan_content(lexer, CONTENT_CMD_3_RAW, '`', 3, false)) {
+        return true;
+    }
 
-void *tree_sitter_julia_external_scanner_create() { return new_stack(); }
-
-void tree_sitter_julia_external_scanner_destroy(void *payload) {
-  free_stack(payload);
-}
-
-unsigned tree_sitter_julia_external_scanner_serialize(
-    void *payload,
-    char *buffer
-) {
-  return serialize_stack(payload, buffer);
-}
-
-void tree_sitter_julia_external_scanner_deserialize(
-    void *payload,
-    const char *buffer,
-    unsigned length
-) {
-  deserialize_stack(payload, buffer, length);
+    return false;
 }

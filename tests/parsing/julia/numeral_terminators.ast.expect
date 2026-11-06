@@ -1,0 +1,420 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("a", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyN
+                                 (Id (("int", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (Unknown);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }));
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e = (L (Int ((Some 1234L), _))); e_id = 0;
+                    e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype = None; vtok = None })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("b", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("int", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Int ((Some 9L), _))); e_id = 0; e_range = None;
+                     is_implicit_return = false; facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("c", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("int", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Int ((Some 57L), _))); e_id = 0; e_range = None;
+                     is_implicit_return = false; facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("d", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("int", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Int ((Some 171L), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("e", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 1234.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("f", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 5.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("g", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 7.75), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Mult), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e = (L (Int ((Some 1L), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("__2", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (Unknown);
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("consume", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("a", _),
+                         { id_resolved = ref ((Some (Global, _)));
+                           id_resolved_alternatives = ref ([]);
+                           id_type =
+                           ref ((Some { t =
+                                        (TyN
+                                           (Id (("int", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] }));
+                           id_svalue = ref ((Lit (Int ((Some 1234L), _))));
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("b", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("int", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Int ((Some 9L), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("c", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("int", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Int ((Some 57L), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("d", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("int", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Int ((Some 171L), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("e", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("float", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Float ((Some 1234.), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("f", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("float", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Float ((Some 5.), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("g", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type =
+                            ref ((Some { t =
+                                         (TyN
+                                            (Id (("float", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }));
+                            id_svalue = ref ((Lit (Float ((Some 7.75), _))));
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]

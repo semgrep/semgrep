@@ -45,8 +45,9 @@ end
         (identifier)
         (argument_list
             (semgrep_ellipsis))))
-    (return_statement
-      (integer_literal))))
+    (block
+      (return_statement
+        (integer_literal)))))
 
 ================================================================================
 Abstract type metavariable
@@ -58,8 +59,9 @@ abstract type $TY end
 
 (source_file
   (abstract_definition
-    (interpolation_expression
-      (identifier))))
+    (type_head
+      (interpolation_expression
+        (identifier)))))
 
 ================================================================================
 Struct metavariable
@@ -74,10 +76,12 @@ end
 
 (source_file
   (struct_definition
-    (interpolation_expression
-      (identifier))
-    (identifier)
-    (identifier)))
+    (type_head
+      (interpolation_expression
+        (identifier)))
+    (block
+      (identifier)
+      (identifier))))
 
 ================================================================================
 Ellipsis args
@@ -108,7 +112,8 @@ end
   (if_statement
     (parenthesized_expression
       (semgrep_ellipsis))
-    (semgrep_ellipsis)))
+    (block
+      (semgrep_ellipsis))))
 
 ================================================================================
 Metavariable
@@ -128,14 +133,15 @@ end
         (interpolation_expression
           (identifier))
         (argument_list)))
-    (assignment
-      (interpolation_expression
-        (identifier))
-      (operator)
-      (integer_literal))
-    (return_statement
-      (interpolation_expression
-        (identifier)))))
+    (block
+      (assignment
+        (interpolation_expression
+          (identifier))
+        (operator)
+        (integer_literal))
+      (return_statement
+        (interpolation_expression
+          (identifier))))))
 
 ================================================================================
 Catch ellipsis
@@ -151,13 +157,15 @@ end
 
 (source_file
   (try_statement
-    (assignment
-      (identifier)
-      (operator)
-      (integer_literal))
+    (block
+      (assignment
+        (identifier)
+        (operator)
+        (integer_literal)))
     (catch_clause
       (catch_ellipsis)
-      (semgrep_ellipsis))))
+      (block
+        (semgrep_ellipsis)))))
 
 ================================================================================
 Empty catch followed by ellipsis
@@ -173,12 +181,14 @@ end
 
 (source_file
   (try_statement
-    (assignment
-      (identifier)
-      (operator)
-      (integer_literal))
+    (block
+      (assignment
+        (identifier)
+        (operator)
+        (integer_literal)))
     (catch_clause
-      (semgrep_ellipsis))))
+      (block
+        (semgrep_ellipsis)))))
 
 ================================================================================
 Metavariable in import
@@ -190,21 +200,21 @@ using $MODULE: $X as $Y
 --------------------------------------------------------------------------------
 
 (source_file
-  (import_statement
+  (using_statement
     (selected_import
       (interpolation_expression
         (identifier))
       (interpolation_expression
         (identifier))))
-  (import_statement
+  (using_statement
     (selected_import
       (interpolation_expression
         (identifier))
       (import_alias
         (interpolation_expression
           (identifier))
-        (identifier
-          (semgrep_extended_metavariable))))))
+        (interpolation_expression
+          (identifier))))))
 
 ================================================================================
 Metavariable in do block
@@ -222,11 +232,11 @@ end
     (argument_list
       (vector_expression))
     (do_clause
-      (argument_list
-        (identifier
-          (semgrep_extended_metavariable)))
-      (return_statement
-        (identifier)))))
+      (interpolation_expression
+        (identifier))
+      (block
+        (return_statement
+          (identifier))))))
 
 ================================================================================
 Deep expression
@@ -256,3 +266,554 @@ x = <... foo() ...>
       (call_expression
         (identifier)
         (argument_list)))))
+
+================================================================================
+Quoted ellipses and native splats
+================================================================================
+
+:(...)
+:...
+:(f($X, ..., xs...))
+f($X, ..., xs...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (quote_expression
+    (parenthesized_expression
+      (semgrep_ellipsis)))
+  (quote_expression
+    (operator))
+  (quote_expression
+    (parenthesized_expression
+      (call_expression
+        (identifier)
+        (argument_list
+          (interpolation_expression
+            (identifier))
+          (semgrep_ellipsis)
+          (splat_expression
+            (identifier))))))
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis)
+      (splat_expression
+        (identifier)))))
+
+================================================================================
+Public identifiers and declarations
+================================================================================
+
+public
+public()
+public = 1
+obj.public
+function public() end
+publicized()
+public x, @macro_name
+public $X, @$MACRO
+public($X, ...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (identifier)
+  (call_expression
+    (identifier)
+    (argument_list))
+  (assignment
+    (identifier)
+    (operator)
+    (integer_literal))
+  (field_expression
+    (identifier)
+    (identifier))
+  (function_definition
+    (signature
+      (call_expression
+        (identifier)
+        (argument_list))))
+  (call_expression
+    (identifier)
+    (argument_list))
+  (public_statement
+    (identifier)
+    (macro_identifier
+      (identifier)))
+  (public_statement
+    (interpolation_expression
+      (identifier))
+    (macro_identifier
+      (identifier
+        (semgrep_extended_metavariable))))
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis))))
+
+================================================================================
+Outer identifiers and loop introducers
+================================================================================
+
+outer
+outer()
+outer = 1
+obj.outer
+function outer() end
+outermost()
+for outer in xs
+  f(outer)
+end
+for outer x in xs
+  f(x)
+end
+for outer $X in $XS
+  ...
+end
+outer($X, ...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (identifier)
+  (call_expression
+    (identifier)
+    (argument_list))
+  (assignment
+    (identifier)
+    (operator)
+    (integer_literal))
+  (field_expression
+    (identifier)
+    (identifier))
+  (function_definition
+    (signature
+      (call_expression
+        (identifier)
+        (argument_list))))
+  (call_expression
+    (identifier)
+    (argument_list))
+  (for_statement
+    (for_binding
+      (identifier)
+      (operator)
+      (identifier))
+    (block
+      (call_expression
+        (identifier)
+        (argument_list
+          (identifier)))))
+  (for_statement
+    (for_binding
+      (identifier)
+      (operator)
+      (identifier))
+    (block
+      (call_expression
+        (identifier)
+        (argument_list
+          (identifier)))))
+  (for_statement
+    (for_binding
+      (interpolation_expression
+        (identifier))
+      (operator)
+      (interpolation_expression
+        (identifier)))
+    (block
+      (semgrep_ellipsis)))
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis))))
+
+================================================================================
+Emoji identifier boundaries and patterns
+================================================================================
+
+😀
+😀foo! = 1
+😀($X, ..., xs...)
+obj.😀
+function 😀($X, ...) end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (identifier)
+  (assignment
+    (identifier)
+    (operator)
+    (integer_literal))
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis)
+      (splat_expression
+        (identifier))))
+  (field_expression
+    (identifier)
+    (identifier))
+  (function_definition
+    (signature
+      (call_expression
+        (identifier)
+        (argument_list
+          (interpolation_expression
+            (identifier))
+          (semgrep_ellipsis))))))
+
+================================================================================
+Scoped import and macro metavariables
+================================================================================
+
+using $M.$N: $X as $Y
+import $M.$N: @$MACRO as @$ALIAS
+@Base.$MACRO $X ...
+$M.@$MACRO($X, ...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (using_statement
+    (selected_import
+      (import_path
+        (interpolation_expression
+          (identifier))
+        (interpolation_expression
+          (identifier)))
+      (import_alias
+        (interpolation_expression
+          (identifier))
+        (interpolation_expression
+          (identifier)))))
+  (import_statement
+    (selected_import
+      (import_path
+        (interpolation_expression
+          (identifier))
+        (interpolation_expression
+          (identifier)))
+      (import_alias
+        (macro_identifier
+          (identifier
+            (semgrep_extended_metavariable)))
+        (macro_identifier
+          (identifier
+            (semgrep_extended_metavariable))))))
+  (macrocall_expression
+    (macro_identifier
+      (field_expression
+        (identifier)
+        (interpolation_expression
+          (identifier))))
+    (macro_argument_list
+      (splat_expression
+        (interpolation_expression
+          (identifier)))))
+  (macrocall_expression
+    (field_expression
+      (interpolation_expression
+        (identifier))
+      (macro_identifier
+        (identifier
+          (semgrep_extended_metavariable))))
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis))))
+
+================================================================================
+Tuple arguments and arrow patterns
+================================================================================
+
+foo($X, ...; kw=$Y)
+(x, $Y, ...) -> f($Y, ...)
+function ($X, ...)
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis)
+      (assignment
+        (identifier)
+        (operator)
+        (interpolation_expression
+          (identifier)))))
+  (arrow_function_expression
+    (argument_list
+      (identifier)
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis))
+    (call_expression
+      (identifier)
+      (argument_list
+        (interpolation_expression
+          (identifier))
+        (semgrep_ellipsis))))
+  (function_definition
+    (signature
+      (argument_list
+        (interpolation_expression
+          (identifier))
+        (semgrep_ellipsis)))
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Do parameters and generator patterns
+================================================================================
+
+map(xs) do $X, ...
+  <... $X ...>
+end
+f(g($X, ...) for $X in $XS if <... $COND ...>)
+[f($X, ...) for $X in $XS if <... $COND ...>]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (identifier)
+    (argument_list
+      (identifier))
+    (do_clause
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis)
+      (block
+        (deep_expression
+          (interpolation_expression
+            (identifier))))))
+  (call_expression
+    (identifier)
+    (argument_list
+      (generator
+        (call_expression
+          (identifier)
+          (argument_list
+            (interpolation_expression
+              (identifier))
+            (semgrep_ellipsis)))
+        (for_clause
+          (for_binding
+            (interpolation_expression
+              (identifier))
+            (operator)
+            (interpolation_expression
+              (identifier))))
+        (if_clause
+          (deep_expression
+            (interpolation_expression
+              (identifier)))))))
+  (comprehension_expression
+    (call_expression
+      (identifier)
+      (argument_list
+        (interpolation_expression
+          (identifier))
+        (semgrep_ellipsis)))
+    (for_clause
+      (for_binding
+        (interpolation_expression
+          (identifier))
+        (operator)
+        (interpolation_expression
+          (identifier))))
+    (if_clause
+      (deep_expression
+        (interpolation_expression
+          (identifier))))))
+
+================================================================================
+Parametric type and signature patterns
+================================================================================
+
+abstract type $TY{$T} <: $SUPER end
+struct $TY{$T} <: $SUPER
+  $FIELD::$T
+  ...
+end
+function $F($X::$T, ...)::$R where $T
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (abstract_definition
+    (type_head
+      (binary_expression
+        (parametrized_type_expression
+          (interpolation_expression
+            (identifier))
+          (curly_expression
+            (interpolation_expression
+              (identifier))))
+        (operator)
+        (interpolation_expression
+          (identifier)))))
+  (struct_definition
+    (type_head
+      (binary_expression
+        (parametrized_type_expression
+          (interpolation_expression
+            (identifier))
+          (curly_expression
+            (interpolation_expression
+              (identifier))))
+        (operator)
+        (interpolation_expression
+          (identifier))))
+    (block
+      (typed_expression
+        (interpolation_expression
+          (identifier))
+        (interpolation_expression
+          (identifier)))
+      (semgrep_ellipsis)))
+  (function_definition
+    (signature
+      (where_expression
+        (typed_expression
+          (call_expression
+            (interpolation_expression
+              (identifier))
+            (argument_list
+              (typed_expression
+                (interpolation_expression
+                  (identifier))
+                (interpolation_expression
+                  (identifier)))
+              (semgrep_ellipsis)))
+          (interpolation_expression
+            (identifier)))
+        (interpolation_expression
+          (identifier))))
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Catch patterns and following clauses
+================================================================================
+
+try
+  ...
+catch ...
+  f($X, ...)
+else
+  <... $Y ...>
+finally
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (try_statement
+    (block
+      (semgrep_ellipsis))
+    (catch_clause
+      (catch_ellipsis)
+      (block
+        (call_expression
+          (identifier)
+          (argument_list
+            (interpolation_expression
+              (identifier))
+            (semgrep_ellipsis)))))
+    (else_clause
+      (block
+        (deep_expression
+          (interpolation_expression
+            (identifier)))))
+    (finally_clause
+      (block
+        (semgrep_ellipsis)))))
+
+================================================================================
+String and command interpolation patterns
+================================================================================
+
+"$X $(f($X, ...))"
+`echo $X $(f($X, ...))`
+f($X, #= comment =# ...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (string_literal
+    (string_interpolation
+      (identifier))
+    (content)
+    (string_interpolation
+      (call_expression
+        (identifier)
+        (argument_list
+          (interpolation_expression
+            (identifier))
+          (semgrep_ellipsis)))))
+  (command_literal
+    (content)
+    (string_interpolation
+      (identifier))
+    (content)
+    (string_interpolation
+      (call_expression
+        (identifier)
+        (argument_list
+          (interpolation_expression
+            (identifier))
+          (semgrep_ellipsis)))))
+  (call_expression
+    (identifier)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (block_comment)
+      (semgrep_ellipsis))))
+
+================================================================================
+Operator patterns
+================================================================================
+
+f($X, ...) .+= $Y
+±($X, ...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (compound_assignment_expression
+    (call_expression
+      (identifier)
+      (argument_list
+        (interpolation_expression
+          (identifier))
+        (semgrep_ellipsis)))
+    (operator)
+    (interpolation_expression
+      (identifier)))
+  (call_expression
+    (operator)
+    (argument_list
+      (interpolation_expression
+        (identifier))
+      (semgrep_ellipsis))))
