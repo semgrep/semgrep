@@ -42,7 +42,7 @@
                                (FBExpr
                                   { e = (L (Bool (true, _))); e_id = 0;
                                     e_range = None;
-                                    is_implicit_return = false;
+                                    is_implicit_return = true;
                                     facts = <opaque> })
                                });
                           e_id = 0; e_range = (Some (_, _));
