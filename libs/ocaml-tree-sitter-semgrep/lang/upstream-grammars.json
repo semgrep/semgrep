@@ -180,7 +180,7 @@
     "url": "https://github.com/returntocorp/tree-sitter-jsonnet.git"
   },
   "julia": {
-    "commit": "87394e7ce3b1aca1a7c7912d2bbc599551591093",
+    "commit": "e0f9dcd180fdcfcfa8d79a3531e11d99e79321d3",
     "regen": [
       "julia"
     ],
