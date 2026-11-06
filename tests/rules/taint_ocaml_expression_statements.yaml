@@ -1,0 +1,10 @@
+rules:
+  - id: expression-statements
+    languages: [ocaml]
+    mode: taint
+    message: Tainted value reaches sink
+    severity: WARNING
+    pattern-sources:
+      - pattern: source ()
+    pattern-sinks:
+      - pattern: sink (...)
