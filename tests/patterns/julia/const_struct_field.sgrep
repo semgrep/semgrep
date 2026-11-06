@@ -1,0 +1,3 @@
+mutable struct $S
+    const $F::$T
+end

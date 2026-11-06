@@ -9,6 +9,12 @@ const base_grammar = require('tree-sitter-julia/grammar');
 module.exports = grammar(base_grammar, {
   name: 'julia',
 
+  // Quoted native operators and quoted pattern expressions share `...`.
+  // Keep both readings available instead of changing ellipsis precedence.
+  conflicts: ($, previous) => previous.concat([
+    [$._syntactic_operator, $.semgrep_ellipsis],
+  ]),
+
   /*
      Support for semgrep ellipsis ('...') and metavariables ('$FOO'),
      if they're not already part of the base grammar.
@@ -20,7 +26,7 @@ module.exports = grammar(base_grammar, {
       'catch',
       optional(choice($.identifier, alias($.semgrep_ellipsis, $.catch_ellipsis))),
       optional($._terminator),
-      optional($._block),
+      optional($.block),
     )),
 
     deep_expression: $ => seq("<...", $._expression, "...>"),
@@ -32,6 +38,12 @@ module.exports = grammar(base_grammar, {
     semgrep_extended_metavariable: _ =>
       /\$[A-Z_][a-zA-Z_0-9]*/,
 
+    // Julia permits emoji identifiers. Keep the upstream identifier boundaries
+    // while restoring emoji starts, including for names used in patterns.
+    _word_identifier: (_, previous) => new RegExp(previous.value.replace(
+      '\\p{XID_Start}', '\\p{XID_Start}\\p{Emoji}'
+    )),
+
     // Metavariables
     // We allow an identifier to be a simple metavariable regex, so that
     // we properly support metavariables.
@@ -40,6 +52,10 @@ module.exports = grammar(base_grammar, {
     identifier: ($, previous) =>
       prec(1, choice(
         previous,
+        // These are contextual keywords: calls, declarations, and loop
+        // variables must still be identifiers, not keyword introductions.
+        prec(2, 'public'),
+        prec(2, 'outer'),
         $.semgrep_extended_metavariable
       )),
 
