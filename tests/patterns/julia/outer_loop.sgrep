@@ -1,0 +1,3 @@
+for outer $X in $XS
+    ...
+end
