@@ -47,7 +47,7 @@
                          { s =
                            (ExprStmt (
                               { e = (L (Int ((Some 1L), _))); e_id = 0;
-                                e_range = None; is_implicit_return = false;
+                                e_range = None; is_implicit_return = true;
                                 facts = <opaque> },
                               _));
                            s_range = None }));
@@ -56,7 +56,7 @@
                           { s =
                             (ExprStmt (
                                { e = (L (Int ((Some 2L), _))); e_id = 0;
-                                 e_range = None; is_implicit_return = false;
+                                 e_range = None; is_implicit_return = true;
                                  facts = <opaque> },
                                _));
                             s_range = None }));
@@ -114,7 +114,7 @@
                                      _)
                                     ));
                                  e_id = 0; e_range = None;
-                                 is_implicit_return = false; facts = <opaque>
+                                 is_implicit_return = true; facts = <opaque>
                                  },
                                _));
                             s_range = None }))
