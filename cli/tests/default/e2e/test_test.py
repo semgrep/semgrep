@@ -29,11 +29,28 @@
 #    (and the fact that the e2e rules and targets are in different dirs)
 #    (maybe we could write this test in Testo instead and for osemgrep-only
 #    once we removed test.py)
+import json
+
 import pytest
 from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
+
+
+# It should exit with code 7 (MISSING_CONFIG_EXIT_CODE) when a rule
+# config is invalid, instead of silently exiting 0.
+# See https://github.com/semgrep/semgrep/issues/10319
+@pytest.mark.kinda_slow
+def test_cli_test_invalid_rule(run_semgrep_in_tmp: RunSemgrep):
+    results, _ = run_semgrep_in_tmp(
+        "rules/test_test/invalid_rule.yaml",
+        options=["--test"],
+        target_name="test_test/invalid_rule.py",
+        output_format=OutputFormat.JSON,
+        assert_exit_code=7,
+    )
+    assert len(json.loads(results)["config_with_errors"]) == 1
 
 
 # It should report the passed checks in the JSON output

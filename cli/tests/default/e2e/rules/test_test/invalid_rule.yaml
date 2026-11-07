@@ -1,0 +1,10 @@
+rules:
+  # No `id` and an unknown `invalid-field`: this rule fails schema
+  # validation ("Invalid rule schema"), as in
+  # https://github.com/semgrep/semgrep/issues/10319
+  - invalid-field: invalid-value
+    patterns:
+      - pattern: $X == $X
+    message: example
+    severity: ERROR
+    languages: [python]
