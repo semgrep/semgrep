@@ -11,12 +11,14 @@
 # LICENSE for more details.
 #
 import json
+import os
 import re
 from typing import Dict
 from typing import List
 from uuid import uuid4
 
 import pytest
+from tests.conftest import skip_on_windows
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
@@ -643,3 +645,22 @@ rules:
 
     assert exc_info.value.long_msg is not None
     assert "severity" in exc_info.value.long_msg.lower()
+
+
+@pytest.mark.quick
+@skip_on_windows  # os.mkfifo is not available on Windows
+def test_load_config_from_pipe_gives_actionable_error(tmp_path):
+    fifo = tmp_path / "config.fifo"
+    os.mkfifo(fifo)
+    with pytest.raises(SemgrepError, match="not a file or folder"):
+        ConfigLoader(str(fifo)).load_config()
+    try:
+        ConfigLoader(str(fifo)).load_config()
+    except SemgrepError as e:
+        assert "regular file" in str(e)
+
+
+@pytest.mark.quick
+def test_load_config_from_stdin_dash_gives_actionable_error():
+    with pytest.raises(SemgrepError, match="not supported"):
+        ConfigLoader("-").load_config()

@@ -273,8 +273,18 @@ class ConfigLoader:
             elif loc.is_dir():
                 config = read_config_folder(loc)
             else:
-                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
+                raise SemgrepError(
+                    f"config location `{loc}` is not a file or folder! "
+                    "Reading a config from a named pipe, process substitution "
+                    "(e.g. -c <(...)), or stdin is not supported; write the "
+                    "config to a regular file first."
+                )
         else:
+            if str(loc) == "-":
+                raise SemgrepError(
+                    "reading a config from stdin (`-c -`) is not supported; "
+                    "write the config to a regular file first."
+                )
             env = get_state().env
             addendum = ""
             if env.in_docker:
