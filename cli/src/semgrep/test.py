@@ -13,6 +13,7 @@
 # This file is DEPRECATED! Please modify instead osemgrep test in
 # src/osemgrep/cli_test/Test_subcommand.ml
 import collections
+import contextlib
 import difflib
 import functools
 import json
@@ -27,6 +28,7 @@ from itertools import product
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -465,6 +467,17 @@ def fixed_file_comparison(
     return diff
 
 
+@contextlib.contextmanager
+def _redirect_to_file(destination: Optional[str]) -> Iterator[None]:
+    if destination:
+        # mirror OutputHandler._save_output: create parent folders if needed
+        Path(destination).parent.mkdir(parents=True, exist_ok=True)
+        with open(destination, "w") as f, contextlib.redirect_stdout(f):
+            yield
+    else:
+        yield
+
+
 def generate_test_results(
     *,
     target: Path,
@@ -473,6 +486,7 @@ def generate_test_results(
     json_output: bool,
     engine_type: EngineType,
     optimizations: str = "none",
+    output_destination: Optional[str] = None,
 ) -> None:
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
@@ -646,70 +660,78 @@ def generate_test_results(
     exit_code = int(strict_error or any_failures or any_fixtest_failures)
 
     if json_output:
-        print(json.dumps(output, indent=4, separators=(",", ": ")))
+        rendered = json.dumps(output, indent=4, separators=(",", ": "))
+        if output_destination:
+            # mirror OutputHandler._save_output: create parent folders if needed
+            path = Path(output_destination)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(rendered + "\n")
+        else:
+            print(rendered)
         sys.exit(exit_code)
 
-    # else text ouput
-    num_tests = 0
-    num_tests_passed = 0
-    check_output_lines: str = ""
-    for _filename, rr in results_output.items():
-        for check_id, check_results in sorted(rr["checks"].items()):
-            num_tests += 1
-            if not check_results["passed"]:
-                check_output_lines += _generate_check_output_line(
-                    check_id, check_results
+    # else text output
+    with _redirect_to_file(output_destination):
+        num_tests = 0
+        num_tests_passed = 0
+        check_output_lines: str = ""
+        for _filename, rr in results_output.items():
+            for check_id, check_results in sorted(rr["checks"].items()):
+                num_tests += 1
+                if not check_results["passed"]:
+                    check_output_lines += _generate_check_output_line(
+                        check_id, check_results
+                    )
+                else:
+                    num_tests_passed += 1
+
+        num_fixtests = 0
+        num_fixtests_passed = 0
+        fixtest_file_diffs: str = ""
+        for target_filename, f_results in fixtest_results.items():
+            num_fixtests += 1
+            filediff = f_results[0]
+            fixtest = f_results[1]
+            if len(filediff) > 0:
+                fixtest_file_diffs += _generate_fixcheck_output_line(
+                    target_filename, filediff, fixtest
                 )
             else:
-                num_tests_passed += 1
+                num_fixtests_passed += 1
 
-    num_fixtests = 0
-    num_fixtests_passed = 0
-    fixtest_file_diffs: str = ""
-    for target_filename, f_results in fixtest_results.items():
-        num_fixtests += 1
-        filediff = f_results[0]
-        fixtest = f_results[1]
-        if len(filediff) > 0:
-            fixtest_file_diffs += _generate_fixcheck_output_line(
-                target_filename, filediff, fixtest
+        if num_tests == 0:
+            print(
+                "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
             )
+        elif num_tests == num_tests_passed:
+            print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed")
         else:
-            num_fixtests_passed += 1
-
-    if num_tests == 0:
-        print(
-            "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
-        )
-    elif num_tests == num_tests_passed:
-        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed")
-    else:
-        print(
-            f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
-        )
-        print(BREAK_LINE)
-        print(check_output_lines)
-
-    if num_fixtests == 0:
-        print("No tests for fixes found.")
-    elif num_fixtests == num_fixtests_passed:
-        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed")
-    else:
-        print(
-            f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: "
-        )
-        print(BREAK_LINE)
-        print(fixtest_file_diffs)
-
-    if config_with_errors_output:
-        print(BREAK_LINE)
-        print("The following config files produced errors:")
-        print(
-            "\t"
-            + "\n\t".join(
-                f"{c['filename']}: {c['error']}" for c in config_with_errors_output
+            print(
+                f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
             )
-        )
+            print(BREAK_LINE)
+            print(check_output_lines)
+
+        if num_fixtests == 0:
+            print("No tests for fixes found.")
+        elif num_fixtests == num_fixtests_passed:
+            print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed")
+        else:
+            print(
+                f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: "
+            )
+            print(BREAK_LINE)
+            print(fixtest_file_diffs)
+
+        if config_with_errors_output:
+            print(BREAK_LINE)
+            print("The following config files produced errors:")
+            print(
+                "\t"
+                + "\n\t".join(
+                    f"{c['filename']}: {c['error']}" for c in config_with_errors_output
+                )
+            )
 
     sys.exit(exit_code)
 
@@ -723,6 +745,7 @@ def test_main(
     json: bool,
     optimizations: str,
     engine_type: EngineType,
+    output_destination: Optional[str] = None,
 ) -> None:
     if len(scanning_roots) != 1:
         raise Exception("only one target directory allowed for tests")
@@ -744,4 +767,5 @@ def test_main(
         json_output=json,
         engine_type=engine_type,
         optimizations=optimizations,
+        output_destination=output_destination,
     )
