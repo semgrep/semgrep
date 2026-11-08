@@ -333,8 +333,10 @@ def create_temporary_copy(path: Path) -> str:
 def relatively_eq(
     parent_target: Path, target: Path, parent_config: Path, config: Path
 ) -> bool:
-    def remove_all_suffixes(p: str) -> str:
-        return p.split(".", 1)[0]
+    def stem(name: str) -> str:
+        # Strip only the real (last) suffix so dotted basenames such as
+        # my.rule.a.yaml keep their full stem instead of collapsing to "my".
+        return name.rsplit(".", 1)[0] if "." in name else name
 
     rel1 = target.relative_to(parent_target).parts
     rel2 = config.relative_to(parent_config).parts
@@ -342,9 +344,15 @@ def relatively_eq(
     if len(rel1) < s:
         return False
     s -= 1
-    return rel1[:s] == rel2[:s] and remove_all_suffixes(rel1[s]) == remove_all_suffixes(
-        rel2[s]
-    )
+    if rel1[:s] != rel2[:s]:
+        return False
+    target_stem = stem(rel1[s])
+    config_stem = stem(rel2[s])
+    # A target matches its config when the stems are equal, or when the
+    # target adds extra dotted segments (my-rule-a.other.py for
+    # my-rule-a.yaml). The "." boundary keeps my-rule-a2.py from matching
+    # my-rule-a.yaml.
+    return target_stem == config_stem or target_stem.startswith(config_stem + ".")
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
