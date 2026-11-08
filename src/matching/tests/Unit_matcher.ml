@@ -145,4 +145,26 @@ let tests ~any_gen_of_string =
             with
             | Parsing.Parse_error ->
                 failwith (spf "problem parsing %s or %s" spattern scode)));
+    t "adjust_info_remove_enclosing_quotes" (fun () ->
+        let tok str line column bytepos : Tok.t =
+          let pos : Pos.t =
+            { bytepos; line; column; file = Fpath_.fake_file }
+          in
+          Tok.OriginTok { str; pos }
+        in
+        let test (s, info) expected =
+          let res =
+            Matching_generic.adjust_info_remove_enclosing_quotes (s, info)
+          in
+          Alcotest.(check string) "value" expected (fst res);
+          Alcotest.(check string)
+            "token text" expected
+            (Tok.content_of_tok (snd res))
+        in
+        (* single literal: enclosing quotes stripped *)
+        test ("ZZZZ", tok "\"ZZZZ\"" 1 54 54) "ZZZZ";
+        (* fused adjacent literals (C "A" "B", #11818): the value is not
+         * a contiguous substring of the token text; the clean value is
+         * used as the text so metavariable content has no quotes. *)
+        test ("AAAABBBB", tok "\"AAAA\"\"BBBB\"" 1 16 16) "AAAABBBB");
   ]
