@@ -691,3 +691,33 @@ def test_max_match_context_size_zero_means_unlimited(
             assert not lines.endswith(
                 _TRUNCATION_SUFFIX
             ), f"lines should not be truncated with size=0: {lines!r}"
+
+
+@pytest.mark.slow
+def test_test_mode_output_to_file(run_semgrep_in_tmp: RunSemgrep, tmp_path):
+    """`scan --test --output=file` writes results to the file (gh-10268)."""
+    rule = tmp_path / "myrule.yaml"
+    rule.write_text(
+        "rules:\n"
+        "- id: my-test-rule\n"
+        "  pattern: foo($X)\n"
+        "  message: found foo\n"
+        "  languages: [python]\n"
+        "  severity: INFO\n"
+    )
+    target = tmp_path / "myrule.py"
+    target.write_text("# ruleid: my-test-rule\nfoo(1)\n")
+    dest = tmp_path / "result.json"
+    result = run_semgrep_in_tmp(
+        config=str(rule),
+        subcommand="scan",
+        target_name=str(target),
+        assume_targets_dir=False,
+        options=["--test", "--output", str(dest)],
+        output_format=OutputFormat.JSON,
+        assert_exit_code=0,
+    )
+    assert result.stdout == ""
+    data = json.loads(dest.read_text())
+    checks = data["results"][str(rule)]["checks"]
+    assert checks["my-test-rule"]["passed"] is True

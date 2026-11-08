@@ -1,0 +1,1 @@
+Honor `--output` when running `semgrep scan --test` instead of always printing to stdout.

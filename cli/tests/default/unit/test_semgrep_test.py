@@ -21,6 +21,7 @@ from typing import Tuple
 
 import pytest
 
+from semgrep.test import _redirect_to_file
 from semgrep.test import COMMENT_SYNTAXES
 from semgrep.test import line_has_ok
 from semgrep.test import line_has_rule
@@ -123,3 +124,19 @@ def test_relatively_eq():
         relatively_eq(p1, p1 / "my-rule-a" / "views.py", p2, p2 / "my-rule-a.yaml")
         is True
     )
+
+
+@pytest.mark.quick
+def test_redirect_to_file(tmp_path, capsys):
+    dest = tmp_path / "out.txt"
+    with _redirect_to_file(str(dest)):
+        print("hello")
+    assert dest.read_text() == "hello\n"
+    assert capsys.readouterr().out == ""
+    with _redirect_to_file(None):
+        print("world")
+    assert capsys.readouterr().out == "world\n"
+    nested = tmp_path / "sub" / "dir" / "out.txt"
+    with _redirect_to_file(str(nested)):
+        print("nested")
+    assert nested.read_text() == "nested\n"
