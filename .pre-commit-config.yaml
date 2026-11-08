@@ -110,11 +110,11 @@ repos:
           - requests~=2.22
           - rich~=13.5.2
           - tomli~=2.0.1
-          - opentelemetry-api~=1.37.0
-          - opentelemetry-sdk~=1.37.0
-          - opentelemetry-exporter-otlp-proto-http~=1.37.0
-          - opentelemetry-instrumentation-requests~=0.58b0
-          - opentelemetry-instrumentation-threading~=0.58b0
+          - opentelemetry-api~=1.45.1
+          - opentelemetry-sdk~=1.45.1
+          - opentelemetry-exporter-otlp-proto-http~=1.45.1
+          - opentelemetry-instrumentation-requests~=0.66b1
+          - opentelemetry-instrumentation-threading~=0.66b1
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-freezegun
@@ -132,7 +132,7 @@ repos:
           - appdirs
           - pytest
           - pytest-mock
-          - mcp==1.29.0
+          - mcp==1.30.0
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
