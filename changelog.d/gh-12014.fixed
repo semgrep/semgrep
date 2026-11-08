@@ -1,0 +1,1 @@
+Match expression patterns like `a.b` against type-switch cases naming a (possibly qualified) type.
