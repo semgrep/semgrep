@@ -1,0 +1,7 @@
+rules:
+  - id: dict-key-ellipsis
+    pattern: '{"k": $V, ...}'
+    message: found key k
+    languages:
+      - python
+    severity: INFO
