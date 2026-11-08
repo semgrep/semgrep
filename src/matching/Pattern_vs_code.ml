@@ -1563,11 +1563,25 @@ and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   | ((G.Dict | G.Set), []), ((G.Dict | G.Set), []) -> return ()
   | ((G.Dict | G.Set), [ { e = G.Ellipsis _; _ } ]), ((G.Dict | G.Set), _) ->
       return ()
-  (* A dict pattern must also match a dict target containing '**'
+  | (G.Set, a2), (B.Set, b2) ->
+      let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
+      m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
+  | (G.Dict, a2), (B.Dict, b2) ->
+      let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
+      m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
+  (* A Dict pattern also matches a dict target containing '**'
    * unpacking. Such targets are converted to Container(Set) (see
-   * Python_to_generic.dictorset), so match Set and Dict uniformly here;
-   * element matching still only succeeds on compatible elements. *)
-  | ((G.Set | G.Dict), a2), ((B.Set | B.Dict), b2) ->
+   * Python_to_generic.dictorset), recognized here by the presence
+   * of a Spread element. A Dict pattern still does not match a
+   * pure set, and a Set pattern does not match a Dict (see
+   * tests/patterns/python/metavar_set.py). *)
+  | (G.Dict, a2), (B.Set, b2)
+    when List.exists
+           (function
+             | { B.e = B.Call ({ B.e = B.Special (B.Spread, _); _ }, _); _ } ->
+                 true
+             | _ -> false)
+           b2 ->
       let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
       m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
   | _, _ ->
