@@ -846,27 +846,6 @@ let o_pro : bool Term.t =
 (* ------------------------------------------------------------------ *)
 (* Configuration options ('scan' only, not reused in 'ci') *)
 (* ------------------------------------------------------------------ *)
-let o_config : string list Term.t =
-  let info =
-    Arg.info [ "c"; "f"; "config" ]
-      ~env:(Cmd.Env.info "SEMGREP_RULES")
-      ~doc:
-        {|YAML configuration file, directory of YAML files ending in
-.yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-
-Use --config auto to automatically obtain rules tailored to this project;
-your project URL will be used to log in to the Semgrep registry.
-
-To run multiple rule files simultaneously, use --config before every YAML,
-URL, or Semgrep registry entry name.
-For example `semgrep --config p/python --config myrules/myrule.yaml`
-
-See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
-configuration file format.
-|}
-  in
-  Arg.value (Arg.opt_all Arg.string [] info)
-
 let o_pattern : string option Term.t =
   let info =
     Arg.info [ "e"; "pattern" ]
@@ -1771,7 +1750,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* !the o_xxx must be in alphabetical order to match the parameters of
      * combine above! *)
     const combine $ o_allow_local_builds $ o_allow_untrusted_validators
-    $ o_autofix $ o_baseline_commit $ CLI_common.o_common $ o_config
+    $ o_autofix $ o_baseline_commit $ CLI_common.o_common $ CLI_common.o_config
     $ o_dataflow_traces $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_emacs_outputs $ o_error $ o_exclude
     $ o_exclude_minified_files $ o_exclude_binary_files $ o_exclude_rule_ids

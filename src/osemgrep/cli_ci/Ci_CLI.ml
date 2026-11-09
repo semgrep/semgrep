@@ -154,13 +154,6 @@ If true, encountered errors are suppressed and the exit code is zero (success).
 If false, encountered errors are not suppressed and the exit code is non-zero
 (failure).|}
 
-(* we support a --config just so we can give a good error message *)
-let o_config : string list Term.t =
-  let info =
-    Arg.info [ "c"; "f"; "config" ] ~doc:{|Not supported in 'ci' mode|}
-  in
-  Arg.value (Arg.opt_all Arg.string [] info)
-
 (* ------------------------------------------------------------------ *)
 (* Internals *)
 (* ------------------------------------------------------------------ *)
@@ -482,12 +475,12 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ SC.o_allow_local_builds $ SC.o_allow_untrusted_validators
-    $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ o_dryrun $ SC.o_dump_command_for_core $ SC.o_emacs
-    $ SC.o_emacs_outputs $ SC.o_exclude $ SC.o_exclude_minified_files
-    $ SC.o_exclude_binary_files $ SC.o_exclude_rule_ids
-    $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
-    $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
+    $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common
+    $ CLI_common.o_config $ SC.o_dataflow_traces $ o_dryrun
+    $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
+    $ SC.o_exclude $ SC.o_exclude_minified_files $ SC.o_exclude_binary_files
+    $ SC.o_exclude_rule_ids $ SC.o_files_with_matches $ SC.o_force_color
+    $ SC.o_gitlab_sast $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
     $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs

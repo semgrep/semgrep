@@ -103,30 +103,6 @@ let o_json : bool Term.t =
   let info = Arg.info [ "json" ] ~doc:{|Output results in JSON format.|} in
   Arg.value (Arg.flag info)
 
-(* UGLY: this is a duplicate of Scan_CLI.o_config. Copied since Scan_CLI depends
-   on us for now. (not clear why --- should be the other way around, if anything.)
-   Or this should be in Common_CLI. *)
-let o_config : string list Term.t =
-  let info =
-    Arg.info [ "c"; "f"; "config" ]
-      ~env:(Cmd.Env.info "SEMGREP_RULES")
-      ~doc:
-        {|YAML configuration file, directory of YAML files ending in
-.yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-
-Use --config auto to automatically obtain rules tailored to this project;
-your project URL will be used to log in to the Semgrep registry.
-
-To run multiple rule files simultaneously, use --config before every YAML,
-URL, or Semgrep registry entry name.
-For example `semgrep --config p/python --config myrules/myrule.yaml`
-
-See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
-configuration file format.
-|}
-  in
-  Arg.value (Arg.opt_all Arg.string [] info)
-
 (*************************************************************************)
 (* Subcommands *)
 (*************************************************************************)
@@ -327,7 +303,8 @@ let debug_cmd =
             }
           in
           { common; json; show_kind = Debug debug_settings })
-      $ output_dir_arg $ roots_arg $ CLI_common.o_common $ o_json $ o_config)
+      $ output_dir_arg $ roots_arg $ CLI_common.o_common $ o_json
+      $ CLI_common.o_config)
   in
   Cmd.v info term
 
