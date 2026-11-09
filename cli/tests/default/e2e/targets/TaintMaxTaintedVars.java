@@ -1,0 +1,57 @@
+public class TaintMaxTaintedVars {
+    void handle(javax.servlet.http.HttpServletRequest req) throws java.io.IOException {
+        String data = req.getParameter("cmd");
+        String s1 = String.valueOf(data);
+        String s2 = String.valueOf(s1);
+        String s3 = String.valueOf(s2);
+        String s4 = String.valueOf(s3);
+        String s5 = String.valueOf(s4);
+        String s6 = String.valueOf(s5);
+        String s7 = String.valueOf(s6);
+        String s8 = String.valueOf(s7);
+        String s9 = String.valueOf(s8);
+        String s10 = String.valueOf(s9);
+        String s11 = String.valueOf(s10);
+        String s12 = String.valueOf(s11);
+        String s13 = String.valueOf(s12);
+        String s14 = String.valueOf(s13);
+        String s15 = String.valueOf(s14);
+        String s16 = String.valueOf(s15);
+        String s17 = String.valueOf(s16);
+        String s18 = String.valueOf(s17);
+        String s19 = String.valueOf(s18);
+        String s20 = String.valueOf(s19);
+        String s21 = String.valueOf(s20);
+        String s22 = String.valueOf(s21);
+        String s23 = String.valueOf(s22);
+        String s24 = String.valueOf(s23);
+        String s25 = String.valueOf(s24);
+        String s26 = String.valueOf(s25);
+        String s27 = String.valueOf(s26);
+        String s28 = String.valueOf(s27);
+        String s29 = String.valueOf(s28);
+        String s30 = String.valueOf(s29);
+        String s31 = String.valueOf(s30);
+        String s32 = String.valueOf(s31);
+        String s33 = String.valueOf(s32);
+        String s34 = String.valueOf(s33);
+        String s35 = String.valueOf(s34);
+        String s36 = String.valueOf(s35);
+        String s37 = String.valueOf(s36);
+        String s38 = String.valueOf(s37);
+        String s39 = String.valueOf(s38);
+        String s40 = String.valueOf(s39);
+        String s41 = String.valueOf(s40);
+        String s42 = String.valueOf(s41);
+        String s43 = String.valueOf(s42);
+        String s44 = String.valueOf(s43);
+        String s45 = String.valueOf(s44);
+        String s46 = String.valueOf(s45);
+        String s47 = String.valueOf(s46);
+        String s48 = String.valueOf(s47);
+        String s49 = String.valueOf(s48);
+        String s50 = String.valueOf(s49);
+        String s51 = String.valueOf(s50);
+        Runtime.getRuntime().exec(s51);
+    }
+}

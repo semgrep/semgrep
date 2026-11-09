@@ -1,0 +1,12 @@
+rules:
+  - id: java-taint-chain
+    languages: [java]
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - pattern: $REQ.getParameter(...)
+    pattern-sinks:
+      - pattern: Runtime.getRuntime().exec(...)
+    message: Tainted data reaches Runtime.exec
+    metadata:
+      category: security

@@ -546,8 +546,11 @@ let options (actions : unit -> Arg_.cmdline_actions) =
        detected. Try 5% less or 15000 if you have 16 GB." );
     ( "-max_tainted_vars",
       Arg.Set_int Flag_semgrep.max_tainted_vars,
-      "<int> maximum number of vars to store. This is mostly for internal use \
-       to make performance testing easier" );
+      "<int> maximum number of tainted variables to track per function \
+       (default 50). Once the limit is reached, further tainted variables \
+       are not tracked and flows through them are not reported, but a \
+       warning is emitted in the JSON output. This is mostly for internal \
+       use to make performance testing easier" );
     ( "-max_taint_set_size",
       Arg.Set_int Flag_semgrep.max_taint_set_size,
       "<int> maximum size of a taint set. This is mostly for internal use to \
