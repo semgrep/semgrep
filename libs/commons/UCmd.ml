@@ -90,12 +90,94 @@ type eio_env =
 let eio_env_of_base (base : Eio_unix.Stdenv.base) : eio_env = (base :> eio_env)
 
 (*****************************************************************************)
+(* Windows executable lookup *)
+(*****************************************************************************)
+(* Windows spawns use an absolute PATH match or fail. UCmd's logs and traces
+ * keep the logical command name.
+ *)
+
+(* Whether a PATH entry is a fully qualified directory: "C:\dir", or a UNC
+   or device path such as "\\server\share". Fpath alone accepts root-relative
+   "\dir" (no volume) and "ab:\dir" (relative for Filename). *)
+let is_fully_qualified_dir (dir : Fpath.t) =
+  Fpath.is_abs dir
+  && (not (String.equal (fst (Fpath.split_volume dir)) ""))
+  && not (Filename.is_relative (Fpath.to_string dir))
+
+(* Split a Windows PATH value on ';' outside double quotes, dropping the
+   quotes. *)
+let split_windows_path_var (path : string) : string list =
+  let entries, last, _in_quotes =
+    String.fold_left
+      (fun (entries, cur, in_quotes) c ->
+        match c with
+        | '"' -> (entries, cur, not in_quotes)
+        | ';' when not in_quotes -> (List.rev cur :: entries, [], in_quotes)
+        | c -> (entries, c :: cur, in_quotes))
+      ([], [], false) path
+  in
+  List.rev (List.rev last :: entries)
+  |> List.map (fun chars -> String.of_seq (List.to_seq chars))
+
+(* The Windows OCaml runtime searches the current directory for bare names.
+   Resolve an absolute PATH match so an untrusted checkout cannot supply the
+   executable. *)
+let resolve_windows_program ~path ~is_file name =
+  match Fpath.of_string name with
+  | Ok p when List.equal String.equal (Fpath.segs p) [ name ] ->
+      (* Like SearchPath with a default ".exe" extension: append it only when
+         the name has no extension. *)
+      let file = if String.contains name '.' then name else name ^ ".exe" in
+      path
+      |> Option.map split_windows_path_var
+      |> Option.value ~default:[]
+      |> List.filter_map (fun entry -> Result.to_option (Fpath.of_string entry))
+      |> List.filter is_fully_qualified_dir
+      |> List.find_map (fun dir ->
+          let candidate = Fpath.(to_string (dir / file)) in
+          if is_file candidate then Some candidate else None)
+  | _ -> Some name
+
+let is_regular_file path =
+  match (Unix.stat path).st_kind with
+  | Unix.S_REG -> true
+  | _ -> false
+  | exception Unix.Unix_error _ -> false
+
+(* The program to pass to the OS for [cmd]. *)
+let program_to_spawn ((Cmd.Name name, _) as cmd : Cmd.t) :
+    (string, [> `Msg of string ]) result =
+  if not Sys.win32 then Ok name
+  else
+    match
+      resolve_windows_program ~path:(Sys.getenv_opt "PATH")
+        ~is_file:is_regular_file name
+    with
+    | Some exe -> Ok exe
+    | None ->
+        Error
+          (`Msg
+             (spf "run %s: %s" (Cmd.to_string cmd)
+                (Unix.error_message Unix.ENOENT)))
+
+(* Apply a Bos runner [f] to [cmd] with its program resolved. *)
+let with_spawn_cmd (cmd : Cmd.t) (f : Cmd.t -> ('a, [> `Msg of string ]) result)
+    : ('a, [> `Msg of string ]) result =
+  let _, args = cmd in
+  match program_to_spawn cmd with
+  | Error err -> Error err
+  | Ok exe -> f (Cmd.Name exe, args)
+
+(*****************************************************************************)
 (* Old Common.cmd_to_list *)
 (*****************************************************************************)
 
 exception CmdError of Unix.process_status * string
 
 let process_output_to_list ?(verbose = false) command =
+  (* The Windows shell searches the current directory for commands. *)
+  if Sys.win32 then
+    failwith "UCmd.process_output_to_list: unsupported on Windows";
   (* nosemgrep: forbid-exec *)
   let chan = Unix.open_process_in command in
   let res = ref ([] : string list) in
@@ -131,19 +213,21 @@ let cmd_to_list ?verbose command =
 let run_subprocess ?env cmd =
   log_command cmd;
   let env = env_of_env env in
-  (* nosemgrep: forbid-exec *)
-  Cmd.bos_apply (Bos.OS.Cmd.run_status ?env) cmd
+  with_spawn_cmd cmd
+    (* nosemgrep: forbid-exec *)
+    (Cmd.bos_apply (Bos.OS.Cmd.run_status ?env))
 
 let string_of_run ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
   with_logging_err_temp_file (fun err_path ->
-      (* nosemgrep: forbid-exec *)
-      let out =
-        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
-      in
-      (* nosemgrep: forbid-exec *)
-      Bos.OS.Cmd.out_string ~trim out)
+      with_spawn_cmd cmd (fun cmd ->
+          (* nosemgrep: forbid-exec *)
+          let out =
+            Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+          in
+          (* nosemgrep: forbid-exec *)
+          Bos.OS.Cmd.out_string ~trim out))
 
 (* TODO: this is potentially a source of high memory usage if the captured program
  * outputs a lot of log spew. We should add a limit on the data read. *)
@@ -151,12 +235,13 @@ let string_of_run_with_stderr ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
   with_temp_file_out (fun err_path ->
-      (* nosemgrep: forbid-exec *)
-      let out =
-        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
-      in
-      (* nosemgrep: forbid-exec *)
-      Bos.OS.Cmd.out_string ~trim out)
+      with_spawn_cmd cmd (fun cmd ->
+          (* nosemgrep: forbid-exec *)
+          let out =
+            Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+          in
+          (* nosemgrep: forbid-exec *)
+          Bos.OS.Cmd.out_string ~trim out))
 
 let string_of_run_with_timeout (eio_env : eio_env) ~timeout_seconds ~trim ?env
     cmd =
@@ -170,11 +255,10 @@ let string_of_run_with_timeout (eio_env : eio_env) ~timeout_seconds ~trim ?env
   @@ fun sp ->
   log_command cmd;
   let clock = eio_env#clock in
-  let proc_mgr = eio_env#process_mgr in
   let env_arr = env_to_string_array_opt env in
   let Cmd.Name name, args = cmd in
-  let arg_list = name :: args in
-  let run () =
+  let run proc_mgr exe () =
+    let executable = if String.equal exe name then None else Some exe in
     Eio.Switch.run (fun sw ->
         let stdout_r, stdout_w = Eio_unix.pipe sw in
         let stderr_r, stderr_w = Eio_unix.pipe sw in
@@ -183,7 +267,7 @@ let string_of_run_with_timeout (eio_env : eio_env) ~timeout_seconds ~trim ?env
           Eio.Process.spawn ~sw proc_mgr ?env:env_arr
             ~stdout:(stdout_w :> Eio.Flow.sink_ty Eio.Std.r)
             ~stderr:(stderr_w :> Eio.Flow.sink_ty Eio.Std.r)
-            arg_list
+            ?executable (name :: args)
         in
         (* Close the write ends in the parent so reads terminate on process exit. *)
         Eio.Resource.close stdout_w;
@@ -206,15 +290,23 @@ let string_of_run_with_timeout (eio_env : eio_env) ~timeout_seconds ~trim ?env
         (Ok (stdout_str, status), stderr_str))
   in
   let result =
-    match
-      try Ok (Eio.Time.with_timeout_exn clock timeout_seconds run) with
-      | Eio.Time.Timeout -> Error `Timeout
-      | Eio.Cancel.Cancelled _ as exn -> raise exn
-      | exn -> Error (`Msg (Printexc.to_string exn))
-    with
-    | Ok (result, stderr_str) -> (result, stderr_str)
-    | Error `Timeout -> (Error `Timeout, "")
+    match program_to_spawn cmd with
     | Error (`Msg _ as msg) -> (Error msg, "")
+    | Ok exe -> (
+        let proc_mgr = eio_env#process_mgr in
+        match
+          try
+            Ok
+              (Eio.Time.with_timeout_exn clock timeout_seconds
+                 (run proc_mgr exe))
+          with
+          | Eio.Time.Timeout -> Error `Timeout
+          | Eio.Cancel.Cancelled _ as exn -> raise exn
+          | exn -> Error (`Msg (Printexc.to_string exn))
+        with
+        | Ok (result, stderr_str) -> (result, stderr_str)
+        | Error `Timeout -> (Error `Timeout, "")
+        | Error (`Msg _ as msg) -> (Error msg, ""))
   in
   (match result with
   | Ok (_, status), _ ->
@@ -237,22 +329,23 @@ let lines_of_run ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
   with_logging_err_temp_file (fun err_path ->
-      (* nosemgrep: forbid-exec *)
-      let out =
-        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
-      in
-      (* nosemgrep: forbid-exec *)
-      Bos.OS.Cmd.out_lines ~trim out)
+      with_spawn_cmd cmd (fun cmd ->
+          (* nosemgrep: forbid-exec *)
+          let out =
+            Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+          in
+          (* nosemgrep: forbid-exec *)
+          Bos.OS.Cmd.out_lines ~trim out))
 
 (* nosemgrep: forbid-exec *)
 let status_of_run ?quiet ?env cmd =
   log_command cmd;
   let env = env_of_env env in
   with_logging_err_temp_file (fun err_path ->
-      (* nosemgrep: forbid-exec *)
-      Cmd.bos_apply
-        Bos.OS.Cmd.(run_status ?quiet ~err:(err_file err_path) ?env)
-        cmd)
+      with_spawn_cmd cmd
+        (* nosemgrep: forbid-exec *)
+        (Cmd.bos_apply
+           Bos.OS.Cmd.(run_status ?quiet ~err:(err_file err_path) ?env)))
 
 (*
    A superset of Bash alphanumeric keywords that don't behave like ordinary

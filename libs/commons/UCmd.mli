@@ -10,7 +10,14 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* Wrappers around Bos.OS.Cmd to run external commands. *)
+(* Wrappers around Bos.OS.Cmd to run external commands.
+
+   On Windows, a command name without a path is run from the first match in
+   the fully qualified directories of the parent's PATH (see
+   [resolve_windows_program]), never from the current directory; if there is
+   no match, the run fails with [Error (`Msg _)]. The environment passed to
+   the command does not affect this lookup. UCmd's own log messages and
+   traces show the command name as given. *)
 
 type eio_env =
   < clock : float Eio.Time.clock_ty Eio.Std.r
@@ -79,6 +86,20 @@ val status_of_run :
 exception CmdError of Unix.process_status * string
 
 val cmd_to_list : ?verbose:bool -> string -> string list
+(** Run a shell command. Raises [Failure] on Windows, whose shell searches the
+    current directory for commands. *)
+
+val resolve_windows_program :
+  path:string option -> is_file:(string -> bool) -> string -> string option
+(** [resolve_windows_program ~path ~is_file name] is the program Windows
+    should run for command [name], given the PATH value [path].
+    Only a [name] that {!Fpath} parses as a single segment is looked up;
+    others, e.g. with a separator or volume, are returned unchanged.
+    The lookup appends ".exe" unless [name] contains a '.', and tries
+    [is_file] in each fully qualified (drive-absolute or UNC) directory of
+    [path], in order; quotes in [path] are removed and other entries are
+    skipped. [None] means no match. Uses {!Fpath}'s platform semantics, so it
+    is meaningful only on Windows. Exposed for testing. *)
 
 val quote_command_for_bash : string list -> string
 (** Convert a list of arguments into a valid Bash command without excessive
