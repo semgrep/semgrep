@@ -1,5 +1,0 @@
-Gradle module attribution now works for modules whose logical project name
-does not match their directory (a renamed `include` or a remapped
-`projectDir` in settings.gradle). The resolver's init script reports each
-project's actual build file, and dependencies are attributed to that file
-instead of falling back to the root manifest.
