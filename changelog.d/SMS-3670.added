@@ -1,1 +1,0 @@
-Set `SEMGREP_LOG_JSON_FILE` to emit structured execution events with scan metadata alongside existing text output.

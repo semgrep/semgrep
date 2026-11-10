@@ -1543,7 +1543,7 @@ wheels = [
 
 [[package]]
 name = "semgrep"
-version = "1.183.0"
+version = "1.184.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
