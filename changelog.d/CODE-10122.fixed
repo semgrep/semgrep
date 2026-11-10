@@ -1,1 +1,0 @@
-On Windows, Semgrep now runs programs it calls by name, such as git and pysemgrep, only from fully qualified PATH directories. Previously Windows checked the current directory first, so an executable committed to a scanned repository could run during a scan. Initially reported by Aikido Security.
