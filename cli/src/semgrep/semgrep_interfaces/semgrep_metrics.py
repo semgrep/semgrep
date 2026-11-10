@@ -1088,6 +1088,7 @@ class Guardian:
     organization_ids: Optional[List[int]] = None
     oauth_id: Optional[str] = None
     oauth_email: Optional[str] = None
+    actor: Optional[str] = None
     tool_name: Optional[str] = None
     package_manager: Optional[str] = None
     attached_lockfile: Optional[str] = None
@@ -1113,6 +1114,7 @@ class Guardian:
                 organization_ids=_atd_read_list(_atd_read_int)(x['organization_ids']) if 'organization_ids' in x else None,
                 oauth_id=_atd_read_string(x['oauth_id']) if 'oauth_id' in x else None,
                 oauth_email=_atd_read_string(x['oauth_email']) if 'oauth_email' in x else None,
+                actor=_atd_read_string(x['actor']) if 'actor' in x else None,
                 tool_name=_atd_read_string(x['tool_name']) if 'tool_name' in x else None,
                 package_manager=_atd_read_string(x['package_manager']) if 'package_manager' in x else None,
                 attached_lockfile=_atd_read_string(x['attached_lockfile']) if 'attached_lockfile' in x else None,
@@ -1149,6 +1151,8 @@ class Guardian:
             res['oauth_id'] = _atd_write_string(self.oauth_id)
         if self.oauth_email is not None:
             res['oauth_email'] = _atd_write_string(self.oauth_email)
+        if self.actor is not None:
+            res['actor'] = _atd_write_string(self.actor)
         if self.tool_name is not None:
             res['tool_name'] = _atd_write_string(self.tool_name)
         if self.package_manager is not None:

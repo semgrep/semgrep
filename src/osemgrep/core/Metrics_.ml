@@ -255,6 +255,7 @@ let default_payload =
         organization_ids = None;
         oauth_id = None;
         oauth_email = None;
+        actor = None;
         tool_name = None;
         package_manager = None;
         attached_lockfile = None;
