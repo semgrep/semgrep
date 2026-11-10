@@ -32,6 +32,7 @@ from opentelemetry.util.types import Attributes
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import telemetry
 from semgrep.error import SemgrepError
+from semgrep.executable_lookup import resolve_executable
 from semgrep.external.git_url_parser import Parser
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
@@ -114,9 +115,11 @@ class GitMeta:
         if repo_name:
             return repo_name
 
+        rev_parse_cmd = ["git", "rev-parse", "--show-toplevel"]
         # nosem: use-git-check-output-helper
         rev_parse = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+            rev_parse_cmd,
+            executable=resolve_executable(rev_parse_cmd),
             capture_output=True,
             encoding="utf-8",
             timeout=env.git_command_timeout,
@@ -156,9 +159,11 @@ class GitMeta:
         repo_url = os.getenv("SEMGREP_REPO_URL")
         if not repo_url:
             # if the repo URL was not explicitly provided, try getting it from git
+            get_url_cmd = ["git", "remote", "get-url", "origin"]
             # nosem: use-git-check-output-helper
             git_parse = subprocess.run(
-                ["git", "remote", "get-url", "origin"],
+                get_url_cmd,
+                executable=resolve_executable(get_url_cmd),
                 capture_output=True,
                 encoding="utf-8",
                 timeout=env.git_command_timeout,
@@ -577,9 +582,16 @@ class GithubMeta(GitMeta):
                 )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
+            merge_base_cmd = [
+                "git",
+                "merge-base",
+                self.base_branch_hash,
+                self.head_branch_hash,
+            ]
             # nosem: use-git-check-output-helper
             process = subprocess.run(
-                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash],
+                merge_base_cmd,
+                executable=resolve_executable(merge_base_cmd),
                 encoding="utf-8",
                 capture_output=True,
                 check=True,

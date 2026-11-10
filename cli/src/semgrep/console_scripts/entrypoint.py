@@ -30,7 +30,6 @@
 import importlib.resources
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import sysconfig
@@ -134,7 +133,10 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
     # there is no /.../site-packages/semgrep-xxx/bin/semgrep-core.
     # In those cases, we want to grab semgrep-core from the PATH instead.
-    path = shutil.which(core)
+    # Lazy import to keep the entry point lightweight
+    from semgrep.executable_lookup import find_executable
+
+    path = find_executable(core)
     if path is not None:
         return path
 

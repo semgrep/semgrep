@@ -40,6 +40,7 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
+from semgrep.executable_lookup import resolve_executable
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
 from semgrep.verbose_logging import getLogger
 
@@ -281,7 +282,7 @@ def sub_check_output(cmd: Sequence[Union[str, Path]], **kwargs: Any) -> Any:
         kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
 
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    return subprocess.check_output(cmd, **kwargs)
+    return subprocess.check_output(cmd, executable=resolve_executable(cmd), **kwargs)
 
 
 def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:

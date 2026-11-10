@@ -12,11 +12,11 @@
 #
 import importlib.resources
 import os
-import shutil
 import sys
 from pathlib import Path
 from typing import Optional
 
+from semgrep.executable_lookup import find_executable
 from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
@@ -50,14 +50,16 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
     # jobs (at least by default), so this won't work when running pytest
     # tests.
     #
-    which_exec = shutil.which(exec_name)
+    which_exec = find_executable(exec_name)
     if which_exec is not None:
         return which_exec
 
-    # Third, look for something in the same dir as the Python interpreter
-    relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
-    if os.path.isfile(relative_path):
-        return relative_path
+    # Third, look beside the Python interpreter. On any platform,
+    # sys.executable can be empty or None; do not search CWD in that case.
+    if sys.executable:
+        relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
+        if os.path.isfile(relative_path):
+            return relative_path
 
     return None
 
