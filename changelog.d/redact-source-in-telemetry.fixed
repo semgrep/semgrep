@@ -1,4 +1,0 @@
-Logs and traces no longer include snippets of the scanned source code when a
-file fails to parse. Parsing exceptions now report the file, line, column, and
-the length of the unexpected text instead. Dependency resolution errors for
-malformed lockfiles are reported the same way.
