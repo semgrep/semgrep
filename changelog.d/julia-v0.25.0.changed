@@ -1,9 +1,0 @@
-julia grammar update (v0.25.0):
-
-- Julia source parsing and rule patterns now support public API declarations while distinguishing them from export declarations and calls named public.
-- Julia source parsing and rule patterns now support outer-qualified loop bindings, preserving their distinction from ordinary bindings and a variable named outer.
-- Julia parsing and matching now support typed const fields without initializers in mutable structs.
-- Julia source parsing and rule patterns now support renaming imported macros, such as import A: @m as @n and import A: @m as @B.n, and keep the @ on macro names in imports, exports, and public declarations.
-- Julia rules can now match unary ± expressions and distinguish binary ± from ∓, reducing operator-related false positives.
-- Julia numeral juxtaposition such as 1__2 is now represented as multiplication by __2 and can be found by multiplication patterns.
-- Julia function-definition patterns now retain where constraints, avoiding matches against definitions with a different constraint.
