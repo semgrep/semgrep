@@ -431,6 +431,20 @@ let test_concurrent_map_chunk_poisoning () =
             (contains ~term:"GC Alarm triggered" (Printexc.to_string e)))
     res
 
+(* With $EIO_BACKEND unset, run_eio must not pick io_uring on Unix: each
+ * io_uring domain eats RLIMIT_MEMLOCK and Eio cannot fall back once the
+ * main domain has a ring (#11802). *)
+let test_run_eio_defaults_to_posix () =
+  if Sys.unix then (
+    let saved = Sys.getenv_opt "EIO_BACKEND" in
+    Unix.putenv "EIO_BACKEND" "";
+    Fun.protect
+      ~finally:(fun () ->
+        Unix.putenv "EIO_BACKEND" (Option.value saved ~default:""))
+      (fun () ->
+        let backend = Parallelism_config.run_eio (fun env -> env#backend_id) in
+        Alcotest.(check string) __LOC__ "posix" backend))
+
 let tests =
   Testo.categorize "Concurrent"
     [
@@ -455,4 +469,6 @@ let tests =
         test_concurrent_map_cancel_context;
       t "Concurrent.map chunk poisoning on worker death"
         test_concurrent_map_chunk_poisoning;
+      t "run_eio defaults to the posix backend on Unix"
+        test_run_eio_defaults_to_posix;
     ]
