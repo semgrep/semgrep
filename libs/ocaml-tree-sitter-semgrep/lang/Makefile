@@ -20,7 +20,6 @@ STAT_LANGUAGES1 = \
   fga \
   go \
   hack \
-  haskell \
   hcl \
   java \
   javascript \
