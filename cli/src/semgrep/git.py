@@ -28,6 +28,7 @@ from typing import Optional
 from typing import Sequence
 
 from semgrep import telemetry
+from semgrep.executable_lookup import resolve_executable
 from semgrep.state import get_state
 from semgrep.structured_logging import log
 from semgrep.util import manually_search_file
@@ -122,6 +123,7 @@ def git_check_output(
         # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
         return subprocess.check_output(
             command,
+            executable=resolve_executable(command),
             stderr=subprocess.PIPE,
             encoding="utf-8",
             timeout=state_env.git_command_timeout,
@@ -334,6 +336,7 @@ class BaselineHandler:
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
                 cmd,
+                executable=resolve_executable(cmd),
                 timeout=env.git_command_timeout,
                 capture_output=True,
                 encoding="utf-8",
@@ -350,6 +353,7 @@ class BaselineHandler:
                 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
                 raw_output = subprocess.run(
                     status_cmd,
+                    executable=resolve_executable(status_cmd),
                     timeout=env.git_command_timeout,
                     capture_output=True,
                     encoding="utf-8",
@@ -435,8 +439,11 @@ class BaselineHandler:
         # worktree that we know doesn't exist and this prevents us
         # from failing if we get an unusual error
         logger.debug("Checking that the worktree exists")
+        list_cmd = ["git", "worktree", "list"]
         # nosemgrep: use-git-check-output-helper - we should continue when this fails
-        res = subprocess.run(["git", "worktree", "list"], capture_output=True)
+        res = subprocess.run(
+            list_cmd, executable=resolve_executable(list_cmd), capture_output=True
+        )
         list_stdout = res.stdout.decode() if res.stdout else "<No stdout>"
         list_stderr = res.stderr.decode() if res.stderr else "<No stderr>"
         if res.returncode != 0:
@@ -450,8 +457,11 @@ class BaselineHandler:
             # always converted to POSIX enables crossplatfrom correctness here.
             if Path(worktree_dir).as_posix() in list_stdout.strip():
                 logger.debug("Removing the worktree")
+                remove_cmd = ["git", "worktree", "remove", worktree_dir]
                 # nosemgrep: use-git-check-output-helper - we should continue when this fails
-                res = subprocess.run(["git", "worktree", "remove", worktree_dir])
+                res = subprocess.run(
+                    remove_cmd, executable=resolve_executable(remove_cmd)
+                )
                 remove_stdout = res.stdout.decode() if res.stdout else "<No stdout>"
                 remove_stderr = res.stderr.decode() if res.stderr else "<No stdout>"
                 if res.returncode != 0:

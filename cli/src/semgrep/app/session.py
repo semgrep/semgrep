@@ -25,6 +25,7 @@ from attrs import field
 
 from semgrep import __VERSION__
 from semgrep import telemetry
+from semgrep.executable_lookup import resolve_executable
 from semgrep.util import is_semgrep_url
 
 
@@ -53,23 +54,27 @@ class UserAgent:
             result.add(os.environ["SEMGREP_USER_AGENT_APPEND"])
 
         try:
+            get_url_cmd = ["git", "remote", "get-url", "origin"]
             # nosem: use-git-check-output-helper
             remote_url = subprocess.check_output(
-                ["git", "remote", "get-url", "origin"],
+                get_url_cmd,
+                executable=resolve_executable(get_url_cmd),
                 cwd=Path(__file__).parent,
                 stderr=subprocess.DEVNULL,
                 encoding="utf-8",
             ).strip()
+            describe_cmd = [
+                "git",
+                "describe",
+                # a --match value never matches will give us SHA instead of most recent tag
+                "--match=nah_dont_actually_match",
+                "--always",
+                "--dirty",
+            ]
             # nosem: use-git-check-output-helper
             sha = subprocess.check_output(
-                [
-                    "git",
-                    "describe",
-                    # a --match value never matches will give us SHA instead of most recent tag
-                    "--match=nah_dont_actually_match",
-                    "--always",
-                    "--dirty",
-                ],
+                describe_cmd,
+                executable=resolve_executable(describe_cmd),
                 cwd=Path(__file__).parent,
                 stderr=subprocess.DEVNULL,
                 encoding="utf-8",
