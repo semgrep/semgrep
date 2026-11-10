@@ -101,7 +101,7 @@ def test_depends_on_dag():
 
 
 def test_clone_only_empty_regen():
-    for key in ("javascript", "c", "haskell", "sqlite", "make", "cfml"):
+    for key in ("javascript", "c", "cfml"):
         assert dests(key, LANG_DIR) == []
 
 
@@ -111,9 +111,10 @@ def test_version_aliases():
     assert version_for_lang("apex", LANG_DIR) == "0.26.3"
 
 
-def test_resolve_unknown():
+@pytest.mark.parametrize("name", ["not-a-language", "haskell", "make", "sqlite"])
+def test_resolve_unknown(name):
     with pytest.raises(UnknownGrammarError):
-        resolve("not-a-language", LANG_DIR)
+        resolve(name, LANG_DIR)
 
 
 def test_version_unknown():

@@ -1,3 +1,0 @@
-# File extensions for the Haskell language
-.hs
-.lhs
