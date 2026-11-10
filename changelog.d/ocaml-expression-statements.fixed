@@ -1,5 +1,0 @@
-OCaml: taint analysis now follows data through expression statements and
-sequence expressions. For example, in `let x = (r := 1; source ()) in sink x`,
-the value of the sequence is the result of `source ()`, so the finding on
-`sink x` is now reported. Taint also no longer leaks from one `match` case
-into the next one.
