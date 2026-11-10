@@ -18,7 +18,6 @@ import json
 import logging
 import math
 import os
-import shutil
 import sys
 import tempfile
 from datetime import datetime
@@ -59,6 +58,8 @@ from semgrep.engine import EngineType
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
+from semgrep.executable_lookup import find_executable
+from semgrep.executable_lookup import resolve_executable
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -516,6 +517,7 @@ class StreamingSemgrepCore:
         if IS_WINDOWS:
             process = await asyncio.create_subprocess_exec(
                 *self._cmd,
+                executable=resolve_executable(self._cmd),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=stderr_arg,
                 limit=INPUT_BUFFER_LIMIT,
@@ -821,7 +823,7 @@ class CoreRunner:
         - pyro-caml is installed
         """
 
-        pyro_caml_on_path = shutil.which("pyro-caml")
+        pyro_caml_on_path = find_executable("pyro-caml")
 
         profile_env_set = os.environ.get("SEMGREP_PROFILE", "") != ""
         pyro_caml_requested = self._profile or (profile_env_set)
