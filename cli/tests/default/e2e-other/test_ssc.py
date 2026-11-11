@@ -12,9 +12,13 @@
 #
 import json
 import logging
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Optional
+from typing import Tuple
 
 import pytest
 from tests.conftest import RULES_PATH
@@ -696,6 +700,51 @@ def test_ssc__setup_py_dynamic_resolution(
         result.as_snapshot(),
         "results.txt",
     )
+
+
+def _python3_version() -> Optional[Tuple[int, int]]:
+    """Version of the python3 on PATH, which the setup.py resolver uses."""
+    if shutil.which("python3") is None:
+        return None
+    out = subprocess.run(
+        ["python3", "-c", "import sys; print(*sys.version_info[:2])"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    return int(out[0]), int(out[1])
+
+
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__setup_py_resolution_without_setuptools(
+    run_semgrep_on_copied_files: RunSemgrep,
+):
+    """
+    Resolve a setup.py project in a venv without setuptools. venvs created by
+    Python 3.12+ don't include it, so running setup.py directly in the venv
+    fails.
+    """
+    version = _python3_version()
+    if version is None or version < (3, 12):
+        pytest.skip(f"needs python3 >= 3.12 on PATH, found {version}")
+    result = run_semgrep_on_copied_files(
+        "rules/dependency_aware/python-setup-py-six.yaml",
+        target_name="dependency_aware/setup-py-without-setuptools",
+        options=["--allow-local-builds"],
+    )
+    found = [
+        finding["extra"]["sca_info"]["dependency_match"]["found_dependency"]
+        for finding in json.loads(result.raw_stdout)["results"]
+    ]
+    assert [
+        (
+            dependency["package"],
+            dependency["version"],
+            dependency["transitivity"],
+            Path(dependency["lockfile_path"]).name,
+        )
+        for dependency in found
+    ] == [("six", "1.16.0", "direct", "setup.py")]
 
 
 @pytest.mark.parametrize(
