@@ -1,0 +1,1 @@
+Report an actionable error when `--config` points at a named pipe, process substitution, or `-` (stdin is not supported) instead of a bare "not a file or folder".
