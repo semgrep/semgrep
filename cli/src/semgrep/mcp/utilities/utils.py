@@ -111,9 +111,11 @@ def findings_elicitation_enabled() -> bool:
     )
 
 
-async def get_workspace_dir(ctx: Context) -> str | None:
+async def list_workspace_dirs(ctx: Context) -> list[str] | None:
     """
-    Get the workspace directory from the context
+    Get the directories of every root the client reported, in order. A
+    multi-root workspace (e.g. a VS Code .code-workspace) reports one root
+    per folder. Returns None when the client could not be asked.
 
     Note: We must invoke this method at request time, and not lifespan time,
     because it relies on the `ctx.request_context`, which does not exist
@@ -125,21 +127,46 @@ async def get_workspace_dir(ctx: Context) -> str | None:
         roots = await ctx.request_context.session.list_roots()
         logger.debug(f"Got roots from client: {roots}")
 
-        # Just to be safe. It's probably impossible.
-        if len(roots.roots) == 0:
-            logger.warning("Somehow, no roots found")
-            return None
-
-        uri: str = str(roots.roots[0].uri)
-        # Decoded, so a root with a space or non-ASCII character in it is the
-        # directory on disk rather than its percent-encoded spelling.
-        path = url2pathname(urlparse(uri).path) if uri.startswith("file://") else uri
-
-        logger.debug(f"Determined path of workspace directory: {path}")
-
-        return path
+        paths = []
+        for root in roots.roots:
+            uri: str = str(root.uri)
+            # Decoded, so a root with a space or non-ASCII character in it is the
+            # directory on disk rather than its percent-encoded spelling.
+            paths.append(
+                url2pathname(urlparse(uri).path) if uri.startswith("file://") else uri
+            )
+        return paths
     except Exception:
+        return None
+
+
+def first_workspace_dir(workspace_dirs: list[str] | None) -> str | None:
+    """
+    The workspace directory, from the result of `list_workspace_dirs`: the
+    first root, None if the client reported no roots, and "" if it could not
+    be asked.
+    """
+    if workspace_dirs is None:
         return ""
+
+    # Just to be safe. It's probably impossible.
+    if len(workspace_dirs) == 0:
+        logger.warning("Somehow, no roots found")
+        return None
+
+    logger.debug(f"Determined path of workspace directory: {workspace_dirs[0]}")
+    return workspace_dirs[0]
+
+
+async def get_workspace_dir(ctx: Context) -> str | None:
+    """
+    Get the workspace directory from the context (the client's first root)
+
+    Note: We must invoke this method at request time, and not lifespan time,
+    because it relies on the `ctx.request_context`, which does not exist
+    when we initialize the server.
+    """
+    return first_workspace_dir(await list_workspace_dirs(ctx))
 
 
 def get_semgrep_api_url() -> str:
