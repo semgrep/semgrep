@@ -2376,7 +2376,7 @@ and m_generic_type_vs_type_t lang tok a b =
        * probably fine to be a bit generous here when we're attempting a match
        * against a builtin, as this will not preclude matches elsewhere against
        * named types that happen to collide. *)
-      match (Type.builtin_type_of_string lang str, builtin2) with
+      match (Type.builtin_type_of_pattern_string str, builtin2) with
       | Some Type.Int, Type.Int
       | Some Type.Float, Type.Float
       | Some Type.String, Type.String
