@@ -174,14 +174,7 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
   | Some s -> (s, Tok.unsafe_fake_tok s)
   | None -> ("TodoKind is None", Tok.unsafe_fake_tok "")
 
-(* less: should sanity check things by looking at [lang]. but maybe users like
- * to write `bool` in a language that uses `boolean`, and we should allow that?
- *
- * NB: Conflates Java boxed types with primitives. This is probably fine for our
- * analysis.
- *
- * coupling: Inverse of ast_generic_type_of_builtin_type *)
-let builtin_type_of_string _langTODO str =
+let builtin_type_of_pattern_string str =
   match str with
   | "int"
   | "Int"
@@ -208,6 +201,21 @@ let builtin_type_of_string _langTODO str =
   | "number" -> Some Number
   | __else__ -> None
 
+let builtin_type_of_string lang str =
+  match lang with
+  | Lang.Python -> (
+      match str with
+      | "int" -> Some Int
+      | "float" -> Some Float
+      (* [name_of_builtin_type] uses "string" in the generic representation. *)
+      | "str"
+      | "string" ->
+          Some String
+      | "bool" -> Some Bool
+      | _ -> None)
+  (* Preserve existing primitive/boxed-type equivalences for other languages. *)
+  | _ -> builtin_type_of_pattern_string str
+
 (* TODO: Check lang to get proper builtin type for more languages *)
 let name_of_builtin_type lang t =
   match (lang, t) with
@@ -227,12 +235,18 @@ let ast_generic_type_of_builtin_type ?tok lang t =
   mkt ?tok str
 
 let builtin_type_of_type lang t =
+  let of_id str info =
+    match (lang, !(info.G.id_resolved)) with
+    | Lang.Python, Some (G.GlobalName ([ "builtins"; id ], _), _) ->
+        builtin_type_of_string lang id
+    | Lang.Python, Some (G.GlobalName _, _) -> None
+    | _ -> builtin_type_of_string lang str
+  in
   match t.G.t with
   (* for Python literal checking *)
-  | G.TyExpr { e = G.N (G.Id ((str, _t), _idinfo)); _ } ->
-      builtin_type_of_string lang str
+  | G.TyExpr { e = G.N (G.Id ((str, _t), info)); _ } -> of_id str info
   (* for Java/Go/... literals *)
-  | G.TyN (Id ((str, _t), _idinfo)) -> builtin_type_of_string lang str
+  | G.TyN (Id ((str, _t), info)) -> of_id str info
   | __else__ -> None
 
 (* There is no function of_ast_generic_type_. The closest is
