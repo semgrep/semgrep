@@ -1,3 +1,3 @@
-src/engine/*taint* @IagoAbal
-src/analyzing @IagoAbal
-src/tainting @IagoAbal
+src/engine/*taint* @semgrep/program-analysis
+src/analyzing @semgrep/program-analysis
+src/tainting @semgrep/program-analysis
