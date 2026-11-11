@@ -33,3 +33,23 @@ def test_git_url_clean():
 def test_get_project_url(patched_clean_project_url):
     get_project_url()
     patched_clean_project_url.assert_called_once()
+
+
+@pytest.mark.quick
+def test_git_url_clean_token_only_userinfo():
+    # Regression for #12024: token-only userinfo has no colon, so the old
+    # `^.*:.*@` regex never matched and the token leaked into telemetry.
+    assert (
+        clean_project_url("https://ghp_examplePATtoken123@github.com/org/repo.git")
+        == "https://github.com/org/repo.git"
+    )
+
+
+@pytest.mark.quick
+def test_git_url_clean_gitlab_deploy_token_only_userinfo():
+    assert (
+        clean_project_url(
+            "https://gldt-ExampleDeployToken@gitlab.com/group/project.git"
+        )
+        == "https://gitlab.com/group/project.git"
+    )
