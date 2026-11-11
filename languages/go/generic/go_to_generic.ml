@@ -613,7 +613,47 @@ let top_func () =
     | x -> (
         match expr_or_type x with
         | Left e -> H.expr_to_pattern e
-        | Right t -> G.PatType t)
+        | Right t -> pat_type_or_expr t)
+  (* In a type switch, a case naming a (possibly qualified) type, e.g.
+   * 'case a.b:', should match an expression pattern like 'a.b' just as
+   * the same case in an expression switch does (#12014). Only plain
+   * named types convert; composite types stay PatType. *)
+  and pat_type_or_expr (t : G.type_) : G.pattern =
+    match t.G.t with
+    | G.TyN (G.Id (id, _)) ->
+        G.N (G.Id (id, G.empty_id_info ())) |> G.e |> H.expr_to_pattern
+    | G.TyN
+        (G.IdQualified
+           { name_last = id, None; name_middle; name_top = None; name_info = _ })
+      -> (
+        let idents =
+          match name_middle with
+          | None -> Some [ id ]
+          | Some (G.QDots dots) ->
+              let rec split acc = function
+                | [] -> Some (List.rev (id :: acc))
+                | (i, None) :: rest -> split (i :: acc) rest
+                | (_, Some _) :: _ -> None
+              in
+              split [] dots
+          | Some (G.QExpr _) -> None
+        in
+        match idents with
+        | None
+        | Some [] ->
+            G.PatType t
+        | Some (first :: rest) ->
+            let e = G.N (G.Id (first, G.empty_id_info ())) |> G.e in
+            let e =
+              List.fold_left
+                (fun acc i ->
+                  G.DotAccess
+                    (acc, unsafe_fake ".", G.FN (G.Id (i, G.empty_id_info ())))
+                  |> G.e)
+                e rest
+            in
+            H.expr_to_pattern e)
+    | _ -> G.PatType t
   and case_kind = function
     | CaseExprs (tok, v1) ->
         v1 |> List.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
