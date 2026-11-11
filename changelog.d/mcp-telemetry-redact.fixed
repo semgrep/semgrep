@@ -1,0 +1,4 @@
+`semgrep mcp` now respects `SEMGREP_SEND_METRICS=off`, which turns off its
+metrics and tracing like `SEMGREP_MCP_DISABLE_TRACING=true`. Its metrics and
+logs also no longer include scan error messages, semgrep's stderr, or
+supply chain scan results.
