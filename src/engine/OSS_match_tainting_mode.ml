@@ -511,7 +511,10 @@ let check_rules ~matches_hook
                   ~matches_hook xconf xtarget)))
   in
   let to_errors =
-    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
-      muts.timeouts
+    Core_error.ErrorSet.union
+      (Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+         muts.timeouts)
+      (Taint_rule_inst.check_taint_limits_and_warn ~file:file_inst
+         muts.taint_limit_hits)
   in
   (res, to_errors)

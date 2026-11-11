@@ -60,6 +60,12 @@ type t = {
     *)
   var_was_touched : (IL.name -> unit) option;
       (** Track whether a variable has been "touched", see NOTE "auto-cleaning taint". *)
+  taint_limit_hit : bool;
+      (** Whether 'check_tainted_lvals_limit' has dropped or refused to track
+          a tainted l-value in this environment because the
+          'Limits_semgrep.taint_MAX_TAINTED_VARS' limit was reached. The flag
+          is read after the fixpoint to warn the user that some taint was not
+          tracked; see 'Taint_rule_inst.check_taint_limits_and_warn'. *)
 }
 
 type env = t
@@ -71,6 +77,7 @@ let empty =
     taints_waiting_to_be_propagated = VarMap.empty;
     pending_propagation_dests = VarSet.empty;
     var_was_touched = None;
+    taint_limit_hit = false;
   }
 
 let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
@@ -153,6 +160,7 @@ let union le1 le2 =
        * at JOINs. *)
       VarSet.empty;
     var_was_touched = None;
+    taint_limit_hit = le1.taint_limit_hit || le2.taint_limit_hit;
   }
 [@@profiling]
 
@@ -179,6 +187,10 @@ let remove_some_lval_from_tainted_set tainted =
   | None -> None
   | Some (var, _) -> Some (var, NameMap.remove var tainted)
 
+(* Returns whether the 'taint_MAX_TAINTED_VARS' limit was hit, and the
+   (possibly pruned) map of tainted l-values to use, or [None] when the new
+   variable must not be tracked. The caller records the hit in the
+   environment, so it can be reported to the user after the fixpoint. *)
 let check_tainted_lvals_limit tainted new_var =
   if
     (not (NameMap.mem new_var tainted))
@@ -193,14 +205,14 @@ let check_tainted_lvals_limit tainted new_var =
                to track %s"
               (IL.str_of_name dropped_var)
               (IL.str_of_name new_var));
-        Some tainted
+        (true, Some tainted)
     | None ->
         Log.debug (fun m ->
             m ~tags:limits_tags
               "Already tracking too many tainted l-values, will not track %s"
               (IL.str_of_name new_var));
-        None)
-  else Some tainted
+        (true, None))
+  else (false, Some tainted)
 
 let add_shape var offset new_taints new_shape
     ({
@@ -209,10 +221,11 @@ let add_shape var offset new_taints new_shape
        taints_waiting_to_be_propagated;
        pending_propagation_dests;
        var_was_touched;
+       taint_limit_hit;
      } as lval_env) =
   match check_tainted_lvals_limit tainted var with
-  | None -> lval_env
-  | Some tainted ->
+  | true, None -> { lval_env with taint_limit_hit = true }
+  | limit_hit, Some tainted ->
       let new_taints, new_shape =
         let var_tok = snd var.ident in
         match Tok.loc_of_tok var_tok with
@@ -242,6 +255,7 @@ let add_shape var offset new_taints new_shape
         taints_waiting_to_be_propagated;
         pending_propagation_dests;
         var_was_touched;
+        taint_limit_hit = limit_hit || taint_limit_hit;
       }
 
 let add_lval_shape lval new_taints new_shape lval_env =
@@ -351,6 +365,7 @@ let clean
        taints_waiting_to_be_propagated;
        pending_propagation_dests;
        var_was_touched;
+       taint_limit_hit;
      } as lval_env) lval =
   match normalize_lval lval with
   | None ->
@@ -371,6 +386,7 @@ let clean
         pending_propagation_dests;
         (* THINK: Should we clean propagations before they are executed? *)
         var_was_touched;
+        taint_limit_hit;
       }
 
 let filter_tainted pred ({ tainted; _ } as lval_env) =
@@ -451,3 +467,5 @@ let to_string
       pending_propagation_dests "[PENDING PROPAGATION DESTS]"
 
 let seq_of_tainted env = NameMap.to_seq env.tainted
+
+let taint_limit_hit { taint_limit_hit; _ } = taint_limit_hit

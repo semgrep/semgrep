@@ -59,7 +59,22 @@ let svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK = 1000
  * Note that 'Time_limit.set_timeout' cannot be nested. *)
 let taint_FIXPOINT_TIMEOUT = 0.2
 
-(** Bounds the number of variables we can track. *)
+(** Bounds the number of variables we can track in a function.
+
+   When a function holds more tainted variables than this, taint analysis
+   stops tracking the extra ones: an auxiliary temporary variable is dropped
+   to make room if there is one, otherwise the newly tainted variable is
+   simply not tracked. A flow that goes through an untracked variable is
+   therefore not reported. This is not silent: the analysis records the hit
+   and 'Taint_rule_inst.check_taint_limits_and_warn' reports it as a
+   'SemgrepWarning' in the JSON output, so a dropped flow is visible as a
+   warning instead of vanishing without notice.
+
+   The default is 50. It can be raised with 'semgrep-core -max_tainted_vars'
+   (for internal use, see 'Flag_semgrep.max_tainted_vars'); 'semgrep scan'
+   has no option for it. Do not raise the default silently: the limit keeps
+   taint analysis fast, and long chains of assignments can legitimately
+   exceed it, see semgrep/semgrep#12055. *)
 let taint_MAX_TAINTED_VARS = 50
 
 (** Bounds the number of fields we can track per l-value, that is, the number of

@@ -108,6 +108,25 @@ let record_timeout ~(timeouts : file_timeout_stats) ~(rule : Rule_ID.t) opt_name
       stats.num_rules <- stats.num_rules + 1;
       ()
 
+type file_taint_limit_var_stats = {
+  first_rule : Rule_ID.t;
+  mutable num_rules : int;
+}
+
+type file_taint_limit_stats =
+  (IL.name option, file_taint_limit_var_stats) Base.Hashtbl.t
+
+let record_taint_limit_hit ~(limit_hits : file_taint_limit_stats)
+    ~(rule : Rule_ID.t) opt_name =
+  match Base.Hashtbl.find limit_hits opt_name with
+  | None ->
+      Base.Hashtbl.set limit_hits ~key:opt_name
+        ~data:{ first_rule = rule; num_rules = 1 };
+      ()
+  | Some stats ->
+      stats.num_rules <- stats.num_rules + 1;
+      ()
+
 let check_timeouts_and_warn ~interfile file (timeouts : file_timeout_stats) :
     E.ErrorSet.t =
   Base.Hashtbl.fold timeouts ~init:E.ErrorSet.empty
@@ -126,4 +145,32 @@ let check_timeouts_and_warn ~interfile file (timeouts : file_timeout_stats) :
       (* nosemgrep: no-logs-in-library *)
       Logs.warn (fun m -> m "%s" msg);
       let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.FixpointTimeout in
+      errors_acc |> E.ErrorSet.add err)
+
+let check_taint_limits_and_warn ~file (limit_hits : file_taint_limit_stats) :
+    E.ErrorSet.t =
+  Base.Hashtbl.fold limit_hits ~init:E.ErrorSet.empty
+    ~f:(fun ~key:opt_name ~data:stats errors_acc ->
+      (* TODO: Hash 'opt_name' and show it *)
+      let loc = IL_helpers.loc_of_name file.path opt_name in
+      let where =
+        match opt_name with
+        | Some name -> spf "function %s" (IL.str_of_name name)
+        | None -> "the top-level program"
+      in
+      let msg =
+        spf
+          "Taint analysis stopped tracking new tainted variables in %s after \
+           reaching the limit of %d tainted variables per function. Flows \
+           through additional tainted variables may have been missed; raise \
+           the limit with semgrep-core -max_tainted_vars [rules: %d, first: \
+           %s]"
+          where
+          !Flag_semgrep.max_tainted_vars
+          stats.num_rules
+          (Rule_ID.to_string stats.first_rule)
+      in
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "%s" msg);
+      let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.SemgrepWarning in
       errors_acc |> E.ErrorSet.add err)

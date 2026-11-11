@@ -1,0 +1,1 @@
+Taint analysis now warns in the JSON output when a function holds more tainted variables than the per-function limit (default 50), instead of silently dropping the flow. The limit itself is unchanged, and its default is now documented in the semgrep-core help for -max_tainted_vars.
