@@ -291,13 +291,10 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 
 let o_semgrepignore_filename : string option Term.t =
   let info =
-    Arg.info ~docv:"FILENAME"
-      [ "x-semgrepignore-filename" ]
-      ~docs:CLI_common.experimental_section_title
+    Arg.info ~docv:"PATH"
+      [ "semgrepignore-file"; "x-semgrepignore-filename" ]
       ~doc:
-        {|[INTERNAL] Files named $(docv) shall be consulted instead of
-the files named '.semgrepignore'. This option can be useful for testing
-semgrep on intentionally broken code that should normally be ignored.|}
+        "Use PATH instead of .semgrepignore for file targeting."
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 

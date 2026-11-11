@@ -124,6 +124,51 @@ let test_absolute_target_path () =
   in
   t "absolute path as target" func
 
+let test_semgrepignore_file_alias () =
+  let run option experimental =
+    let open Testutil_files in
+    let files =
+      [
+        File
+          ( "rule.yml",
+            {|rules:
+- id: custom-ignore
+  pattern: foo(...)
+  message: matched
+  languages: [python]
+  severity: ERROR
+|} );
+        File ("target.py", "foo()\n");
+        File (".semgrepignore", "target.py\n");
+        File ("custom.ignore", "");
+      ]
+    in
+    Testutil_git.with_git_repo files (fun _cwd ->
+        let experimental_args =
+          if experimental then [ "--experimental" ] else []
+        in
+        let argv =
+          Array.of_list
+            ( [ "semgrep-scan" ] @ experimental_args
+            @ [
+                option;
+                "custom.ignore";
+                "--config";
+                "rule.yml";
+                "--error";
+                ".";
+              ] )
+        in
+        let exit_code = Scan_subcommand.main argv in
+        Alcotest.(check int) "custom ignore file includes target" 1
+          (Exit_code.to_int exit_code))
+  in
+  let func () =
+    run "--semgrepignore-file" false;
+    run "--x-semgrepignore-filename" true
+  in
+  t "semgrepignore-file CLI alias" func
+
 let random_init = lazy_safe (Random.self_init ())
 
 let create_named_pipe () =
@@ -190,5 +235,6 @@ let tests () =
       test_scan_config_registry_no_token ();
       test_scan_config_registry_with_invalid_token ();
       test_absolute_target_path ();
+      test_semgrepignore_file_alias ();
       test_named_pipe ();
     ]
