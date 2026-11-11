@@ -1,0 +1,1 @@
+Pro: Python type filters now recognize calls to builtin classes and builtin functions when using interfile analysis or single-file type resolution.
