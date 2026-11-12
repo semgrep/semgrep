@@ -87,7 +87,8 @@ async def run_supply_chain_scan(
 
     resp_json = json.loads(process.stdout.decode())
     results = resp_json.get("results", [])
-    logger.info(f"Supply chain scan results: {results}")
+    # Only the count: the results include matched lines from the project.
+    logger.info(f"Supply chain scan found {len(results)} results")
     if results:
         findings = [SupplyChainFinding.model_validate(r) for r in results]
         reachable = [

@@ -1,5 +1,0 @@
-go grammar update (v0.25.0):
-
-- Go source parsing now supports generic type aliases, preserving type parameters, constraints, and alias semantics. Existing alias patterns can match these declarations; spelling generic parameter lists in rule patterns remains unsupported.
-- Go correctly parses unnamed map parameters and results in mixed signatures such as ([]string, int, map[int]int, error), allowing function patterns to match those signatures.
-- Go correctly represents chained indexing such as table[key][next] as nested index expressions, restoring matches for nested-index patterns.
