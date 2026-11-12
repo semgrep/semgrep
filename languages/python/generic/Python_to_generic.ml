@@ -165,9 +165,14 @@ let rec expr env (x : expr) =
           fb [ G.Arg (G.L (G.String (fb v1)) |> G.e) ] )
       |> G.e
   | InterpolatedString (v1, xs, v3) ->
+      let opening = Tok.content_of_tok v1 in
+      let constructor =
+        if String.contains opening 't' || String.contains opening 'T' then
+          G.TemplateString
+        else G.ConcatString (G.FString "f")
+      in
       G.Call
-        (* Python interpolated strings are always of the form f"...", we need to support arbitary strings in the generic AST because Scala has custom interpolators *)
-        ( G.Special (G.ConcatString (G.FString "f"), unsafe_fake "concat") |> G.e,
+        ( G.Special (constructor, fake v1 "") |> G.e,
           ( v1,
             xs
             |> List.map (fun x ->

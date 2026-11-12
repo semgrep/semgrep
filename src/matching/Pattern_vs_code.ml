@@ -144,6 +144,7 @@ let should_match_call = function
   | G.NextArrayIndex
   | G.Defined
   | G.ConcatString _
+  | G.TemplateString
   | G.EncodedString _
   | G.InterpolatedElement
   | G.Spread
@@ -1079,6 +1080,9 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       B.Call ({ e = B.Special (B.ConcatString bkind, _b1); _ }, b2) ) ->
       m_concat_string_kind akind bkind >>= fun () ->
       m_bracket m_arguments_concat a2 b2
+  | ( G.Call ({ e = G.Special (G.TemplateString, _); _ }, a2),
+      B.Call ({ e = B.Special (B.TemplateString, _); _ }, b2) ) ->
+      m_bracket m_arguments_concat a2 b2
   (* The pattern '$X = 1 + 2 + ...' is parsed as '$X = (1 + 2) + ...', but
    * if the concrete code is 'foo = 1 + 2 + 3 + 4', this will naively not
    * match because (1+2)+... will be matched against ((1+2)+3)+4 and fails.
@@ -1517,6 +1521,7 @@ and m_special a b =
   | G.Sizeof, B.Sizeof -> return ()
   | G.Defined, B.Defined -> return ()
   | G.ConcatString a, B.ConcatString b -> m_concat_string_kind a b
+  | G.TemplateString, B.TemplateString -> return ()
   | G.InterpolatedElement, B.InterpolatedElement -> return ()
   | G.Spread, B.Spread -> return ()
   | G.HashSplat, B.HashSplat -> return ()
@@ -1532,6 +1537,7 @@ and m_special a b =
   | G.Instanceof, _
   | G.Sizeof, _
   | G.ConcatString _, _
+  | G.TemplateString, _
   | G.Spread, _
   | G.Op _, _
   | G.IncrDecr _, _
