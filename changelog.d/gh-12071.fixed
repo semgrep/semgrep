@@ -1,0 +1,1 @@
+Fix the outdated `--config` help text shown by `semgrep ci --help`.

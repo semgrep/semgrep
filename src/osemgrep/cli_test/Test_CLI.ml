@@ -109,7 +109,7 @@ let o_strict : bool Term.t =
   let info = Arg.info [ "strict" ] ~doc:{|???.|} in
   Arg.value (Arg.flag info)
 
-(* coupling: Scan_CLI.o_config *)
+(* coupling: CLI_common.o_config *)
 let o_config : string list Term.t =
   let info =
     Arg.info [ "c"; "f"; "config" ]

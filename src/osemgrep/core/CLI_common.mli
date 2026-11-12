@@ -51,6 +51,9 @@ val with_logging :
 val o_simple_profiling : bool Cmdliner.Term.t
 val o_profile : bool Cmdliner.Term.t
 
+(* for --config, shared by the 'scan', 'ci' and 'show' commands *)
+val o_config : string list Cmdliner.Term.t
+
 (* gather all the common flags under one term *)
 val o_common : conf Cmdliner.Term.t
 val help_page_bottom : Cmdliner.Manpage.block list
