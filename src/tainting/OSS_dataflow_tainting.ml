@@ -1201,7 +1201,8 @@ and check_tainted_expr env exp : Taints.t * Shape.shape * Lval_env.t =
                      let e_taints, e_shape, lval_env =
                        check { env with lval_env } e
                      in
-                     ((lval_env, e_taints), `Spread e_shape)
+                     ( (lval_env, Taints.union taints_acc e_taints),
+                       `Spread e_shape )
                  | Entry (ke, ve) ->
                      let ke_taints, ke_shape, lval_env =
                        check { env with lval_env } ke
