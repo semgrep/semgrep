@@ -929,6 +929,31 @@ let resolution_visitor =
       (* nosemgrep: no-ref-declarations-at-top-scope *)
       let recurse = ref true in
       (match x.e with
+      (* In a multi-variable Go short declaration, names already declared in
+       * this block are reassigned; other names introduce fresh bindings.
+       * Resolve the RHS before introducing any of the new bindings.
+       *)
+      | AssignOp ({ e = Container (Tuple, (_, ids, _)); _ }, (Eq, tok), _)
+        when env.lang =*= Lang.Go
+             && Tok.content_of_tok tok = ":="
+             && is_resolvable_name_ctx env env.lang ->
+          super#visit_expr env x;
+          let scope =
+            match !(env.names.blocks) with
+            | scope :: _ -> scope
+            | [] -> !(env.names.global)
+          in
+          ids
+          |> List.iter (function
+            | { e = N (Id (((name, _) as id), id_info)); _ } when name <> "_"
+              -> (
+                match List.assoc_opt name scope with
+                | Some resolved -> set_resolved env id_info resolved
+                | None ->
+                    declare_var env env.lang id id_info ~explicit:true None None
+                )
+            | _ -> ());
+          recurse := false
       (* Go: This is `x := E`, a single-variable short variable declaration.
        * When this declaration is legal, and that is when the same variable
        * has not yet been declared in the same scope, it *always* introduces
@@ -1029,6 +1054,13 @@ let resolution_visitor =
     (* TODO: support other types of statements that create block scopes. *)
     method! visit_stmt env x =
       match x.s with
+      | Block (l, [ { s = ExprStmt _; _ }; { s = If _ | Switch _; _ } ], r)
+        when env.lang =*= Lang.Go && Tok.is_fake l && Tok.is_fake r ->
+          (* Go_to_generic wraps conditional initializers in synthetic blocks.
+           * Their declarations must not shadow names after the conditional.
+           * Other synthetic blocks, e.g. grouped globals, do not create scopes.
+           *)
+          with_new_block_scope env.names (fun () -> super#visit_stmt env x)
       | If (tok, Cond e, s1, s2_opt) when has_block_scope env.lang ->
           self#visit_tok env tok;
           self#visit_expr env e;
