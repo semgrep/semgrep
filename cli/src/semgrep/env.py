@@ -78,6 +78,9 @@ class Env:
         default=EnvFactory(["SEMGREP_URL", "SEMGREP_APP_URL"], "https://semgrep.dev"),
         converter=url,
     )
+    metrics_url: str = field(
+        default=EnvFactory("SEMGREP_METRICS_URL", "https://metrics.semgrep.dev")
+    )
     app_token: Optional[str] = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
 
     # Unique identifier for the managed_scan in semgrep-app

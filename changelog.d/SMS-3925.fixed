@@ -1,0 +1,1 @@
+Python CLI usage metrics will now be sent to the URL set by SEMGREP_METRICS_URL. The default destination remains unchanged.
