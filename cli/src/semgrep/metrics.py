@@ -127,6 +127,15 @@ class MetricsStateType(click.ParamType):
 METRICS_STATE_TYPE = MetricsStateType()
 
 
+def mcp_error_type(error: dict[str, Any]) -> str:
+    """The type of a CLI error from `semgrep scan --json`, e.g. "SemgrepError".
+    Some types are serialized as a list whose first element is the name."""
+    error_type = error.get("type")
+    if isinstance(error_type, list) and error_type:
+        error_type = error_type[0]
+    return error_type if isinstance(error_type, str) else "unknown"
+
+
 class MetricsJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
@@ -667,7 +676,10 @@ class Metrics:
             self.payload.mcp.num_scanned_files = len(results.paths["scanned"])
             self.payload.mcp.num_findings = len(results.results)
             self.payload.mcp.findings = self.cli_matches_to_findings(results.results)
-            self.payload.mcp.errors = [error["message"] for error in results.errors]
+            # Error types only: the messages can quote scanned source code.
+            self.payload.mcp.errors = [
+                mcp_error_type(error) for error in results.errors
+            ]
             self.payload.mcp.num_lines = num_lines_scanned
         except Exception as e:
             self.log_exception("add_mcp_scan", e)

@@ -12,6 +12,7 @@
 #
 import functools
 import os
+import traceback
 from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Coroutine
@@ -24,6 +25,8 @@ from typing import TypeVar
 
 from mcp.server.fastmcp.server import Context
 from opentelemetry import trace
+from opentelemetry.trace import Status
+from opentelemetry.trace import StatusCode
 from ruamel.yaml import YAML
 
 from semgrep.mcp.models import CodeFile
@@ -196,7 +199,16 @@ def get_trace_endpoint() -> tuple[str, str]:
 
 
 def is_tracing_disabled() -> bool:
-    return os.environ.get("SEMGREP_MCP_DISABLE_TRACING", "").lower() == "true"
+    # SEMGREP_SEND_METRICS is the environment variable behind `semgrep scan
+    # --metrics`; turning metrics off there turns off all MCP telemetry too.
+    # The values match the "off" values accepted by MetricsStateType.
+    return os.environ.get(
+        "SEMGREP_MCP_DISABLE_TRACING", ""
+    ).lower() == "true" or os.environ.get("SEMGREP_SEND_METRICS", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 ################################################################################
@@ -226,7 +238,9 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
 
         state.metrics.configure(MetricsState.ON)
 
-        with TRACER.start_as_current_span(name) as span:
+        with TRACER.start_as_current_span(
+            name, record_exception=False, set_status_on_exception=False
+        ) as span:
             trace_id = trace.format_trace_id(span.get_span_context().trace_id)
             # Get a link to the trace in Datadog
             link = (
@@ -238,7 +252,28 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
             logger.info("Tracing initialized")
             logger.info(f"Tracing initialized with trace ID: {trace_id} {link}")
 
-            yield span
+            try:
+                yield span
+            except Exception as e:
+                record_exception_type(span, e)
+                raise
+
+
+def record_exception_type(span: trace.Span, e: Exception) -> None:
+    """
+    Mark [span] as failed with the exception's type and stack frames, but not
+    its message, which can carry semgrep's stderr or scan output. This replaces
+    OpenTelemetry's record_exception/set_status_on_exception, which record the
+    message.
+    """
+    span.add_event(
+        "exception",
+        {
+            "exception.type": type(e).__name__,
+            "exception.stacktrace": "".join(traceback.format_tb(e.__traceback__)),
+        },
+    )
+    span.set_status(Status(StatusCode.ERROR, type(e).__name__))
 
 
 @contextmanager
@@ -250,8 +285,17 @@ def with_span(
         yield None
     else:
         context = trace.set_span_in_context(parent_span)
-        with TRACER.start_as_current_span(name, context=context) as span:
-            yield span
+        with TRACER.start_as_current_span(
+            name,
+            context=context,
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span:
+            try:
+                yield span
+            except Exception as e:
+                record_exception_type(span, e)
+                raise
 
 
 R = TypeVar("R")
@@ -315,8 +359,11 @@ def with_tool_span(
                     tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     return result
                 except Exception as e:
-                    logger.info(f"{name} failed: {e}")
-                    state.metrics.add_mcp_error(str(e))
+                    # Only the exception type: messages can carry semgrep's
+                    # stderr or scan output, and both the log and the metrics
+                    # are sent off the machine. The caller still gets [e].
+                    logger.info(f"{name} failed: {type(e).__name__}")
+                    state.metrics.add_mcp_error(type(e).__name__)
                     tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     raise e
 
@@ -373,8 +420,9 @@ def with_hook_span(
                     tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     return result
                 except Exception as e:
-                    logger.info(f"{name} failed: {e}")
-                    state.metrics.add_mcp_error(str(e))
+                    # See with_tool_span: report only the exception type.
+                    logger.info(f"{name} failed: {type(e).__name__}")
+                    state.metrics.add_mcp_error(type(e).__name__)
                     tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     raise e
 

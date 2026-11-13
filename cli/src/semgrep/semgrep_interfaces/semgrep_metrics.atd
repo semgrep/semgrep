@@ -330,6 +330,7 @@ type guardian = {
     ?oauth_id <ocaml mutable>: string option;
     ?oauth_email <ocaml mutable>: string option;
     (* tool context being scanned *)
+    ?actor <ocaml mutable>: string option;            (* claude | codex | copilot | ... *)
     ?tool_name <ocaml mutable>: string option;        (* Write | Edit | Bash *)
     ?package_manager <ocaml mutable>: string option;  (* npm | poetry | cargo ... *)
     ?attached_lockfile <ocaml mutable>: string option;

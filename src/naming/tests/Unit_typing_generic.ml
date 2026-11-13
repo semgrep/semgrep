@@ -26,6 +26,46 @@ let tests_path_typing = tests_path / "typing"
 let tests parse_program parse_pattern =
   Testo.categorize "typing_tests"
     [
+      t "language-specific primitive identity" (fun () ->
+          let make_type spelling resolved =
+            let info = G.empty_id_info () in
+            info.id_resolved :=
+              Option.map (fun name -> (name, G.SId.mk ())) resolved;
+            G.TyN (G.Id ((spelling, Tok.unsafe_fake_tok spelling), info)) |> G.t
+          in
+          List.iter
+            (fun (lang, spelling, resolved, expected_builtin) ->
+              let ty = make_type spelling resolved in
+              let actual = Typing.type_of_ast_generic_type lang ty in
+              match (actual, expected_builtin) with
+              | Type.Builtin actual, Some expected
+                when Type.equal_builtin_type actual expected ->
+                  ()
+              | Type.N _, None -> ()
+              | _ ->
+                  Alcotest.failf "incorrect primitive identity for %s" spelling)
+            [
+              (Lang.Python, "str", None, Some Type.String);
+              (Lang.Python, "string", None, Some Type.String);
+              (Lang.Python, "Integer", None, None);
+              (Lang.Java, "Integer", None, Some Type.Int);
+              ( Lang.Python,
+                "str",
+                Some (G.GlobalName ([ "builtins"; "str" ], [])),
+                Some Type.String );
+              ( Lang.Python,
+                "text",
+                Some (G.GlobalName ([ "builtins"; "str" ], [])),
+                Some Type.String );
+              ( Lang.Python,
+                "str",
+                Some (G.GlobalName ([ "user"; "str" ], [])),
+                None );
+              ( Lang.Python,
+                "Integer",
+                Some (G.GlobalName ([ "user"; "Integer" ], [])),
+                None );
+            ]);
       t "test basic variable definitions java" (fun () ->
           let file = tests_path_typing / "VarDef.java" in
           try
