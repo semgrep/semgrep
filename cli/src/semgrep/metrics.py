@@ -81,8 +81,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-METRICS_ENDPOINT = "https://metrics.semgrep.dev"
-
 
 class MetricsState(Enum):
     """
@@ -778,11 +776,12 @@ class Metrics:
     # Posting the metrics is separated out so that our tests can check for it
     # TODO it's a bit unfortunate that our tests are going to post metrics...
     def _post_metrics(self, *, user_agent: str, local_scan_id: str) -> None:
-        # old: was also logging {self.as_json()}
-        # alt: save it in ~/.semgrep/logs/metrics.json?
-        logger.debug(f"Sending to {METRICS_ENDPOINT}")
+        from semgrep.state import get_state
+
+        metrics_url = get_state().env.metrics_url
+        logger.debug(f"Sending to {metrics_url}")
         r = requests.post(
-            METRICS_ENDPOINT,
+            metrics_url,
             data=self.as_json(),
             headers={
                 "Content-Type": "application/json",
@@ -791,7 +790,7 @@ class Metrics:
             },
             timeout=3,
         )
-        logger.debug(f"response from {METRICS_ENDPOINT} {r.json()}")
+        logger.debug(f"response from {metrics_url} {r.json()}")
         r.raise_for_status()
 
     def send(self) -> None:
