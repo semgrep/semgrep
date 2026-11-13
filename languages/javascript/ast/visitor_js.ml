@@ -393,6 +393,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Var -> ()
     | Let -> ()
     | Const -> ()
+    | Using -> ()
   and v_function_definition
       {
         f_attrs = v_f_props;

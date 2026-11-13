@@ -1,0 +1,1 @@
+JavaScript and TypeScript files using `using` or `as` as variable names now parse fully instead of reporting PartialParsing errors. Previously a variable named `using` or `as` could make the parser drop the following code, so rules silently missed matches (for example, an `eval(...)` call after `using[1] ?? ''`).

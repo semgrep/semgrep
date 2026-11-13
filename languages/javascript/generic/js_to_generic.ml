@@ -584,6 +584,9 @@ and var_kind (x, tok) =
   | Var -> G.attr G.Var tok
   | Let -> G.attr G.Let tok
   | Const -> G.attr G.Const tok
+  (* The generic AST has no `using` kind; a `using` declaration is a
+     block-scoped binding, so rules see it as a `let` binding. *)
+  | Using -> G.attr G.Let tok
 
 and function_definition x =
   let a, _attrs = fun_ x in

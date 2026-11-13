@@ -439,7 +439,14 @@ and variable_definition = {
   v_type : type_ option;
 }
 
-and var_kind = Var | Let | Const
+and var_kind =
+  | Var
+  | Let
+  | Const
+  (* Explicit resource management declaration (`using x = ...`,
+     TS 5.2). A block-scoped binding like `let`; the disposal at scope
+     exit has no representation in the generic AST, where it maps to `Let`. *)
+  | Using
 and var = entity * variable_definition
 
 and function_definition = {
