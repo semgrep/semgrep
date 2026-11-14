@@ -130,8 +130,27 @@ Last change in file:
       Co-authored-by: Max Brunsfeld <maxbrunsfeld@gmail.com>
 ---
 File: semgrep-grammars/src/semgrep-bash/grammar.js
-Git repo name: None
-Latest commit in repo: None
+Git repo name: semgrep-upstream
+Latest commit in repo: 06d9993409f6698f78f6956cd39d968e7f4d7b6a
 Last change in file:
+  commit 692bfae4ca1bf070f7e8b603037a19886fa36b4f
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Thu Oct 29 15:33:49 2026 -0700
 
+      Release Version 1.183.0 (semgrep/semgrep-proprietary#7416)
+
+      # Release PR
+
+      Back-merges the release branch into `develop` (version bump +
+      changelog).
+
+      Semgrep-CI release PRs are auto-approved, and squash auto-merge is
+      enabled at
+      creation. The PR merges once required checks and review requirements are
+      met.
+      Manual approve/merge is only needed if that automation fails.
+
+      Co-authored-by: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+
+      synced from Pro a8c29d04dc5f88603304493e82e91bad16bcae6d
 ---

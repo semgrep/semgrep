@@ -1137,6 +1137,12 @@ and file_redirect (env : env) ((v1, v2) : CST.file_redirect) :
                 (* ">|" *)
               in
               (tok, Write (src_fd1 tok, (Write_force_truncate, tok), target))
+          | `LTGT tok ->
+              let tok =
+                token env tok
+                (* "<>" *)
+              in
+              (tok, Read_write)
         in
         (tok, file_redir, [ AST_bash_loc.expression_loc target_e ], extra_args)
     | `Choice_LTAMPDASH_opt_choice_conc (op, v2) ->
