@@ -677,8 +677,13 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       | Error exit_code -> exit_code
       | Ok (_rules, res, cli_output) ->
           (* final result for the shell *)
-          if conf.error_on_findings && not (List_.null cli_output.results) then
-            Exit_code.findings ~__LOC__
+          if conf.error_on_findings && not (List_.null cli_output.results) then (
+            Logs.app (fun m ->
+                m
+                  "Exiting with error status because --error is set and there \
+                   are findings. Look for the \"Code Finding\" section of the \
+                   output for details.");
+            Exit_code.findings ~__LOC__)
           else
             exit_code_of_errors ~strict:conf.core_runner_conf.strict
               res.core.errors)
