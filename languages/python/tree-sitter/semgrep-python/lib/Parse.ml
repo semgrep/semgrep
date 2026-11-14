@@ -1771,6 +1771,12 @@ let children_regexps : (string * Run.exp option) list = [
                 Token (Literal ",");
               |];
               Token (Name "expression");
+              Repeat (
+                Seq [
+                  Token (Literal ",");
+                  Token (Name "expression");
+                ];
+              );
             ];
           );
         ];
@@ -6081,7 +6087,7 @@ and trans_except_clause ((kind, body) : mt) : CST.except_clause =
                       Run.opt
                         (fun v ->
                           (match v with
-                          | Seq [v0; v1] ->
+                          | Seq [v0; v1; v2] ->
                               (
                                 (match v0 with
                                 | Alt (0, v) ->
@@ -6095,7 +6101,19 @@ and trans_except_clause ((kind, body) : mt) : CST.except_clause =
                                 | _ -> assert false
                                 )
                                 ,
-                                trans_expression (Run.matcher_token v1)
+                                trans_expression (Run.matcher_token v1),
+                                Run.repeat
+                                  (fun v ->
+                                    (match v with
+                                    | Seq [v0; v1] ->
+                                        (
+                                          Run.trans_token (Run.matcher_token v0),
+                                          trans_expression (Run.matcher_token v1)
+                                        )
+                                    | _ -> assert false
+                                    )
+                                  )
+                                  v2
                               )
                           | _ -> assert false
                           )
