@@ -945,6 +945,7 @@ and file_redirect = (
               | `LTAMP of Token.t (* "<&" *)
               | `GTAMP of Token.t (* ">&" *)
               | `GTBAR of Token.t (* ">|" *)
+              | `LTGT of Token.t (* "<>" *)
             ]
           * heredoc_command
         )

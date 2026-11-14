@@ -78,6 +78,24 @@ module.exports = grammar(base_grammar, {
       )),
     ),
 
+    // Upstream's file_redirect lacks the POSIX read-write operator '<>',
+    // so `exec 3<>/dev/null` is a syntax error and the rest of the file is
+    // skipped as PartialParsing. Accept it alongside the other operators;
+    // the node shape is unchanged.
+    file_redirect: $ => prec.left(seq(
+      field('descriptor', optional($.file_descriptor)),
+      choice(
+        seq(
+          choice('<', '>', '>>', '&>', '&>>', '<&', '>&', '>|', '<>'),
+          field('destination', repeat1($._literal)),
+        ),
+        seq(
+          choice('<&-', '>&-'), // close file descriptor
+          optional(field('destination', $._literal)),
+        ),
+      ),
+    )),
+
     // Upstream's flat `pipeline` lets a redirected *pipeline* be a stage, so
     // `a | b | c` NEWLINE `d > f` merges `d` into `c` (tree-sitter-bash #347).
     // A redirect binds to the last command of a pipeline anyway, so exclude
