@@ -444,6 +444,12 @@ _scan_options: List[Callable] = [
         hidden=True,
     ),
     optgroup.option(
+        "--compute-secret-hash",
+        "compute_secret_hash_flag",
+        is_flag=True,
+        help="Compute a secret_hash for Secrets findings.",
+    ),
+    optgroup.option(
         "--historical-secrets",
         "historical_secrets",
         is_flag=True,
@@ -748,6 +754,7 @@ def scan(
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
+    compute_secret_hash_flag: bool,
     historical_secrets: bool,
     dryrun: bool,
     dump_command_for_core: bool,
@@ -1162,6 +1169,7 @@ def scan(
                         engine_type=engine_type,
                         run_secrets=run_secrets_flag,
                         disable_secrets_validation=disable_secrets_validation_flag,
+                        compute_secret_hash=compute_secret_hash_flag,
                         historical_secrets=historical_secrets,
                         output_handler=output_handler,
                         scanning_roots=scanning_roots,

@@ -384,9 +384,9 @@ type cli_match_extra = {
   : historical_info option;
 
   ?secret_hash
-    <doc text="EXPERIMENTAL: a versioned hash of the secret value of a secrets
-     finding, added by secrets post-processing. Absent for non-secrets findings.
-     Since 1.176.0.">
+    <doc text="a versioned hash of the secret value of a secrets finding, added by
+     secrets post-processing. Absent for non-secrets findings or when disabled.
+     Since 1.186.0.">
   : secret_hash option;
 
   ?dataflow_trace
@@ -1814,6 +1814,9 @@ type engine_configuration
     <doc text="settings for the cli">
   = {
     inherit features;
+    ~compute_secret_hash
+      <doc text="Compute the secret_hash field for Secrets findings. Disabled by default.">
+    : bool;
     (* TODO? glob list? fpath list? *)
     ~ignored_files: string list;
     ?product_ignored_files
@@ -2109,6 +2112,9 @@ type finding = {
   ?engine_kind
     <doc text="Added in semgrep 1.70.0">
   : engine_of_finding option;
+  ?secret_hash
+    <doc text="Added in semgrep 1.186.0 see comments in cli_match_extra">
+  : secret_hash option;
 }
 
 type finding_hashes

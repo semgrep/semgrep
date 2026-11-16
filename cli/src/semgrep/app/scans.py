@@ -235,6 +235,12 @@ class ScanHandler:
         return False
 
     @property
+    def compute_secret_hash(self) -> bool:
+        if self.scan_response:
+            return self.scan_response.engine_params.compute_secret_hash
+        return False
+
+    @property
     def nosemgrep_disabled(self) -> bool:
         """
         Has the org disabled 'nosemgrep' inline ignore comments for this scan?

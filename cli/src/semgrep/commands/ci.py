@@ -395,6 +395,7 @@ def ci(
     rewrite_rule_ids: bool,
     run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
+    compute_secret_hash_flag: bool,
     allow_untrusted_validators: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
@@ -1055,6 +1056,8 @@ def ci(
             "engine_type": engine_type,
             "run_secrets": run_secrets,
             "disable_secrets_validation": disable_secrets_validation_flag,
+            "compute_secret_hash": compute_secret_hash_flag
+            or bool(scan_handler and scan_handler.compute_secret_hash),
             "output_handler": output_handler,
             "scanning_roots": [scanning_root],
             "pattern": None,

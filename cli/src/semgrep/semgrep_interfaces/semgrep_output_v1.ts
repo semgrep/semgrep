@@ -660,6 +660,7 @@ export type EngineConfiguration = {
   scan_all_deps_in_diff_scan: boolean;
   symbol_analysis: boolean;
   transitive_reachability_enabled: boolean;
+  compute_secret_hash: boolean;
   ignored_files: string[];
   product_ignored_files?: ProductIgnoredFiles;
   gradle_module_attribution: boolean;
@@ -759,6 +760,7 @@ export type Finding = {
   validation_state?: ValidationState;
   historical_info?: HistoricalInfo;
   engine_kind?: EngineOfFinding;
+  secret_hash?: SecretHash;
 }
 
 export type FindingHashes = {
@@ -3529,6 +3531,7 @@ export function writeEngineConfiguration(x: EngineConfiguration, context: any = 
     'scan_all_deps_in_diff_scan': _atd_write_field_with_default(_atd_write_bool, false, x.scan_all_deps_in_diff_scan, x),
     'symbol_analysis': _atd_write_field_with_default(_atd_write_bool, false, x.symbol_analysis, x),
     'transitive_reachability_enabled': _atd_write_field_with_default(_atd_write_bool, false, x.transitive_reachability_enabled, x),
+    'compute_secret_hash': _atd_write_field_with_default(_atd_write_bool, false, x.compute_secret_hash, x),
     'ignored_files': _atd_write_field_with_default(_atd_write_array(_atd_write_string), [], x.ignored_files, x),
     'product_ignored_files': _atd_write_optional_field(writeProductIgnoredFiles, x.product_ignored_files, x),
     'gradle_module_attribution': _atd_write_field_with_default(_atd_write_bool, false, x.gradle_module_attribution, x),
@@ -3547,6 +3550,7 @@ export function readEngineConfiguration(x: any, context: any = x): EngineConfigu
     scan_all_deps_in_diff_scan: _atd_read_field_with_default(_atd_read_bool, false, x['scan_all_deps_in_diff_scan'], x),
     symbol_analysis: _atd_read_field_with_default(_atd_read_bool, false, x['symbol_analysis'], x),
     transitive_reachability_enabled: _atd_read_field_with_default(_atd_read_bool, false, x['transitive_reachability_enabled'], x),
+    compute_secret_hash: _atd_read_field_with_default(_atd_read_bool, false, x['compute_secret_hash'], x),
     ignored_files: _atd_read_field_with_default(_atd_read_array(_atd_read_string), [], x['ignored_files'], x),
     product_ignored_files: _atd_read_optional_field(readProductIgnoredFiles, x['product_ignored_files'], x),
     gradle_module_attribution: _atd_read_field_with_default(_atd_read_bool, false, x['gradle_module_attribution'], x),
@@ -3749,6 +3753,7 @@ export function writeFinding(x: Finding, context: any = x): any {
     'validation_state': _atd_write_optional_field(writeValidationState, x.validation_state, x),
     'historical_info': _atd_write_optional_field(writeHistoricalInfo, x.historical_info, x),
     'engine_kind': _atd_write_optional_field(writeEngineOfFinding, x.engine_kind, x),
+    'secret_hash': _atd_write_optional_field(writeSecretHash, x.secret_hash, x),
   };
 }
 
@@ -3775,6 +3780,7 @@ export function readFinding(x: any, context: any = x): Finding {
     validation_state: _atd_read_optional_field(readValidationState, x['validation_state'], x),
     historical_info: _atd_read_optional_field(readHistoricalInfo, x['historical_info'], x),
     engine_kind: _atd_read_optional_field(readEngineOfFinding, x['engine_kind'], x),
+    secret_hash: _atd_read_optional_field(readSecretHash, x['secret_hash'], x),
   };
 }
 

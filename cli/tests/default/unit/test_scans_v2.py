@@ -460,3 +460,15 @@ def test_start_scan_invalid_token(mocker, mock_state, mock_args, unauthorized_on
         )
 
     assert exc.value.code == 13
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize("enabled", [None, False, True])
+def test_compute_secret_hash_engine_params(handler, mocker, enabled):
+    assert handler.compute_secret_hash is False
+    params = {} if enabled is None else {"compute_secret_hash": enabled}
+    handler.scan_response = mocker.Mock(
+        engine_params=out.EngineConfiguration.from_json(params)
+    )
+    assert handler.compute_secret_hash is bool(enabled)
