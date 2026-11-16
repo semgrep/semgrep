@@ -622,6 +622,7 @@ class CoreRunner:
         capture_stderr: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
+        compute_secret_hash: bool = False,
         secrets_timeout: Optional[int] = None,
         respect_rule_paths: bool = True,
         path_sensitive: bool = False,
@@ -644,6 +645,7 @@ class CoreRunner:
         self._profile = profile
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
+        self._compute_secret_hash = compute_secret_hash
         self._secrets_timeout = secrets_timeout
         self._path_sensitive = path_sensitive
         self._respect_rule_paths = respect_rule_paths
@@ -1130,13 +1132,18 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if self._trace_endpoint:
                 cmd.extend(["-trace_endpoint", self._trace_endpoint])
 
-            if run_secrets and not disable_secrets_validation:
+            if run_secrets:
+                # Validation and secret hash computation are independent.
                 cmd += ["-secrets"]
                 if not engine.is_pro:
                     # This should be impossible, but the types don't rule it out so...
                     raise SemgrepError(
                         "Secrets post processors tried to run without the pro-engine."
                     )
+                if disable_secrets_validation:
+                    cmd += ["-disable-secrets-validation"]
+                if self._compute_secret_hash:
+                    cmd += ["-compute-secret-hash"]
 
             if self._allow_untrusted_validators:
                 cmd.append("-allow-untrusted-validators")

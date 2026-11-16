@@ -3869,9 +3869,9 @@ class CliMatchExtra:
     equivalent to No_validator. Added in semgrep 1.37.0
     :param historical_info: EXPERIMENTAL: added by secrets post-processing &
     historical scanning code Since 1.60.0.
-    :param secret_hash: EXPERIMENTAL: a versioned hash of the secret value of
-    a secrets finding, added by secrets post-processing. Absent for
-    non-secrets findings. Since 1.176.0.
+    :param secret_hash: a versioned hash of the secret value of a secrets
+    finding, added by secrets post-processing. Absent for non-secrets findings
+    or when disabled. Since 1.186.0.
     :param dataflow_trace: EXPERIMENTAL: For now, present only for taint
     findings. May be extended to others later on.
     :param extra_extra: EXPERIMENTAL: see core_match_extra.extra_extra
@@ -9813,6 +9813,8 @@ class EngineConfiguration:
     https://www.notion.so/semgrep/Semgrep-Code-Reconnaissance-Toolbox-18a3009241a880f2a439eed6b2cffe66?pvs=4
     :param transitive_reachability_enabled: Whether to enable transitive
     reachability analysis for SCA findings
+    :param compute_secret_hash: Compute the secret_hash field for Secrets
+    findings. Disabled by default.
     :param product_ignored_files: from 1.71.0
     :param gradle_module_attribution: Report Gradle dependencies at their
     module build files. Disabled by default during rollout.
@@ -9830,6 +9832,7 @@ class EngineConfiguration:
     scan_all_deps_in_diff_scan: bool = field(default_factory=lambda: False)
     symbol_analysis: bool = field(default_factory=lambda: False)
     transitive_reachability_enabled: bool = field(default_factory=lambda: False)
+    compute_secret_hash: bool = field(default_factory=lambda: False)
     ignored_files: List[str] = field(default_factory=lambda: [])
     product_ignored_files: Optional[ProductIgnoredFiles] = None
     gradle_module_attribution: bool = field(default_factory=lambda: False)
@@ -9848,6 +9851,7 @@ class EngineConfiguration:
                 scan_all_deps_in_diff_scan=_atd_read_bool(x['scan_all_deps_in_diff_scan']) if 'scan_all_deps_in_diff_scan' in x else False,
                 symbol_analysis=_atd_read_bool(x['symbol_analysis']) if 'symbol_analysis' in x else False,
                 transitive_reachability_enabled=_atd_read_bool(x['transitive_reachability_enabled']) if 'transitive_reachability_enabled' in x else False,
+                compute_secret_hash=_atd_read_bool(x['compute_secret_hash']) if 'compute_secret_hash' in x else False,
                 ignored_files=_atd_read_list(_atd_read_string)(x['ignored_files']) if 'ignored_files' in x else [],
                 product_ignored_files=ProductIgnoredFiles.from_json(x['product_ignored_files']) if 'product_ignored_files' in x else None,
                 gradle_module_attribution=_atd_read_bool(x['gradle_module_attribution']) if 'gradle_module_attribution' in x else False,
@@ -9867,6 +9871,7 @@ class EngineConfiguration:
         res['scan_all_deps_in_diff_scan'] = _atd_write_bool(self.scan_all_deps_in_diff_scan)
         res['symbol_analysis'] = _atd_write_bool(self.symbol_analysis)
         res['transitive_reachability_enabled'] = _atd_write_bool(self.transitive_reachability_enabled)
+        res['compute_secret_hash'] = _atd_write_bool(self.compute_secret_hash)
         res['ignored_files'] = _atd_write_list(_atd_write_string)(self.ignored_files)
         if self.product_ignored_files is not None:
             res['product_ignored_files'] = (lambda x: x.to_json())(self.product_ignored_files)
@@ -12491,6 +12496,8 @@ class Finding:
     :param historical_info: Added in semgrep 1.65.0 see comments in
     cli_match_extra
     :param engine_kind: Added in semgrep 1.70.0
+    :param secret_hash: Added in semgrep 1.186.0 see comments in
+    cli_match_extra
     """
 
     check_id: RuleId
@@ -12514,6 +12521,7 @@ class Finding:
     validation_state: Optional[ValidationState] = None
     historical_info: Optional[HistoricalInfo] = None
     engine_kind: Optional[EngineOfFinding] = None
+    secret_hash: Optional[SecretHash] = None
 
     @classmethod
     def from_json(cls, x: Any) -> 'Finding':
@@ -12540,6 +12548,7 @@ class Finding:
                 validation_state=ValidationState.from_json(x['validation_state']) if 'validation_state' in x else None,
                 historical_info=HistoricalInfo.from_json(x['historical_info']) if 'historical_info' in x else None,
                 engine_kind=EngineOfFinding.from_json(x['engine_kind']) if 'engine_kind' in x else None,
+                secret_hash=SecretHash.from_json(x['secret_hash']) if 'secret_hash' in x else None,
             )
         else:
             _atd_bad_json('Finding', x)
@@ -12575,6 +12584,8 @@ class Finding:
             res['historical_info'] = (lambda x: x.to_json())(self.historical_info)
         if self.engine_kind is not None:
             res['engine_kind'] = (lambda x: x.to_json())(self.engine_kind)
+        if self.secret_hash is not None:
+            res['secret_hash'] = (lambda x: x.to_json())(self.secret_hash)
         return res
 
     @classmethod

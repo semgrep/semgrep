@@ -74,6 +74,12 @@ and secrets_config = {
       (** Timeout in seconds for each secrets validation HTTP request.
      Defaults to 30.0 seconds.
    *)
+  disable_validation : bool;
+      (** When set, the secrets postprocessor performs no network validation.
+          Corresponds to the CLI's --no-secrets-validation. *)
+  compute_secret_hash : bool;
+      (** Compute the secret_hash output field for Secrets findings. Disabled
+          unless the app enables it or the CLI flag is passed. *)
 }
 
 and sca_config = {

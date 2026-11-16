@@ -705,9 +705,9 @@ and cli_match_extra = Semgrep_output_v1_t.cli_match_extra = {
     *);
   secret_hash: secret_hash option
     (**
-      EXPERIMENTAL: a versioned hash of the secret value of a secrets
-      finding, added by secrets post-processing. Absent for non-secrets
-      findings. Since 1.176.0.
+      a versioned hash of the secret value of a secrets finding, added by
+      secrets post-processing. Absent for non-secrets findings or when
+      disabled. Since 1.186.0.
     *);
   dataflow_trace: match_dataflow_trace option
     (**
@@ -1767,6 +1767,11 @@ type engine_configuration = Semgrep_output_v1_t.engine_configuration = {
     (**
       Whether to enable transitive reachability analysis for SCA findings
     *);
+  compute_secret_hash: bool
+    (**
+      Compute the secret_hash field for Secrets findings. Disabled by
+      default.
+    *);
   ignored_files: string list;
   product_ignored_files: product_ignored_files option (** from 1.71.0 *);
   gradle_module_attribution: bool
@@ -2424,7 +2429,9 @@ type finding = Semgrep_output_v1_t.finding = {
     (** Added in semgrep 1.39.0 see comments in cli_match_extra *);
   historical_info: historical_info option
     (** Added in semgrep 1.65.0 see comments in cli_match_extra *);
-  engine_kind: engine_of_finding option (** Added in semgrep 1.70.0 *)
+  engine_kind: engine_of_finding option (** Added in semgrep 1.70.0 *);
+  secret_hash: secret_hash option
+    (** Added in semgrep 1.186.0 see comments in cli_match_extra *)
 }
 
 (** See https://semgrep.dev/docs/usage-limits *)
@@ -26794,6 +26801,15 @@ let write_engine_configuration : _ -> engine_configuration -> _ = (
       is_first := false
     else
       Buffer.add_char ob ',';
+      Buffer.add_string ob "\"compute_secret_hash\":";
+    (
+      Yojson.Safe.write_bool
+    )
+      ob x.compute_secret_hash;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
       Buffer.add_string ob "\"ignored_files\":";
     (
       write__string_list
@@ -26865,6 +26881,7 @@ let read_engine_configuration = (
     let field_scan_all_deps_in_diff_scan = ref (false) in
     let field_symbol_analysis = ref (false) in
     let field_transitive_reachability_enabled = ref (false) in
+    let field_compute_secret_hash = ref (false) in
     let field_ignored_files = ref ([]) in
     let field_product_ignored_files = ref (None) in
     let field_gradle_module_attribution = ref (false) in
@@ -26898,7 +26915,7 @@ let read_engine_configuration = (
               )
             | 13 -> (
                 if String.unsafe_get s pos = 'i' && String.unsafe_get s (pos+1) = 'g' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'o' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'f' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'l' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 's' then (
-                  7
+                  8
                 )
                 else (
                   -1
@@ -26922,7 +26939,15 @@ let read_engine_configuration = (
               )
             | 17 -> (
                 if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'o' && String.unsafe_get s (pos+5) = 'r' && String.unsafe_get s (pos+6) = 'i' && String.unsafe_get s (pos+7) = 'c' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'c' && String.unsafe_get s (pos+12) = 'o' && String.unsafe_get s (pos+13) = 'n' && String.unsafe_get s (pos+14) = 'f' && String.unsafe_get s (pos+15) = 'i' && String.unsafe_get s (pos+16) = 'g' then (
-                  11
+                  12
+                )
+                else (
+                  -1
+                )
+              )
+            | 19 -> (
+                if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'm' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 't' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'c' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 't' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'h' && String.unsafe_get s (pos+16) = 'a' && String.unsafe_get s (pos+17) = 's' && String.unsafe_get s (pos+18) = 'h' then (
+                  7
                 )
                 else (
                   -1
@@ -26932,7 +26957,7 @@ let read_engine_configuration = (
                 match String.unsafe_get s pos with
                   | 'g' -> (
                       if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'w' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'l' && String.unsafe_get s (pos+17) = 'o' && String.unsafe_get s (pos+18) = 'u' && String.unsafe_get s (pos+19) = 't' then (
-                        10
+                        11
                       )
                       else (
                         -1
@@ -26952,7 +26977,7 @@ let read_engine_configuration = (
               )
             | 21 -> (
                 if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'o' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'c' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'g' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'o' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'e' && String.unsafe_get s (pos+14) = 'd' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'f' && String.unsafe_get s (pos+17) = 'i' && String.unsafe_get s (pos+18) = 'l' && String.unsafe_get s (pos+19) = 'e' && String.unsafe_get s (pos+20) = 's' then (
-                  8
+                  9
                 )
                 else (
                   -1
@@ -26960,7 +26985,7 @@ let read_engine_configuration = (
               )
             | 22 -> (
                 if String.unsafe_get s pos = 'a' && String.unsafe_get s (pos+1) = 'l' && String.unsafe_get s (pos+2) = 'w' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 's' && String.unsafe_get s (pos+8) = 'u' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 's' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'r' && String.unsafe_get s (pos+19) = 'o' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 's' then (
-                  12
+                  13
                 )
                 else (
                   -1
@@ -26968,7 +26993,7 @@ let read_engine_configuration = (
               )
             | 25 -> (
                 if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
-                  9
+                  10
                 )
                 else (
                   -1
@@ -27056,13 +27081,21 @@ let read_engine_configuration = (
             )
           | 7 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_compute_secret_hash := (
+                (
+                  Atdgen_runtime.Oj_run.read_bool
+                ) p lb
+              );
+            )
+          | 8 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_ignored_files := (
                 (
                   read__string_list
                 ) p lb
               );
             )
-          | 8 ->
+          | 9 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_product_ignored_files := (
                 Some (
@@ -27072,7 +27105,7 @@ let read_engine_configuration = (
                 )
               );
             )
-          | 9 ->
+          | 10 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_gradle_module_attribution := (
                 (
@@ -27080,7 +27113,7 @@ let read_engine_configuration = (
                 ) p lb
               );
             )
-          | 10 ->
+          | 11 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_generic_slow_rollout := (
                 (
@@ -27088,7 +27121,7 @@ let read_engine_configuration = (
                 ) p lb
               );
             )
-          | 11 ->
+          | 12 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_historical_config := (
                 Some (
@@ -27098,7 +27131,7 @@ let read_engine_configuration = (
                 )
               );
             )
-          | 12 ->
+          | 13 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_always_suppress_errors := (
                 (
@@ -27137,7 +27170,7 @@ let read_engine_configuration = (
                 )
               | 13 -> (
                   if String.unsafe_get s pos = 'i' && String.unsafe_get s (pos+1) = 'g' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'o' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'f' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'l' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 's' then (
-                    7
+                    8
                   )
                   else (
                     -1
@@ -27161,7 +27194,15 @@ let read_engine_configuration = (
                 )
               | 17 -> (
                   if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'o' && String.unsafe_get s (pos+5) = 'r' && String.unsafe_get s (pos+6) = 'i' && String.unsafe_get s (pos+7) = 'c' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'c' && String.unsafe_get s (pos+12) = 'o' && String.unsafe_get s (pos+13) = 'n' && String.unsafe_get s (pos+14) = 'f' && String.unsafe_get s (pos+15) = 'i' && String.unsafe_get s (pos+16) = 'g' then (
-                    11
+                    12
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 19 -> (
+                  if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'm' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 't' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'c' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 't' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'h' && String.unsafe_get s (pos+16) = 'a' && String.unsafe_get s (pos+17) = 's' && String.unsafe_get s (pos+18) = 'h' then (
+                    7
                   )
                   else (
                     -1
@@ -27171,7 +27212,7 @@ let read_engine_configuration = (
                   match String.unsafe_get s pos with
                     | 'g' -> (
                         if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'w' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'l' && String.unsafe_get s (pos+17) = 'o' && String.unsafe_get s (pos+18) = 'u' && String.unsafe_get s (pos+19) = 't' then (
-                          10
+                          11
                         )
                         else (
                           -1
@@ -27191,7 +27232,7 @@ let read_engine_configuration = (
                 )
               | 21 -> (
                   if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'o' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'c' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'g' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'o' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'e' && String.unsafe_get s (pos+14) = 'd' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'f' && String.unsafe_get s (pos+17) = 'i' && String.unsafe_get s (pos+18) = 'l' && String.unsafe_get s (pos+19) = 'e' && String.unsafe_get s (pos+20) = 's' then (
-                    8
+                    9
                   )
                   else (
                     -1
@@ -27199,7 +27240,7 @@ let read_engine_configuration = (
                 )
               | 22 -> (
                   if String.unsafe_get s pos = 'a' && String.unsafe_get s (pos+1) = 'l' && String.unsafe_get s (pos+2) = 'w' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 's' && String.unsafe_get s (pos+8) = 'u' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 's' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'r' && String.unsafe_get s (pos+19) = 'o' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 's' then (
-                    12
+                    13
                   )
                   else (
                     -1
@@ -27207,7 +27248,7 @@ let read_engine_configuration = (
                 )
               | 25 -> (
                   if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
-                    9
+                    10
                   )
                   else (
                     -1
@@ -27295,13 +27336,21 @@ let read_engine_configuration = (
               )
             | 7 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_compute_secret_hash := (
+                  (
+                    Atdgen_runtime.Oj_run.read_bool
+                  ) p lb
+                );
+              )
+            | 8 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_ignored_files := (
                   (
                     read__string_list
                   ) p lb
                 );
               )
-            | 8 ->
+            | 9 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_product_ignored_files := (
                   Some (
@@ -27311,7 +27360,7 @@ let read_engine_configuration = (
                   )
                 );
               )
-            | 9 ->
+            | 10 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_gradle_module_attribution := (
                   (
@@ -27319,7 +27368,7 @@ let read_engine_configuration = (
                   ) p lb
                 );
               )
-            | 10 ->
+            | 11 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_generic_slow_rollout := (
                   (
@@ -27327,7 +27376,7 @@ let read_engine_configuration = (
                   ) p lb
                 );
               )
-            | 11 ->
+            | 12 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_historical_config := (
                   Some (
@@ -27337,7 +27386,7 @@ let read_engine_configuration = (
                   )
                 );
               )
-            | 12 ->
+            | 13 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_always_suppress_errors := (
                   (
@@ -27361,6 +27410,7 @@ let read_engine_configuration = (
             scan_all_deps_in_diff_scan = !field_scan_all_deps_in_diff_scan;
             symbol_analysis = !field_symbol_analysis;
             transitive_reachability_enabled = !field_transitive_reachability_enabled;
+            compute_secret_hash = !field_compute_secret_hash;
             ignored_files = !field_ignored_files;
             product_ignored_files = !field_product_ignored_files;
             gradle_module_attribution = !field_gradle_module_attribution;
@@ -40963,6 +41013,17 @@ let write_finding : _ -> finding -> _ = (
       )
         ob x;
     );
+    (match x.secret_hash with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"secret_hash\":";
+      (
+        write_secret_hash
+      )
+        ob x;
+    );
     Buffer.add_char ob '}';
 )
 let string_of_finding ?(len = 1024) x =
@@ -40994,6 +41055,7 @@ let read_finding = (
     let field_validation_state = ref (None) in
     let field_historical_info = ref (None) in
     let field_engine_kind = ref (None) in
+    let field_secret_hash = ref (None) in
     try
       Yojson.Safe.read_space p lb;
       Yojson.Safe.read_object_end lb;
@@ -41152,6 +41214,14 @@ let read_finding = (
                   | 'i' -> (
                       if String.unsafe_get s (pos+1) = 's' && String.unsafe_get s (pos+2) = '_' && String.unsafe_get s (pos+3) = 'b' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = 'k' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = 'g' then (
                         14
+                      )
+                      else (
+                        -1
+                      )
+                    )
+                  | 's' -> (
+                      if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'r' && String.unsafe_get s (pos+4) = 'e' && String.unsafe_get s (pos+5) = 't' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'h' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 's' && String.unsafe_get s (pos+10) = 'h' then (
+                        21
                       )
                       else (
                         -1
@@ -41399,6 +41469,16 @@ let read_finding = (
                 )
               );
             )
+          | 21 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_secret_hash := (
+                Some (
+                  (
+                    read_secret_hash
+                  ) p lb
+                )
+              );
+            )
           | _ -> (
               Yojson.Safe.skip_json p lb
             )
@@ -41561,6 +41641,14 @@ let read_finding = (
                     | 'i' -> (
                         if String.unsafe_get s (pos+1) = 's' && String.unsafe_get s (pos+2) = '_' && String.unsafe_get s (pos+3) = 'b' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = 'k' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = 'g' then (
                           14
+                        )
+                        else (
+                          -1
+                        )
+                      )
+                    | 's' -> (
+                        if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'r' && String.unsafe_get s (pos+4) = 'e' && String.unsafe_get s (pos+5) = 't' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'h' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 's' && String.unsafe_get s (pos+10) = 'h' then (
+                          21
                         )
                         else (
                           -1
@@ -41808,6 +41896,16 @@ let read_finding = (
                   )
                 );
               )
+            | 21 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_secret_hash := (
+                  Some (
+                    (
+                      read_secret_hash
+                    ) p lb
+                  )
+                );
+              )
             | _ -> (
                 Yojson.Safe.skip_json p lb
               )
@@ -41838,6 +41936,7 @@ let read_finding = (
             validation_state = !field_validation_state;
             historical_info = !field_historical_info;
             engine_kind = !field_engine_kind;
+            secret_hash = !field_secret_hash;
           }
          : finding)
       )

@@ -631,6 +631,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
       dataflow_trace = None;
       validation_state = None;
       historical_info = None;
+      secret_hash = m.extra.secret_hash;
     }
   in
   r
@@ -989,6 +990,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
         generic_slow_rollout = _;
         historical_config = _;
         always_suppress_errors = _;
+        compute_secret_hash;
       };
   } : Out.scan_response =
     scan_response
@@ -998,8 +1000,25 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
      fips mode) that we receive from our scan config
   *)
   let conf =
+    let engine_type =
+      match conf.engine_type with
+      | Engine_type.PRO ({ secrets_config = Some secrets; _ } as pro) ->
+          Engine_type.PRO
+            {
+              pro with
+              secrets_config =
+                Some
+                  {
+                    secrets with
+                    compute_secret_hash =
+                      secrets.compute_secret_hash || compute_secret_hash;
+                  };
+            }
+      | engine_type -> engine_type
+    in
     {
       conf with
+      engine_type;
       core_runner_conf =
         { conf.core_runner_conf with symbol_analysis; fips_mode };
     }

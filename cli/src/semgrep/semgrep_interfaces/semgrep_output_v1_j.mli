@@ -705,9 +705,9 @@ and cli_match_extra = Semgrep_output_v1_t.cli_match_extra = {
     *);
   secret_hash: secret_hash option
     (**
-      EXPERIMENTAL: a versioned hash of the secret value of a secrets
-      finding, added by secrets post-processing. Absent for non-secrets
-      findings. Since 1.176.0.
+      a versioned hash of the secret value of a secrets finding, added by
+      secrets post-processing. Absent for non-secrets findings or when
+      disabled. Since 1.186.0.
     *);
   dataflow_trace: match_dataflow_trace option
     (**
@@ -1767,6 +1767,11 @@ type engine_configuration = Semgrep_output_v1_t.engine_configuration = {
     (**
       Whether to enable transitive reachability analysis for SCA findings
     *);
+  compute_secret_hash: bool
+    (**
+      Compute the secret_hash field for Secrets findings. Disabled by
+      default.
+    *);
   ignored_files: string list;
   product_ignored_files: product_ignored_files option (** from 1.71.0 *);
   gradle_module_attribution: bool
@@ -2424,7 +2429,9 @@ type finding = Semgrep_output_v1_t.finding = {
     (** Added in semgrep 1.39.0 see comments in cli_match_extra *);
   historical_info: historical_info option
     (** Added in semgrep 1.65.0 see comments in cli_match_extra *);
-  engine_kind: engine_of_finding option (** Added in semgrep 1.70.0 *)
+  engine_kind: engine_of_finding option (** Added in semgrep 1.70.0 *);
+  secret_hash: secret_hash option
+    (** Added in semgrep 1.186.0 see comments in cli_match_extra *)
 }
 
 (** See https://semgrep.dev/docs/usage-limits *)

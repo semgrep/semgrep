@@ -236,7 +236,7 @@
           "$ref": "#/definitions/historical_info"
         },
         "secret_hash": {
-          "description": "EXPERIMENTAL: a versioned hash of the secret value of a secrets finding, added by secrets post-processing. Absent for non-secrets findings. Since 1.176.0.",
+          "description": "a versioned hash of the secret value of a secrets finding, added by secrets post-processing. Absent for non-secrets findings or when disabled. Since 1.186.0.",
           "$ref": "#/definitions/secret_hash"
         },
         "dataflow_trace": {
@@ -1690,6 +1690,10 @@
           "description": "Whether to enable transitive reachability analysis for SCA findings",
           "type": "boolean"
         },
+        "compute_secret_hash": {
+          "description": "Compute the secret_hash field for Secrets findings. Disabled by default.",
+          "type": "boolean"
+        },
         "ignored_files": { "type": "array", "items": { "type": "string" } },
         "product_ignored_files": {
           "description": "from 1.71.0",
@@ -1931,6 +1935,10 @@
         "engine_kind": {
           "description": "Added in semgrep 1.70.0",
           "$ref": "#/definitions/engine_of_finding"
+        },
+        "secret_hash": {
+          "description": "Added in semgrep 1.186.0 see comments in cli_match_extra",
+          "$ref": "#/definitions/secret_hash"
         }
       }
     },

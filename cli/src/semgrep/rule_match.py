@@ -572,6 +572,7 @@ class RuleMatch:
             validation_state=self.match.extra.validation_state,
             historical_info=self.match.extra.historical_info,
             engine_kind=self.engine_kind,
+            secret_hash=self.match.extra.secret_hash,
         )
         return ret
 

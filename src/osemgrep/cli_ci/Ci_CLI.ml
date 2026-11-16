@@ -333,7 +333,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_local_builds allow_untrusted_validators autofix
-      baseline_commit common config dataflow_traces dryrun
+      baseline_commit common compute_secret_hash config dataflow_traces dryrun
       _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
       exclude_binary_files exclude_rule_ids files_with_matches force_color
       gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
@@ -385,8 +385,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
 
     let engine_type : Engine_type.t =
       Scan_CLI.engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
-        ~no_secrets_validation ~allow_untrusted_validators ~secrets_timeout
-        ~pro_path_sensitive ~allow_local_builds ~x_tr
+        ~no_secrets_validation ~compute_secret_hash ~allow_untrusted_validators
+        ~secrets_timeout ~pro_path_sensitive ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
     let use_parmap = common.x_parmap in
@@ -489,12 +489,12 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ SC.o_allow_local_builds $ SC.o_allow_untrusted_validators
-    $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ o_dryrun $ SC.o_dump_command_for_core $ SC.o_emacs
-    $ SC.o_emacs_outputs $ SC.o_exclude $ SC.o_exclude_minified_files
-    $ SC.o_exclude_binary_files $ SC.o_exclude_rule_ids
-    $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
-    $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
+    $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common
+    $ SC.o_compute_secret_hash $ o_config $ SC.o_dataflow_traces $ o_dryrun
+    $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
+    $ SC.o_exclude $ SC.o_exclude_minified_files $ SC.o_exclude_binary_files
+    $ SC.o_exclude_rule_ids $ SC.o_files_with_matches $ SC.o_force_color
+    $ SC.o_gitlab_sast $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
     $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs
