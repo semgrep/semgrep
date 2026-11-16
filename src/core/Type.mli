@@ -84,9 +84,20 @@ val to_ast_generic_type_ :
   'r t ->
   AST_generic.type_ option
 
-(* note that Lang.t is currently not used *)
 val builtin_type_of_string : Lang.t -> string -> builtin_type option
+(** Recognize builtin source types for the given language. Python also accepts
+    "string", the spelling used by the generic representation. Other languages
+    retain their existing primitive/boxed-type equivalences. *)
+
+val builtin_type_of_pattern_string : string -> builtin_type option
+(** Recognize the cross-language aliases accepted in rule type patterns, such as
+    "Integer" for an integer, independently of the target language. *)
+
 val builtin_type_of_type : Lang.t -> AST_generic.type_ -> builtin_type option
+(** Recognize builtin types in the generic AST, using resolved declaration
+    identity when available. In Python, a resolved user class is not a builtin
+    even if it has the same spelling. *)
+
 val name_of_builtin_type : Lang.t -> builtin_type -> string
 val todo_parameter : 'a parameter
 

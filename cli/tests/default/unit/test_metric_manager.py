@@ -14,11 +14,13 @@ import uuid
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
+import click
 import pytest
 
 from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState
+from semgrep.state import get_state
 
 
 @pytest.fixture(autouse=True)
@@ -143,3 +145,49 @@ def test_project_hash(metrics):
     with_username_password_2 = metrics.payload
     assert no_username_password == with_username_password_1
     assert with_username_password_1 == with_username_password_2
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "endpoint, mode, status, expected",
+    [
+        (None, MetricsState.ON, 200, "https://metrics.semgrep.dev/"),
+        ("", MetricsState.ON, 200, "https://metrics.semgrep.dev/"),
+        (
+            "https://collector.example/ingest/",
+            MetricsState.ON,
+            200,
+            "https://collector.example/ingest/",
+        ),
+        ("https://collector.example/ingest", MetricsState.OFF, 200, None),
+        ("https://collector.example/ingest", MetricsState.AUTO, 200, None),
+        (
+            "https://collector.example/ingest",
+            MetricsState.ON,
+            500,
+            "https://collector.example/ingest",
+        ),
+    ],
+)
+def test_metrics_endpoint(
+    tmp_path, monkeypatch, requests_mock, endpoint, mode, status, expected
+):
+    if endpoint is None:
+        monkeypatch.delenv("SEMGREP_METRICS_URL", raising=False)
+    else:
+        monkeypatch.setenv("SEMGREP_METRICS_URL", endpoint)
+    monkeypatch.setenv("SEMGREP_SETTINGS_FILE", str(tmp_path / "settings.yml"))
+    monkeypatch.delenv("SEMGREP_APP_TOKEN", raising=False)
+    requests_mock.post("https://metrics.semgrep.dev/", json={})
+    requests_mock.post("https://collector.example/ingest/", json={}, status_code=status)
+    requests_mock.post("https://collector.example/ingest", json={}, status_code=status)
+    with click.Context(click.Command("metrics-test")):
+        metrics = get_state().metrics
+        metrics.configure(mode)
+        metrics.send()
+    assert [request.url for request in requests_mock.request_history] == (
+        [expected] if expected else []
+    )
+    if expected:
+        assert requests_mock.last_request.json()["event_id"]
+        assert "Authorization" not in requests_mock.last_request.headers

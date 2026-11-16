@@ -1,0 +1,10 @@
+rules:
+  - id: python-setup-py-six
+    pattern: import six
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: six
+      version: == 1.16.0
+    message: six is imported
+    languages: [python]
+    severity: WARNING

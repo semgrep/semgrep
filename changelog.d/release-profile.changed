@@ -1,0 +1,1 @@
+Semgrep's release binaries are now built with cross-module inlining enabled, so scans use about 5-11% less CPU time.

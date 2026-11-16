@@ -1,0 +1,1 @@
+pro: Rules with `interfile: true` now keep Pro intrafile interprocedural taint analysis when scanning languages without interfile support (e.g. OCaml, Rust), so taint through helper functions in the same file is reported.

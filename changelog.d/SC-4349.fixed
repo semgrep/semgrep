@@ -1,0 +1,1 @@
+Dependency resolution errors for pip and setup.py projects now include the failing command's error output (for example `No module named 'setuptools'`) instead of an empty message. setup.py projects now resolve when `python3` is Python 3.12 or later, whose virtual environments no longer include setuptools.

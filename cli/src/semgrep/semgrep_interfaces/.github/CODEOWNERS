@@ -1,0 +1,4 @@
+# CODEOWNERS: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Owners are Okta-synced GitHub teams. Membership is managed in Okta, not GitHub.
+
+* @semgrep/program-analysis

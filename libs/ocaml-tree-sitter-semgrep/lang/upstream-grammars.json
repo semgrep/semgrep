@@ -135,12 +135,6 @@
     "tree_sitter": "0.26.3",
     "url": "https://github.com/slackhq/tree-sitter-hack.git"
   },
-  "haskell": {
-    "commit": "0da7f826e85b3e589e217adf69a6fd89ee4301b9",
-    "regen": [],
-    "tree_sitter": "0.26.3",
-    "url": "https://github.com/tree-sitter/tree-sitter-haskell.git"
-  },
   "hcl": {
     "commit": "fad991865fee927dd1de5e172fb3f08ac674d914",
     "regen": [
@@ -202,12 +196,6 @@
     ],
     "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter-grammars/tree-sitter-lua.git"
-  },
-  "make": {
-    "commit": "5904dfb622a95a48f2be5cc17c6c9a70566b47ef",
-    "regen": [],
-    "tree_sitter": "0.26.3",
-    "url": "https://github.com/returntocorp/tree-sitter-make"
   },
   "move-on-aptos": {
     "commit": "d11dd2ca6c4c96e579b9860d577c6b2deb06443e",
@@ -346,12 +334,6 @@
     ],
     "tree_sitter": "0.26.3",
     "url": "https://github.com/JoranHonig/tree-sitter-solidity.git"
-  },
-  "sqlite": {
-    "commit": "2e71f3a6f11cae37a3cabfab911ae17d74f1e801",
-    "regen": [],
-    "tree_sitter": "0.26.3",
-    "url": "https://github.com/dhcmrlchtdj/tree-sitter-sqlite.git"
   },
   "swift": {
     "commit": "c9c669b4513479e07a0ff44cf14f72351959ac21",
