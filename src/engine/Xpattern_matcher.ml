@@ -87,6 +87,7 @@ let (matches_of_matcher :
                         ast_node = None;
                         tokens = lazy_safe [ info_of_token_location loc1 ];
                         engine_of_match = `OSS;
+                        secret_hash = None;
                         validation_state = `No_validator;
                         severity_override = None;
                         metadata_override = None;

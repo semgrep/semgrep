@@ -478,6 +478,11 @@ let unsafe_match_to_match
         sca_match = Option.map (sca_to_sca metadata) pm.sca_match;
         validation_state = Some pm.validation_state;
         historical_info;
+        secret_hash =
+          Option.map
+            (fun (h : Core_match.secret_hash) : Out.secret_hash ->
+              { hash = h.hash; version = h.version })
+            pm.secret_hash;
         extra_extra = None;
       };
   }

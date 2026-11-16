@@ -458,7 +458,18 @@ let result (ctx : Out.format_context) show_dataflow_traces
           [ ("dependencyPaths", `List (List.map json_of_path paths)) ]
       | _ -> []
     in
-    exposure_props @ dependency_path_props
+    (* The secret-value hash is derived from the secret content, so only
+     * surface it when logged in (matching how the fingerprint is gated). *)
+    let secret_hash_props =
+      match cli_match.extra.secret_hash with
+      | Some { hash; version } when ctx.is_logged_in ->
+          [
+            ( "secretHash",
+              `Assoc [ ("hash", `String hash); ("version", `Int version) ] );
+          ]
+      | _ -> []
+    in
+    exposure_props @ dependency_path_props @ secret_hash_props
   in
   (* coupling: if you modify which fields are gated by ctx.is_logged_in update
    * also https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif

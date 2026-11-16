@@ -188,6 +188,7 @@ let mk_synthetic_rwm ~(rule : R.t) ~(lang : Lang.t)
       tokens = Lazy_safe.from_val [];
       taint_trace = None;
       sca_match = None;
+      secret_hash = None;
       validation_state = `No_validator;
       severity_override = None;
       metadata_override = None;
