@@ -11,8 +11,15 @@ PROJECT_ROOT ?= $(abspath $(dir $(realpath $(lastword $(MAKEFILE_LIST))))/../../
 export PROJECT_ROOT
 LANG_SCRIPTS = $(PROJECT_ROOT)/scripts
 
-NODE_PATH := $(PROJECT_ROOT)/lang/semgrep-grammars/src:$(NODE_PATH)
+# Sibling clones live under src/ as tree-sitter-*. Package-style requires
+# (e.g. tree-sitter-c) resolve via NODE_PATH for Node. Requirements alone
+# uses QuickJS (`--js-runtime native`), which ignores NODE_PATH and needs
+# ./node_modules symlinks instead (see use_native below).
+GRAMMAR_SRC := $(PROJECT_ROOT)/lang/semgrep-grammars/src
+NODE_PATH := $(GRAMMAR_SRC):$(NODE_PATH)
 export NODE_PATH
+# Wrapper directory name (e.g. semgrep-requirements) for per-language generate policy.
+WRAPPER_NAME := $(notdir $(CURDIR))
 
 # 'tree-sitter test' compiles the *generated* parser.c as C++ whenever the
 # grammar has a scanner.cc, and g++ rejects its C99 designated initializers
@@ -33,10 +40,13 @@ export CXX
 #     >= 0.25.0.
 #   - ABI 14 otherwise, for tree-sitter >= 0.24.0 (which introduced --abi).
 #   - --no-bindings for older tree-sitter.
+# JS runtime: default remains Node + NODE_PATH. Only requirements uses
+# `--js-runtime native` (tree-sitter >= 0.26 QuickJS): several other grammars
+# load ESM/`export` or otherwise fail under QuickJS (lua, proto, sfapex, …).
 .PHONY: build
 build: prep
 	set -eu; \
-	for dir in $$(find . -name grammar.js | xargs -I{} dirname {}); do \
+	for dir in $$(find . -type d -name node_modules -prune -o -name grammar.js -print | xargs -I{} dirname {}); do \
 	  ts_version=$$($(LANG_SCRIPTS)/ts-version-for-grammar-dir "$$dir"); \
 	  ts_bindir=$(PROJECT_ROOT)/core/tree-sitter-$$ts_version/bin; \
 	  if [ ! -x "$$ts_bindir/tree-sitter" ]; then \
@@ -57,11 +67,28 @@ build: prep
 	    else \
 	      gen_args=--no-bindings; \
 	    fi; \
+	    use_native=; \
+	    if [ "$(WRAPPER_NAME)" = semgrep-requirements ] \
+	       && printf '%s\n%s\n' 0.26.0 "$$ts_version" | sort -V -C 2>/dev/null; then \
+	      use_native=1; \
+	      gen_args="$$gen_args --js-runtime native"; \
+	    fi; \
 	    echo "  Running in $$dir: tree-sitter generate $$gen_args"; \
-	    (cd "$$dir" \
-	     && PATH="$$ts_bindir:$$PATH" \
-	        NODE_PATH=$(PROJECT_ROOT)/lang/semgrep-grammars/src \
-	        tree-sitter generate $$gen_args); \
+	    if [ -n "$$use_native" ]; then \
+	      mkdir -p "$$dir/node_modules"; \
+	      for d in $(GRAMMAR_SRC)/tree-sitter-*; do \
+	        [ -d "$$d" ] || continue; \
+	        ln -sfn "$$d" "$$dir/node_modules/$$(basename "$$d")"; \
+	      done; \
+	      (cd "$$dir" \
+	       && PATH="$$ts_bindir:$$PATH" \
+	          tree-sitter generate $$gen_args); \
+	    else \
+	      (cd "$$dir" \
+	       && PATH="$$ts_bindir:$$PATH" \
+	          NODE_PATH=$(GRAMMAR_SRC) \
+	          tree-sitter generate $$gen_args); \
+	    fi; \
 	  else \
 	    echo "$$dir/src/parser.c is up to date."; \
 	  fi; \
@@ -80,7 +107,7 @@ test: build
 	# 'tree-sitter test' can emit a large number of repetitive error
 	# messages when compiling 'parser.c'.
 	set -eu; \
-	for dir in $$(find . | grep 'grammar.js$$' | xargs -L1 dirname); do \
+	for dir in $$(find . -type d -name node_modules -prune -o -name grammar.js -print | xargs -L1 dirname); do \
 	  ts_version=$$($(LANG_SCRIPTS)/ts-version-for-grammar-dir "$$dir"); \
 	  ts_bindir=$(PROJECT_ROOT)/core/tree-sitter-$$ts_version/bin; \
 	  if [ ! -x "$$ts_bindir/tree-sitter" ]; then \
@@ -102,4 +129,5 @@ test: build
 
 .PHONY: clean
 clean:
-	find . -type d -name node_modules -prune -o -type f \( -name parser.c -o -name grammar.json -o -name node-types.json \) -exec rm -f {} +
+	find . -type d -name node_modules -prune -exec rm -rf {} +
+	find . -type f \( -name parser.c -o -name grammar.json -o -name node-types.json \) -exec rm -f {} +
