@@ -65,6 +65,7 @@ def _rule_match_to_CliMatch(
         sca_info=rule_match.match.extra.sca_match,
         validation_state=rule_match.match.extra.validation_state,
         # TODO? historical_info?
+        secret_hash=rule_match.match.extra.secret_hash,
         dataflow_trace=rule_match.match.extra.dataflow_trace,
         engine_kind=rule_match.match.extra.engine_kind,
     )

@@ -235,6 +235,10 @@
           "description": "EXPERIMENTAL: added by secrets post-processing & historical scanning code Since 1.60.0.",
           "$ref": "#/definitions/historical_info"
         },
+        "secret_hash": {
+          "description": "EXPERIMENTAL: a versioned hash of the secret value of a secrets finding, added by secrets post-processing. Absent for non-secrets findings. Since 1.176.0.",
+          "$ref": "#/definitions/secret_hash"
+        },
         "dataflow_trace": {
           "description": "EXPERIMENTAL: For now, present only for taint findings. May be extended to others later on.",
           "$ref": "#/definitions/match_dataflow_trace"
@@ -743,6 +747,21 @@
         { "const": "VALIDATION_ERROR" },
         { "const": "NO_VALIDATOR" }
       ]
+    },
+    "secret_hash": {
+      "description": "A versioned, one-way hash identifying the \"secret value\" of a secrets finding. The pre-image is the textual content of the metavariables used by the rule's validator(s) (sorted by metavariable name), or the matched text of the finding if the rule has no validator. The hash itself is FIPS compliant (SHA-256). The version records which algorithm was used to derive the pre-image, so consumers can tell hashes apart if the derivation changes.",
+      "type": "object",
+      "required": [ "hash", "version" ],
+      "properties": {
+        "hash": {
+          "description": "hex-encoded SHA-256 digest of the secret value",
+          "type": "string"
+        },
+        "version": {
+          "description": "version of the secret-value derivation algorithm",
+          "type": "integer"
+        }
+      }
     },
     "historical_info": {
       "description": "part of cli_match_extra",
@@ -2715,6 +2734,7 @@
         "sca_match": { "$ref": "#/definitions/sca_match" },
         "validation_state": { "$ref": "#/definitions/validation_state" },
         "historical_info": { "$ref": "#/definitions/historical_info" },
+        "secret_hash": { "$ref": "#/definitions/secret_hash" },
         "extra_extra": {
           "description": "Escape hatch to pass untyped info from semgrep-core to the semgrep output. Useful for quick experiments, especially when combined with semgrep --core-opts flag.",
           "$ref": "#/definitions/raw_json"

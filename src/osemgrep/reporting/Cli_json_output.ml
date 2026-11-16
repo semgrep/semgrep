@@ -290,6 +290,7 @@ let cli_match_of_core_match ~fips_mode (fixed_env_opt : Fixed_lines.env option)
        extra_extra;
        validation_state;
        historical_info;
+       secret_hash;
        fix;
        is_ignored;
        dataflow_trace;
@@ -372,6 +373,7 @@ let cli_match_of_core_match ~fips_mode (fixed_env_opt : Fixed_lines.env option)
             engine_kind = Some engine_kind;
             validation_state;
             historical_info;
+            secret_hash;
             extra_extra;
           };
       }
@@ -474,6 +476,7 @@ let adjust_fields_cli_output_logged_out (x : Out.cli_output) : Out.cli_output =
           engine_kind;
           validation_state;
           historical_info;
+          secret_hash = _;
           extra_extra;
         } : Out.cli_match_extra =
           extra
@@ -506,6 +509,8 @@ let adjust_fields_cli_output_logged_out (x : Out.cli_output) : Out.cli_output =
             engine_kind;
             validation_state;
             historical_info;
+            (* derived from the secret content, so gate it out when logged out *)
+            secret_hash = None;
             extra_extra;
           }
         in

@@ -80,6 +80,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         sca_match = None;
         validation_state = Some `No_validator;
         historical_info = None;
+        secret_hash = None;
         extra_extra = None;
       }
     in

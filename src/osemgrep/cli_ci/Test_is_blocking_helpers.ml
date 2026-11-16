@@ -58,6 +58,7 @@ let cli_match_of_finding_with_actions
       engine_kind = None;
       validation_state;
       historical_info = None;
+      secret_hash = None;
       extra_extra = None;
     }
   in

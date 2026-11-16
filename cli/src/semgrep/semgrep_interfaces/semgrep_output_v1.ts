@@ -112,6 +112,7 @@ export type CliMatchExtra = {
   sca_info?: ScaMatch;
   validation_state?: ValidationState;
   historical_info?: HistoricalInfo;
+  secret_hash?: SecretHash;
   dataflow_trace?: MatchDataflowTrace;
   engine_kind?: EngineOfFinding;
   extra_extra?: RawJson;
@@ -270,6 +271,11 @@ export type ValidationState =
 | { kind: 'Confirmed_invalid' /* JSON: "CONFIRMED_INVALID" */ }
 | { kind: 'Validation_error' /* JSON: "VALIDATION_ERROR" */ }
 | { kind: 'No_validator' /* JSON: "NO_VALIDATOR" */ }
+
+export type SecretHash = {
+  hash: string;
+  version: number /*int*/;
+}
 
 export type HistoricalInfo = {
   git_commit: Sha1;
@@ -1062,6 +1068,7 @@ export type CoreMatchExtra = {
   sca_match?: ScaMatch;
   validation_state?: ValidationState;
   historical_info?: HistoricalInfo;
+  secret_hash?: SecretHash;
   extra_extra?: RawJson;
 }
 
@@ -1795,6 +1802,7 @@ export function writeCliMatchExtra(x: CliMatchExtra, context: any = x): any {
     'sca_info': _atd_write_optional_field(writeScaMatch, x.sca_info, x),
     'validation_state': _atd_write_optional_field(writeValidationState, x.validation_state, x),
     'historical_info': _atd_write_optional_field(writeHistoricalInfo, x.historical_info, x),
+    'secret_hash': _atd_write_optional_field(writeSecretHash, x.secret_hash, x),
     'dataflow_trace': _atd_write_optional_field(writeMatchDataflowTrace, x.dataflow_trace, x),
     'engine_kind': _atd_write_optional_field(writeEngineOfFinding, x.engine_kind, x),
     'extra_extra': _atd_write_optional_field(writeRawJson, x.extra_extra, x),
@@ -1815,6 +1823,7 @@ export function readCliMatchExtra(x: any, context: any = x): CliMatchExtra {
     sca_info: _atd_read_optional_field(readScaMatch, x['sca_info'], x),
     validation_state: _atd_read_optional_field(readValidationState, x['validation_state'], x),
     historical_info: _atd_read_optional_field(readHistoricalInfo, x['historical_info'], x),
+    secret_hash: _atd_read_optional_field(readSecretHash, x['secret_hash'], x),
     dataflow_trace: _atd_read_optional_field(readMatchDataflowTrace, x['dataflow_trace'], x),
     engine_kind: _atd_read_optional_field(readEngineOfFinding, x['engine_kind'], x),
     extra_extra: _atd_read_optional_field(readRawJson, x['extra_extra'], x),
@@ -2352,6 +2361,20 @@ export function readValidationState(x: any, context: any = x): ValidationState {
       _atd_bad_json('ValidationState', x, context)
       throw new Error('impossible')
   }
+}
+
+export function writeSecretHash(x: SecretHash, context: any = x): any {
+  return {
+    'hash': _atd_write_required_field('SecretHash', 'hash', _atd_write_string, x.hash, x),
+    'version': _atd_write_required_field('SecretHash', 'version', _atd_write_int, x.version, x),
+  };
+}
+
+export function readSecretHash(x: any, context: any = x): SecretHash {
+  return {
+    hash: _atd_read_required_field('SecretHash', 'hash', _atd_read_string, x['hash'], x),
+    version: _atd_read_required_field('SecretHash', 'version', _atd_read_int, x['version'], x),
+  };
 }
 
 export function writeHistoricalInfo(x: HistoricalInfo, context: any = x): any {
@@ -4582,6 +4605,7 @@ export function writeCoreMatchExtra(x: CoreMatchExtra, context: any = x): any {
     'sca_match': _atd_write_optional_field(writeScaMatch, x.sca_match, x),
     'validation_state': _atd_write_optional_field(writeValidationState, x.validation_state, x),
     'historical_info': _atd_write_optional_field(writeHistoricalInfo, x.historical_info, x),
+    'secret_hash': _atd_write_optional_field(writeSecretHash, x.secret_hash, x),
     'extra_extra': _atd_write_optional_field(writeRawJson, x.extra_extra, x),
   };
 }
@@ -4599,6 +4623,7 @@ export function readCoreMatchExtra(x: any, context: any = x): CoreMatchExtra {
     sca_match: _atd_read_optional_field(readScaMatch, x['sca_match'], x),
     validation_state: _atd_read_optional_field(readValidationState, x['validation_state'], x),
     historical_info: _atd_read_optional_field(readHistoricalInfo, x['historical_info'], x),
+    secret_hash: _atd_read_optional_field(readSecretHash, x['secret_hash'], x),
     extra_extra: _atd_read_optional_field(readRawJson, x['extra_extra'], x),
   };
 }

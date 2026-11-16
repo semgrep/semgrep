@@ -530,6 +530,21 @@ type dependency_match = {
 }
   [@@deriving ord]
 
+(**
+  A versioned, one-way hash identifying the "secret value" of a secrets
+  finding. The pre-image is the textual content of the metavariables used by
+  the rule's validator(s) (sorted by metavariable name), or the matched text
+  of the finding if the rule has no validator. The hash itself is FIPS
+  compliant (SHA-256). The version records which algorithm was used to derive
+  the pre-image, so consumers can tell hashes apart if the derivation
+  changes.
+*)
+type secret_hash = {
+  hash: string (** hex-encoded SHA-256 digest of the secret value *);
+  version: int (** version of the secret-value derivation algorithm *)
+}
+  [@@deriving eq, ord, show]
+
 type sha1 = ATD_string_wrap.Sha1.t [@@deriving ord]
 
 (** part of cli_match_extra *)
@@ -694,6 +709,12 @@ and cli_match_extra = {
       EXPERIMENTAL: added by secrets post-processing & historical scanning
       code Since 1.60.0.
     *);
+  secret_hash: secret_hash option
+    (**
+      EXPERIMENTAL: a versioned hash of the secret value of a secrets
+      finding, added by secrets post-processing. Absent for non-secrets
+      findings. Since 1.176.0.
+    *);
   dataflow_trace: match_dataflow_trace option
     (**
       EXPERIMENTAL: For now, present only for taint findings. May be extended
@@ -804,6 +825,7 @@ type core_match_extra = {
   sca_match: sca_match option;
   validation_state: validation_state option;
   historical_info: historical_info option;
+  secret_hash: secret_hash option;
   extra_extra: raw_json option
     (**
       Escape hatch to pass untyped info from semgrep-core to the semgrep

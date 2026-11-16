@@ -25,6 +25,9 @@ type t = {
   taint_trace : Taint_trace.t Lazy_safe.t option;
   (* for SCA *)
   sca_match : SCA_match.t option;
+  (* for Secrets: a versioned hash of the "secret value" of this finding,
+     populated by the secrets postprocessor. None for non-secrets findings. *)
+  secret_hash : secret_hash option;
   (* for Secrets *)
   validation_state : Rule.validation_state;
   severity_override : Rule.severity option;
@@ -56,6 +59,13 @@ and rule_id = {
      severity reported for a match unless overridden (see severity_override
      above) *)
   severity : Rule.severity option;
+}
+
+(* A versioned, one-way hash identifying the "secret value" of a secrets
+   finding. See the [secret_hash] field of [t] and Secrets.ml. *)
+and secret_hash = {
+  hash : string;  (** hex-encoded SHA-256 digest of the secret value *)
+  version : int;  (** version of the secret-value derivation algorithm *)
 }
 [@@deriving show, eq, sexp]
 

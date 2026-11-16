@@ -3145,6 +3145,49 @@ class DependencyMatch:
         return json.dumps(self.to_json(), **kw)
 
 
+@dataclass(frozen=True)
+class SecretHash:
+    """Original type: secret_hash = { ... }
+
+    A versioned, one-way hash identifying the "secret value" of a secrets
+    finding. The pre-image is the textual content of the metavariables used by
+    the rule's validator(s) (sorted by metavariable name), or the matched text
+    of the finding if the rule has no validator. The hash itself is FIPS
+    compliant (SHA-256). The version records which algorithm was used to
+    derive the pre-image, so consumers can tell hashes apart if the derivation
+    changes.
+
+    :param hash: hex-encoded SHA-256 digest of the secret value
+    :param version: version of the secret-value derivation algorithm
+    """
+
+    hash: str
+    version: int
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'SecretHash':
+        if isinstance(x, dict):
+            return cls(
+                hash=_atd_read_string(x['hash']) if 'hash' in x else _atd_missing_json_field('SecretHash', 'hash'),
+                version=_atd_read_int(x['version']) if 'version' in x else _atd_missing_json_field('SecretHash', 'version'),
+            )
+        else:
+            _atd_bad_json('SecretHash', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['hash'] = _atd_write_string(self.hash)
+        res['version'] = _atd_write_int(self.version)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'SecretHash':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
 @dataclass
 class Sha1:
     """Original type: sha1
@@ -3826,6 +3869,9 @@ class CliMatchExtra:
     equivalent to No_validator. Added in semgrep 1.37.0
     :param historical_info: EXPERIMENTAL: added by secrets post-processing &
     historical scanning code Since 1.60.0.
+    :param secret_hash: EXPERIMENTAL: a versioned hash of the secret value of
+    a secrets finding, added by secrets post-processing. Absent for
+    non-secrets findings. Since 1.176.0.
     :param dataflow_trace: EXPERIMENTAL: For now, present only for taint
     findings. May be extended to others later on.
     :param extra_extra: EXPERIMENTAL: see core_match_extra.extra_extra
@@ -3843,6 +3889,7 @@ class CliMatchExtra:
     sca_info: Optional[ScaMatch] = None
     validation_state: Optional[ValidationState] = None
     historical_info: Optional[HistoricalInfo] = None
+    secret_hash: Optional[SecretHash] = None
     dataflow_trace: Optional[MatchDataflowTrace] = None
     engine_kind: Optional[EngineOfFinding] = None
     extra_extra: Optional[RawJson] = None
@@ -3863,6 +3910,7 @@ class CliMatchExtra:
                 sca_info=ScaMatch.from_json(x['sca_info']) if 'sca_info' in x else None,
                 validation_state=ValidationState.from_json(x['validation_state']) if 'validation_state' in x else None,
                 historical_info=HistoricalInfo.from_json(x['historical_info']) if 'historical_info' in x else None,
+                secret_hash=SecretHash.from_json(x['secret_hash']) if 'secret_hash' in x else None,
                 dataflow_trace=MatchDataflowTrace.from_json(x['dataflow_trace']) if 'dataflow_trace' in x else None,
                 engine_kind=EngineOfFinding.from_json(x['engine_kind']) if 'engine_kind' in x else None,
                 extra_extra=RawJson.from_json(x['extra_extra']) if 'extra_extra' in x else None,
@@ -3891,6 +3939,8 @@ class CliMatchExtra:
             res['validation_state'] = (lambda x: x.to_json())(self.validation_state)
         if self.historical_info is not None:
             res['historical_info'] = (lambda x: x.to_json())(self.historical_info)
+        if self.secret_hash is not None:
+            res['secret_hash'] = (lambda x: x.to_json())(self.secret_hash)
         if self.dataflow_trace is not None:
             res['dataflow_trace'] = (lambda x: x.to_json())(self.dataflow_trace)
         if self.engine_kind is not None:
@@ -4190,6 +4240,7 @@ class CoreMatchExtra:
     sca_match: Optional[ScaMatch] = None
     validation_state: Optional[ValidationState] = None
     historical_info: Optional[HistoricalInfo] = None
+    secret_hash: Optional[SecretHash] = None
     extra_extra: Optional[RawJson] = None
 
     @classmethod
@@ -4207,6 +4258,7 @@ class CoreMatchExtra:
                 sca_match=ScaMatch.from_json(x['sca_match']) if 'sca_match' in x else None,
                 validation_state=ValidationState.from_json(x['validation_state']) if 'validation_state' in x else None,
                 historical_info=HistoricalInfo.from_json(x['historical_info']) if 'historical_info' in x else None,
+                secret_hash=SecretHash.from_json(x['secret_hash']) if 'secret_hash' in x else None,
                 extra_extra=RawJson.from_json(x['extra_extra']) if 'extra_extra' in x else None,
             )
         else:
@@ -4233,6 +4285,8 @@ class CoreMatchExtra:
             res['validation_state'] = (lambda x: x.to_json())(self.validation_state)
         if self.historical_info is not None:
             res['historical_info'] = (lambda x: x.to_json())(self.historical_info)
+        if self.secret_hash is not None:
+            res['secret_hash'] = (lambda x: x.to_json())(self.secret_hash)
         if self.extra_extra is not None:
             res['extra_extra'] = (lambda x: x.to_json())(self.extra_extra)
         return res

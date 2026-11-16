@@ -47,6 +47,7 @@ let make_core_match ?(check_id = "fake-rule-id") ?annotated_rule_id
         sca_match = None;
         validation_state = None;
         historical_info = None;
+        secret_hash = None;
         extra_extra = None;
       }
   in

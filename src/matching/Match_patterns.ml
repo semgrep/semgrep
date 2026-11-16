@@ -210,6 +210,7 @@ let match_rules_and_recurse
                            from a Pro run.
                         *)
                   engine_of_match = `OSS;
+                  secret_hash = None;
                   validation_state = `No_validator;
                   severity_override = None;
                   metadata_override = None;
@@ -474,6 +475,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                               tokens;
                               taint_trace = None;
                               engine_of_match = `OSS;
+                              secret_hash = None;
                               validation_state = `No_validator;
                               severity_override = None;
                               metadata_override = None;
@@ -542,6 +544,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                 tokens;
                                 taint_trace = None;
                                 engine_of_match = `OSS;
+                                secret_hash = None;
                                 validation_state = `No_validator;
                                 severity_override = None;
                                 metadata_override = None;
@@ -600,6 +603,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                   tokens;
                                   taint_trace = None;
                                   engine_of_match = `OSS;
+                                  secret_hash = None;
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
@@ -700,6 +704,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                   tokens;
                                   taint_trace = None;
                                   engine_of_match = `OSS;
+                                  secret_hash = None;
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
