@@ -285,7 +285,7 @@
     "url": "https://github.com/r-lib/tree-sitter-r"
   },
   "requirements": {
-    "commit": "728910099ddea7f1f94ea95a35a70d1ea76a1639",
+    "commit": "caeb2ba854dea55931f76034978de1fd79362939",
     "regen": [
       "requirements"
     ],

@@ -1,0 +1,82 @@
+================================================================================
+Short index URLs: separated, attached, and continued
+================================================================================
+
+-i https://example.org/simple
+-ihttps://example.org/simple
+-i \
+  https://example.org/simple
+
+--------------------------------------------------------------------------------
+
+(file
+  (global_opt
+    (option)
+    (url))
+  (global_opt
+    (option)
+    (url))
+  (global_opt
+    (option)
+    (linebreak)
+    (url)))
+
+================================================================================
+Short index URLs: quoted and interpolated
+================================================================================
+
+-i "https://example.org/simple"
+-i'https://example.org/simple'
+-i https://${INDEX_HOST}/simple
+
+--------------------------------------------------------------------------------
+
+(file
+  (global_opt
+    (option)
+    (quoted_string))
+  (global_opt
+    (option)
+    (quoted_string))
+  (global_opt
+    (option)
+    (url
+      (env_var))))
+
+================================================================================
+Long index URLs: separators, continuation, and quoting
+================================================================================
+
+--index-url https://example.org/simple
+--index-url=https://example.org/simple
+--extra-index-url \
+  https://${INDEX_HOST}/simple
+--index-url="https://${INDEX_HOST}/simple"
+--extra-index-url 'https://example.org/simple'
+requests==2.32.0
+
+--------------------------------------------------------------------------------
+
+(file
+  (global_opt
+    (option)
+    (url))
+  (global_opt
+    (option)
+    (url))
+  (global_opt
+    (option)
+    (linebreak)
+    (url
+      (env_var)))
+  (global_opt
+    (option)
+    (quoted_string))
+  (global_opt
+    (option)
+    (quoted_string))
+  (requirement
+    (package)
+    (version_spec
+      (version_cmp)
+      (version))))
