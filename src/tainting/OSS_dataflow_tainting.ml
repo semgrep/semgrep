@@ -1424,7 +1424,20 @@ let check_tainted_instr env instr : Taints.t * Shape.shape * Lval_env.t =
         check_args_and_prop_their_taints env args
     | FixmeInstr _ -> (Taints.empty, Bot, env.lval_env)
   in
-  let sanitizer_pms = orig_is_best_sanitizer env instr.iorig in
+  let sanitizer_pms =
+    match instr.i with
+    | AssignCall (_, call) -> (
+        (* For `y = sanitize (...)` the instruction origin covers the whole
+         * assignment (see 'AST_to_IL.add_call'), so an exact sanitizer is
+         * not recognized as a best match on it. Check the call itself too,
+         * as 'check_tainted_expr' does for expressions (see
+         * 'exp_is_sanitized'); for calls assigned to temporaries the two
+         * origins coincide, so this changes nothing there. *)
+        match orig_is_best_sanitizer env instr.iorig with
+        | _ :: _ as sanitizer_pms -> sanitizer_pms
+        | [] -> orig_is_best_sanitizer env call.corig)
+    | __else__ -> orig_is_best_sanitizer env instr.iorig
+  in
   match sanitizer_pms with
   (* See NOTE [is_sanitizer] *)
   | _ :: _ ->
