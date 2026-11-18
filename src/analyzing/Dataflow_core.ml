@@ -140,24 +140,26 @@ module Make (F : Flow) = struct
     let t0 = Sys.time () in
     let rec loop i work =
       if NodeiSet.is_empty work then (mapping, `Ok)
-      else
+      else if
         (* 'Time_limit.set_timeout' cannot be nested and we want to make sure that
          * fixpoint computations run for a limited amount of time. *)
-        let t1 = Sys.time () in
-        if i > Limits_semgrep.dataflow_FIXPOINT_MIN_ITERS && t1 -. t0 >= timeout
-        then (mapping, `Timeout)
-        else
-          let ni = NodeiSet.choose work in
-          let work' = NodeiSet.remove ni work in
-          let old = mapping.(ni) in
-          let new_ = trans mapping ni in
-          let work'' =
-            if eq_inout eq_env old new_ then work'
-            else (
-              mapping.(ni) <- new_;
-              NodeiSet.union work' (succs flow ni))
-          in
-          loop (i + 1) work''
+        (* Test the count first: reading the clock on every iteration costs a
+           system call. *)
+        i > Limits_semgrep.dataflow_FIXPOINT_MIN_ITERS
+        && Sys.time () -. t0 >= timeout
+      then (mapping, `Timeout)
+      else
+        let ni = NodeiSet.choose work in
+        let work' = NodeiSet.remove ni work in
+        let old = mapping.(ni) in
+        let new_ = trans mapping ni in
+        let work'' =
+          if eq_inout eq_env old new_ then work'
+          else (
+            mapping.(ni) <- new_;
+            NodeiSet.union work' (succs flow ni))
+        in
+        loop (i + 1) work''
     in
     loop 0 workset
 
