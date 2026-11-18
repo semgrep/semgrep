@@ -74,6 +74,10 @@ let tests =
           Parse_python.parse_program
             (tests_path / "parsing" / "python" / "t_strings.py")
           |> ignore);
+      t "tree-sitter parses match with template strings" (fun () ->
+          Parse_python_tree_sitter.parse
+            (tests_path / "parsing" / "python" / "match_and_t_strings.py")
+          |> ignore);
       t "numeric and named escapes" (fun () ->
           List.iter
             (fun prefix ->
