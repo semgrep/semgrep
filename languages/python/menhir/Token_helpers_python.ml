@@ -43,6 +43,8 @@ let visitor_info_of_tok f = function
   | FSTRING_STRING (x, ii) -> FSTRING_STRING (x, f ii)
   | BANG ii -> BANG (f ii)
   | NAME (x, ii) -> NAME (x, f ii)
+  | MATCH ii -> MATCH (f ii)
+  | CASE ii -> CASE (f ii)
   | INT pi -> INT (Parsed_int.map_tok f pi)
   | LONGINT pi -> LONGINT (Parsed_int.map_tok f pi)
   | FLOAT (x, ii) -> FLOAT (x, f ii)

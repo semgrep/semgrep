@@ -467,6 +467,8 @@ and _token python2 state = parse
         | "from"     -> FROM (tokinfo lexbuf)
 
         | "as"       -> AS (tokinfo lexbuf)
+        | "match"    -> MATCH (tokinfo lexbuf)
+        | "case"     -> CASE (tokinfo lexbuf)
         | "in"       -> IN (tokinfo lexbuf)
         | "is"       -> IS (tokinfo lexbuf)
         | "assert"   -> ASSERT (tokinfo lexbuf)
