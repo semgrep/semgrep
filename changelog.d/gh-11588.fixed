@@ -1,0 +1,1 @@
+Findings with different metavariable bindings are no longer deduplicated when they share a source range.

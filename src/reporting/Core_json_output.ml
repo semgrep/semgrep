@@ -104,8 +104,41 @@ let range_of_any_opt startp_of_match_range any =
 (* The actual type here isn't super important. We just feed it into Hashtbl
  * which uses polymorphic hash and equals. It just needs to have a consistent
  * representation and include anything relevant for deduplication. *)
-type key = string * string * int * int * string option * string option
+type position_key = int * int * int [@@deriving show]
+
+type propagated_value_key = position_key option * position_key option * string
 [@@deriving show]
+
+type metavariable_key =
+  string * position_key * position_key * string * propagated_value_key option
+[@@deriving show]
+
+type key =
+  string
+  * string
+  * int
+  * int
+  * string option
+  * string option
+  * metavariable_key list
+[@@deriving show]
+
+let position_key (position : Out.position) =
+  (position.line, position.col, position.offset)
+
+let metavariable_key (name, (value : Out.metavar_value)) =
+  let propagated_value =
+    value.propagated_value
+    |> Option.map (fun (value : Out.svalue_value) ->
+        ( Option.map position_key value.svalue_start,
+          Option.map position_key value.svalue_end,
+          value.svalue_abstract_content ))
+  in
+  ( name,
+    position_key value.start,
+    position_key value.end_,
+    value.abstract_content,
+    propagated_value )
 
 (* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
    but has since been moved to core.
@@ -116,6 +149,9 @@ let core_unique_key (c : Out.core_match) : key =
     match c.extra.historical_info with
     | Some { git_blob = Some sha; _ } -> ATD_string_wrap.Sha1.unwrap sha
     | _ -> Fpath.to_string c.path
+  in
+  let metavars =
+    c.extra.metavars |> List.map metavariable_key |> List.sort compare
   in
   ( name,
     path,
@@ -130,7 +166,8 @@ let core_unique_key (c : Out.core_match) : key =
        if self.match.extra.dataflow_trace
        else None,
     *)
-    None
+    None,
+    metavars
     (* NOTE: previously, we considered self.match.extra.validation_state
        here, but since in some cases (e.g., with `anywhere`) we generate
        many matches in certain cases, we want to consider secrets
