@@ -1,1 +1,0 @@
-Secrets findings can include a versioned `secret_hash` when requested (e.g., with `--compute-secret-hash`). This hash comprises the secret value and values used in the validators, to allow for identification of the same secret being present at multiple locations (cf. `match_based_id`, which depends on the location of the finding).
