@@ -427,7 +427,7 @@ def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFi
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
 
-    return ConfigFile(config_id, loc.read_text(), str(loc))
+    return ConfigFile(config_id, loc.read_text(encoding="utf-8"), str(loc))
 
 
 def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
