@@ -27,11 +27,10 @@ class $CLASS {
               (predefined_type)
               (variable_declarator
                 (identifier)
-                (equals_value_clause
-                  (conditional_expression
-                    (identifier)
-                    (identifier)
-                    (identifier)))))))))))
+                (conditional_expression
+                  (identifier)
+                  (identifier)
+                  (identifier))))))))))
 
 ================================================================================
 Ellipsis for expression
@@ -59,14 +58,12 @@ class Foo {
           (expression_statement
             (assignment_expression
               (identifier)
-              (assignment_operator)
               (integer_literal)))
           (expression_statement
             (ellipsis))
           (expression_statement
             (assignment_expression
               (identifier)
-              (assignment_operator)
               (integer_literal))))))))
 
 ================================================================================
@@ -95,14 +92,12 @@ class Foo {
           (expression_statement
             (assignment_expression
               (identifier)
-              (assignment_operator)
               (integer_literal)))
           (expression_statement
             (ellipsis))
           (expression_statement
             (assignment_expression
               (identifier)
-              (assignment_operator)
               (integer_literal))))))))
 
 ================================================================================
@@ -129,7 +124,6 @@ class Foo {
           (expression_statement
             (assignment_expression
               (identifier)
-              (assignment_operator)
               (deep_ellipsis
                 (integer_literal)))))))))
 
@@ -236,7 +230,6 @@ $X = $O.foo(). ... .bar();
     (expression_statement
       (assignment_expression
         (identifier)
-        (assignment_operator)
         (invocation_expression
           (member_access_expression
             (member_access_ellipsis_expression
@@ -389,7 +382,9 @@ namespace $N { };
   (namespace_declaration
     (identifier)
     (declaration_list))
-  (ellipsis))
+  (global_statement
+    (expression_statement
+      (ellipsis))))
 
 ================================================================================
 File scoped namespace declarations and ellipses
@@ -402,9 +397,11 @@ namespace $N;
 --------------------------------------------------------------------------------
 
 (compilation_unit
+  (global_statement
+    (expression_statement
+      (ellipsis)))
   (file_scoped_namespace_declaration
-    (global_statement
-      (expression_statement
-        (ellipsis)))
-    (identifier)
-    (ellipsis)))
+    (identifier))
+  (global_statement
+    (expression_statement
+      (ellipsis))))
