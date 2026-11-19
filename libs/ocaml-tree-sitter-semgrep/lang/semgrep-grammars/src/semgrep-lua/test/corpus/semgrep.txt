@@ -215,3 +215,16 @@ Hashbang line
 print(1)
 ---
 (chunk (hash_bang_line) (function_call (identifier) (arguments (number))))
+
+==================
+`next` and `self` are ordinary identifiers
+==================
+if next(msg) == nil then ... end
+__index = {
+  next = function(self) ... end,
+}
+local t = {
+  self = swim_self,
+}
+---
+(chunk (if_statement (binary_expression (function_call (identifier) (arguments (identifier))) (nil)) (block (vararg_expression))) (assignment_statement (variable_list (identifier)) (expression_list (table_constructor (field (identifier) (function_definition (parameters (identifier)) (block (vararg_expression))))))) (variable_declaration (assignment_statement (variable_list (identifier)) (expression_list (table_constructor (field (identifier) (identifier)))))))
