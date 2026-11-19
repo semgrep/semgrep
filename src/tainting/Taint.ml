@@ -405,7 +405,7 @@ module Taint_set = struct
   let empty = Taints.empty
   let is_empty set = Taints.is_empty set
   let cardinal set = Taints.cardinal set
-  let equal set1 set2 = Taints.equal set1 set2
+  let equal set1 set2 = Common.phys_equal set1 set2 || Taints.equal set1 set2
   let compare set1 set2 = Taints.compare set1 set2
   let to_seq set = set |> Taints.to_seq
   let elements set = set |> to_seq |> List.of_seq
@@ -444,7 +444,12 @@ module Taint_set = struct
         if Common.phys_equal best curr_taint then set
         else set |> Taints.remove curr_taint |> Taints.add best
 
-  and union set1 set2 = Taints.fold add set1 set2
+  and union set1 set2 =
+    (* A set is already canonical, so its union with the empty set or with
+       itself is the set. *)
+    if Taints.is_empty set1 || Common.phys_equal set1 set2 then set2
+    else if Taints.is_empty set2 then set1
+    else Taints.fold add set1 set2
 
   and of_list taints =
     List.fold_left (fun set taint -> add taint set) Taints.empty taints

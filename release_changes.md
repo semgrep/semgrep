@@ -1,30 +1,24 @@
-## [1.185.0](https://github.com/semgrep/semgrep/releases/tag/v1.185.0) - 2026-11-10
+## [1.186.0](https://github.com/semgrep/semgrep/releases/tag/v1.186.0) - 2026-11-17
 
 ### ### Added
 
-- Secrets: emit structured, privacy-safe telemetry for custom validator HTTP requests (hostname, port, status, latency, rule/scan correlation) (SMS-3122)
+- Secrets findings can include a versioned `secret_hash` when requested (e.g., with `--compute-secret-hash`). This hash comprises the secret value and values used in the validators, to allow for identification of the same secret being present at multiple locations (cf. `match_based_id`, which depends on the location of the finding). (SCRT-987)
 
 ### ### Changed
 
-- The `semgrep/semgrep` Docker image no longer includes the OpenSSH server (`sshd`) or `sftp-server`. It now installs only the OpenSSH client (`ssh`, `scp`, `ssh-keyscan`, `ssh-agent`, `ssh-add` and `ssh-keygen`), which is all git needs to fetch over SSH. Container scanners will no longer report sshd-only CVEs against the image. (docker-ssh-client-only)
-- julia grammar update (v0.25.0):
-
-  - Julia source parsing and rule patterns now support public API declarations while distinguishing them from export declarations and calls named public.
-  - Julia source parsing and rule patterns now support outer-qualified loop bindings, preserving their distinction from ordinary bindings and a variable named outer.
-  - Julia parsing and matching now support typed const fields without initializers in mutable structs.
-  - Julia source parsing and rule patterns now support renaming imported macros, such as import A: @m as @n and import A: @m as @B.n, and keep the @ on macro names in imports, exports, and public declarations.
-  - Julia rules can now match unary ± expressions and distinguish binary ± from ∓, reducing operator-related false positives.
-  - Julia numeral juxtaposition such as 1__2 is now represented as multiplication by __2 and can be found by multiplication patterns.
-  - Julia function-definition patterns now retain where constraints, avoiding matches against definitions with a different constraint.
-
-  (julia-v0.25.0)
+- Semgrep's release binaries are now built with cross-module inlining enabled, so scans use about 5-11% less CPU time. (release-profile)
 
 ### ### Fixed
 
-- OCaml: taint analysis now follows data through expression statements and
-  sequence expressions. For example, in `let x = (r := 1; source ()) in sink x`,
-  the value of the sequence is the result of `source ()`, so the finding on
-  `sink x` is now reported. Taint also no longer leaks from one `match` case
-  into the next one. (ocaml-expression-statements)
-- OCaml: the last expression of a function body is now treated as the function's result, so taint flows through calls. (ocaml-implicit-returns)
-- On Windows, Semgrep now runs programs it calls by name, such as git and pysemgrep, only from fully qualified PATH directories. Previously Windows checked the current directory first, so an executable committed to a scanned repository could run during a scan. Initially reported by Aikido Security. (CODE-10122)
+- pro: Rules with `interfile: true` now keep Pro intrafile interprocedural taint analysis when scanning languages without interfile support (e.g. OCaml, Rust), so taint through helper functions in the same file is reported. (interfile-rule-intrafile-fallback)
+- `semgrep mcp` now respects `SEMGREP_SEND_METRICS=off`, which turns off its
+  metrics and tracing like `SEMGREP_MCP_DISABLE_TRACING=true`. Its metrics and
+  logs also no longer include scan error messages, semgrep's stderr, or
+  supply chain scan results. (mcp-telemetry-redact)
+- Pro: Python type filters now recognize calls to builtin classes and builtin functions when using interfile analysis or single-file type resolution. (CODE-10241)
+- Dependency resolution errors for pip and setup.py projects now include the failing command's error output (for example `No module named 'setuptools'`) instead of an empty message. setup.py projects now resolve when `python3` is Python 3.12 or later, whose virtual environments no longer include setuptools. (SC-4349)
+- Python CLI usage metrics will now be sent to the URL set by SEMGREP_METRICS_URL. The default destination remains unchanged. (SMS-3925)
+
+### ### Infra/Release Changes
+
+- Updated tree-sitter-requirements grammar to v0.5.0 (no behavior change). (requirements-v0.5.0)
