@@ -1,0 +1,10 @@
+rules:
+- id: binding-check
+  languages: [javascript]
+  message: The argument refers to the outer binding.
+  severity: WARNING
+  patterns:
+  - pattern: consume($X);
+  - pattern-inside: |
+      const $X = source();
+      ...
