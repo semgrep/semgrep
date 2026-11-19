@@ -1,0 +1,1 @@
+The MCP server's `safe_join` now rejects Windows root-relative and drive-relative paths, which could previously escape the workspace and let a client write files outside it.
