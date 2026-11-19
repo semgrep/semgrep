@@ -692,3 +692,21 @@ echo ... x
       (word))
     argument: (word)
     argument: (word)))
+
+================================================================================
+One-line case statement (no terminator after `in`)
+================================================================================
+
+case "$b" in x) echo a ;; esac
+case "$b" in x) echo a;; y) echo b;; esac
+
+--------------------------------------------------------------------------------
+
+(program
+  (case_statement
+    (string (simple_expansion (variable_name)))
+    (case_item (word) (command (command_name (word)) (word))))
+  (case_statement
+    (string (simple_expansion (variable_name)))
+    (case_item (word) (command (command_name (word)) (word)))
+    (case_item (word) (command (command_name (word)) (word)))))

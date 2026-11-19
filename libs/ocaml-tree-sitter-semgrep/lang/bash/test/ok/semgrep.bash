@@ -46,3 +46,6 @@ $MUT=$(ls)
 # Array declaration and assignment
 declare -a $ARR
 # $ARR=(...)
+
+# One-line case statement, no terminator after `in` (#11966)
+case "$b" in x) echo a ;; esac
