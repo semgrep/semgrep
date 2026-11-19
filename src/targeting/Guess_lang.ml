@@ -54,8 +54,10 @@ let string_chop_prefix ~pref s =
   else None
 
 let has_suffix suffixes =
+  let suffixes = List.map String.lowercase_ascii suffixes in
   let f path =
-    List.exists (fun suf -> Filename.check_suffix !!path suf) suffixes
+    let path = String.lowercase_ascii !!path in
+    List.exists (fun suf -> Filename.check_suffix path suf) suffixes
   in
   Test_path f
 
