@@ -1,4 +1,6 @@
 Test name: without git > basic semgrepignore
+--- Scanning roots ---
+.
 --- Files not added to git ---
 .semgrepignore
 a

@@ -1,4 +1,6 @@
 Test name: without git > scan symlink to semgrepignored target
+--- Scanning roots ---
+symlink.py
 --- Files not added to git ---
 .semgrepignore
 semgrepignored.py

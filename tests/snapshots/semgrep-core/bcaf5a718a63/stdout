@@ -1,4 +1,6 @@
 Test name: without git > binary file is kept when binary filtering is disabled
+--- Scanning roots ---
+.
 --- Files not added to git ---
 a.py
 logo.png
