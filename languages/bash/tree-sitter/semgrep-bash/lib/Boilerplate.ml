@@ -2033,6 +2033,9 @@ and map_file_redirect (env : env) ((v1, v2) : CST.file_redirect) =
           | `GTBAR tok -> R.Case ("GTBAR",
               (* ">|" *) token env tok
             )
+          | `LTGT tok -> R.Case ("LTGT",
+              (* "<>" *) token env tok
+            )
           )
         in
         let v2 = map_heredoc_command env v2 in

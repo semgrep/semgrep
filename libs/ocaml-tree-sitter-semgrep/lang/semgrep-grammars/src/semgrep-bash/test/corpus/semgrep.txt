@@ -692,3 +692,38 @@ echo ... x
       (word))
     argument: (word)
     argument: (word)))
+
+================================================================================
+Read-write redirection '<>' (POSIX open for reading and writing)
+================================================================================
+
+exec 3<>/dev/null
+cat <>/tmp/x
+exec 3<>"/dev/tcp/127.0.0.1/$PORT"
+
+--------------------------------------------------------------------------------
+
+(program
+  (redirected_statement
+    body: (command
+      name: (command_name
+        (word)))
+    redirect: (file_redirect
+      descriptor: (file_descriptor)
+      destination: (word)))
+  (redirected_statement
+    body: (command
+      name: (command_name
+        (word)))
+    redirect: (file_redirect
+      destination: (word)))
+  (redirected_statement
+    body: (command
+      name: (command_name
+        (word)))
+    redirect: (file_redirect
+      descriptor: (file_descriptor)
+      destination: (string
+        (string_content)
+        (simple_expansion
+          (variable_name))))))

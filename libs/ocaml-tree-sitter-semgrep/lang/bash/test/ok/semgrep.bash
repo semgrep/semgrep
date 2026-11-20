@@ -46,3 +46,8 @@ $MUT=$(ls)
 # Array declaration and assignment
 declare -a $ARR
 # $ARR=(...)
+
+# POSIX read-write redirection '<>'
+exec 3<>/dev/null
+cat <>/tmp/x
+exec 3<>"/dev/tcp/127.0.0.1/$PORT"

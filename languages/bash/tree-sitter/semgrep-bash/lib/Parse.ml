@@ -1943,6 +1943,7 @@ let children_regexps : (string * Run.exp option) list = [
             Token (Literal "<&");
             Token (Literal ">&");
             Token (Literal ">|");
+            Token (Literal "<>");
           |];
           Repeat1 (
             Alt [|
@@ -9036,6 +9037,10 @@ and trans_file_redirect ((kind, body) : mt) : CST.file_redirect =
                             )
                         | Alt (7, v) ->
                             `GTBAR (
+                              Run.trans_token (Run.matcher_token v)
+                            )
+                        | Alt (8, v) ->
+                            `LTGT (
                               Run.trans_token (Run.matcher_token v)
                             )
                         | _ -> assert false

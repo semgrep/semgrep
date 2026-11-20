@@ -1,0 +1,1 @@
+Fixed the bash parser rejecting the POSIX read-write redirection operator `<>` (for example `exec 3<>/dev/null`), which reported a PartialParsing error and skipped the rest of the file.
