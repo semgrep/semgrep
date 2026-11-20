@@ -1,0 +1,18 @@
+Test name: without git > explicit file and folder
+--- Scanning roots ---
+x.bak
+src
+--- Files not added to git ---
+src/.semgrepignore
+src/a.py
+src/b.bak
+x.bak
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected src/.semgrepignore
+selected src/a.py
+selected x.bak
+--- Skipped targets ---
+ignored src/b.bak [Semgrep_output_v1_t.Semgrepignore_patterns_match]

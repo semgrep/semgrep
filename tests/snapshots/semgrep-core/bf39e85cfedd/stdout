@@ -1,4 +1,6 @@
 Test name: with git > scanning root as a file
+--- Scanning roots ---
+a.py
 --- Files added before 'git add' ---
 a.py
 --- begin input files ---

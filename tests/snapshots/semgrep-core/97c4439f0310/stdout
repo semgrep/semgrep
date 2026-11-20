@@ -1,4 +1,6 @@
 Test name: without git > scanning root as a symlink to a regular file
+--- Scanning roots ---
+a.py
 --- Files not added to git ---
 a.py
 b.py

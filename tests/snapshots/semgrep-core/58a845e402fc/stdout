@@ -1,4 +1,6 @@
 Test name: without git > deep include
+--- Scanning roots ---
+.
 --- Files not added to git ---
 dir/a
 dir/b
