@@ -1,0 +1,14 @@
+Test name: without git > same explicit file given several times
+--- Scanning roots ---
+a.py
+./a.py
+a.py
+--- Files not added to git ---
+a.py
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected ./a.py
+selected a.py
+--- Skipped targets ---

@@ -1,4 +1,6 @@
 Test name: with git > extension-less binary is skipped
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 a.py
 mytool

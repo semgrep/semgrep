@@ -1,4 +1,6 @@
 Test name: with git > deep include
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 dir/a
 dir/b

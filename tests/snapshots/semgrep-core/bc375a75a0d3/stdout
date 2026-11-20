@@ -1,4 +1,6 @@
 Test name: without git > basic test
+--- Scanning roots ---
+.
 --- Files not added to git ---
 .gitignore
 --- begin input files ---

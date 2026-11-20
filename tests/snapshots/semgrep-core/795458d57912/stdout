@@ -1,4 +1,6 @@
 Test name: with git > scanning root as a symlink to a regular file
+--- Scanning roots ---
+a.py
 --- Files added before 'git add' ---
 a.py
 b.py
