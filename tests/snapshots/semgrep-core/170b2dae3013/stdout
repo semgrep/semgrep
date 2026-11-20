@@ -1,4 +1,6 @@
 Test name: with git > scan explicit target
+--- Scanning roots ---
+a.py
 --- Files added before 'git add' ---
 .semgrepignore
 a.py

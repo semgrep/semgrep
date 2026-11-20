@@ -1,4 +1,6 @@
 Test name: without git > basic include
+--- Scanning roots ---
+.
 --- Files not added to git ---
 a
 b
