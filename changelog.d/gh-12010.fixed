@@ -1,0 +1,1 @@
+Fix Gradle dependency discovery for projects mapped outside their owning build directory.
