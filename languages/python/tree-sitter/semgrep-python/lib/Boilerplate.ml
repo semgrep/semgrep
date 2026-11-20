@@ -2168,7 +2168,7 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) =
         let v1 = map_expression env v1 in
         let v2 =
           (match v2 with
-          | Some (v1, v2) -> R.Option (Some (
+          | Some (v1, v2, v3) -> R.Option (Some (
               let v1 =
                 (match v1 with
                 | `As tok -> R.Case ("As",
@@ -2180,7 +2180,14 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) =
                 )
               in
               let v2 = map_expression env v2 in
-              R.Tuple [v1; v2]
+              let v3 =
+                R.List (List.map (fun (v1, v2) ->
+                  let v1 = (* "," *) token env v1 in
+                  let v2 = map_expression env v2 in
+                  R.Tuple [v1; v2]
+                ) v3)
+              in
+              R.Tuple [v1; v2; v3]
             ))
           | None -> R.Option None)
         in

@@ -2,38 +2,44 @@ File: semgrep-grammars/src/tree-sitter-python/LICENSE
 Git repo name: tree-sitter-python
 Latest commit in repo: c5fca1a186e8e528115196178c28eefa8d86b0b0
 Last change in file:
-  commit 409b5d671eb0ea4972eeacaaca24bbec1acf79b1
-  Author: Amaan Qureshi <amaanq12@gmail.com>
-  Date:   Tue Jan 7 16:59:00 2025 -0500
+  commit eb7313534683093b9ae7811991561131d6824828
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Wed Dec 14 22:22:02 2016 -0800
   
-      fix(scanner): keep size of indents consistent
+      Initial commit
 ---
 File: semgrep-grammars/src/tree-sitter-python/grammar.js
 Git repo name: tree-sitter-python
 Latest commit in repo: c5fca1a186e8e528115196178c28eefa8d86b0b0
 Last change in file:
-  commit 409b5d671eb0ea4972eeacaaca24bbec1acf79b1
+  commit 9885368e8aa00e2fd6c6f2d28c4a9a7092140444
   Author: Amaan Qureshi <amaanq12@gmail.com>
-  Date:   Tue Jan 7 16:59:00 2025 -0500
+  Date:   Sun Dec 22 17:57:39 2024 -0500
   
-      fix(scanner): keep size of indents consistent
+      feat: add fields in `except_clause`
 ---
 File: semgrep-grammars/src/semgrep-python/grammar.js
-Git repo name: caracas
-Latest commit in repo: f8a2e9ce7645454fbcb4aacb1887821aebd66f7f
+Git repo name: semgrep-12069-fix
+Latest commit in repo: 06d9993409f6698f78f6956cd39d968e7f4d7b6a
 Last change in file:
-  commit d68c1d87318808ec1b36ce89570ef6c0bc763f77
-  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
-  Date:   Wed Mar 4 13:06:00 2026 -0800
+  commit 692bfae4ca1bf070f7e8b603037a19886fa36b4f
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Thu Oct 29 15:33:49 2026 -0700
   
-      feat(python): support ellipsis in dot-access chain patterns (#567)
+      Release Version 1.183.0 (semgrep/semgrep-proprietary#7416)
       
-      Override the `attribute` rule to accept `'...'` as an alternative to
-      `identifier` in the attribute field. This lets semgrep patterns like
-      `a. ... .d` parse correctly for matching call chains, matching the
-      existing Java `field_access` behavior.
+      # Release PR
       
-      Fixes https://github.com/semgrep/semgrep/issues/11545
+      Back-merges the release branch into `develop` (version bump +
+      changelog).
       
-      Co-authored-by: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+      Semgrep-CI release PRs are auto-approved, and squash auto-merge is
+      enabled at
+      creation. The PR merges once required checks and review requirements are
+      met.
+      Manual approve/merge is only needed if that automation fails.
+      
+      Co-authored-by: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+      
+      synced from Pro a8c29d04dc5f88603304493e82e91bad16bcae6d
 ---

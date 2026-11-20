@@ -2071,24 +2071,29 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) :
           | e -> (Some (map_expression env e), None)
         in
         match (v2, aspat) with
-        | Some (t, v2), None -> (
+        | Some (t, v2, v3), None -> (
             let e2 = map_expression env v2 in
             match t with
             | `As tok ->
                 let _t = (* "as" *) token env tok in
                 (v1, id_opt_of_expr e2)
-            (* PEP 758 (Python 3.14): 'except A, B:' is 'except (A, B):', a
-               tuple of types with no name bound (Python 2 read it as 'as').
+            (* PEP 758 (Python 3.14): 'except A, B, ...:' is
+               'except (A, B, ...):', a tuple of types with no name bound
+               (Python 2 read the first comma as 'as').
                coupling: the excepthandler rule in Parser_python.mly.
-               TODO: the vendored grammar accepts a single comma, so
-               'except A, B, C:' still fails here (upstream uses commaSep1).
             *)
             | `COMMA tok ->
                 let _t = (* "," *) token env tok in
+                let extras =
+                  List.map (fun (_tcomma, e) -> map_expression env e) v3
+                in
                 let ty =
-                  match v1 with
-                  | Some e1 -> Some (Tuple (CompList (fb [ e1; e2 ]), no_ctx))
-                  | None -> Some e2
+                  match v1, extras with
+                  | Some e1, _ ->
+                      Some (Tuple (CompList (fb (e1 :: e2 :: extras)), no_ctx))
+                  | None, [] -> Some e2
+                  | None, _ ->
+                      Some (Tuple (CompList (fb (e2 :: extras)), no_ctx))
                 in
                 (ty, None))
         (* It would be really weird for there to be this `as` after the other `as`.

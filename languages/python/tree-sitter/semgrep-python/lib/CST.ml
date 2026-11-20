@@ -864,6 +864,7 @@ and except_clause = (
       * (
             [ `As of Token.t (* "as" *) | `COMMA of Token.t (* "," *) ]
           * expression
+          * (Token.t (* "," *) * expression) list (* zero or more *)
         )
           option
     )

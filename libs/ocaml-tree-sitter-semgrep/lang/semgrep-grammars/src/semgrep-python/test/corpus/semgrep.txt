@@ -39,3 +39,64 @@ Metavariable in match
                   (string_start)
                   (string_content)
                   (string_end))))))))))
+
+====================================
+Bare multi-exception except clause after a match statement (PEP 758)
+====================================
+
+def f(x):
+    match x:
+        case 1:
+            return 1
+    try:
+        pass
+    except OSError, ValueError, KeyError:
+        pass
+---
+
+(module
+  (function_definition
+    (identifier)
+    (parameters
+      (identifier))
+    (block
+      (match_statement
+        (identifier)
+        (block
+          (case_clause
+            (case_pattern
+              (integer))
+            (block
+              (return_statement
+                (integer))))))
+      (try_statement
+        (block
+          (pass_statement))
+        (except_clause
+          (identifier)
+          (identifier)
+          (identifier)
+          (block
+            (pass_statement)))))))
+
+====================================
+Bare multi-exception except clause with four exceptions
+====================================
+
+try:
+    pass
+except A, B, C, D:
+    pass
+---
+
+(module
+  (try_statement
+    (block
+      (pass_statement))
+    (except_clause
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier)
+      (block
+        (pass_statement)))))
