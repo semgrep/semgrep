@@ -2130,53 +2130,94 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 (env : env)
       v1 @ v2
   | None -> []
 
-and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
-    =
-  let _open =
-    token env v1
-    (* "(" *)
-  in
-  let var_or_expr =
-    match v2 with
-    | `Choice_choice_choice_member_exp x ->
-        let expr = paren_expr_or_lhs_expr env x in
-        Right expr
-    | `Var_choice_id_opt_init (v1, v2, v3) ->
-        let var_kind = (Var, token env v1) in
-        let id_or_pat = id_or_destructuring_pattern env v2 in
-        let pat = id_or_pat |> sub_pattern in
-        let rhs = initializer_opt env v3 in
-        let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) rhs in
-        Left var
-    | `Choice_let_choice_id_opt_auto_semi (v1, v2, v3) ->
-        let var_kind =
-          match v1 with
-          | `Let tok -> (Let, token env tok) (* "let" *)
-          | `Const tok -> (Const, token env tok)
-          (* "const" *)
-        in
-        let id_or_pat = id_or_destructuring_pattern env v2 in
-        let _v3 =
-          match v3 with
-          | Some tok -> Some ((* automatic_semicolon *) token env tok)
-          | None -> None
-        in
-        let pat = id_or_pat |> sub_pattern in
-        let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None in
-        Left var
-  in
+and for_header (env : env) (x : CST.for_header) : for_header =
+  match x with
+  | `LPAR_choice_choice_choice_choice_member_exp_choice_in_choice_exp_RPAR
+      (v1, v2, v3, v4, v5) ->
+      let _open =
+        token env v1
+        (* "(" *)
+      in
+      let var_or_expr =
+        match v2 with
+        | `Choice_choice_choice_member_exp x ->
+            let expr = paren_expr_or_lhs_expr env x in
+            Right expr
+        | `Var_choice_id_opt_init (v1, v2, v3) ->
+            let var_kind = (Var, token env v1) in
+            let id_or_pat = id_or_destructuring_pattern env v2 in
+            let pat = id_or_pat |> sub_pattern in
+            let rhs = initializer_opt env v3 in
+            let var =
+              Ast_js.var_pattern_to_var var_kind pat (snd var_kind) rhs
+            in
+            Left var
+        | `Choice_let_choice_id_opt_auto_semi (v1, v2, v3) ->
+            let var_kind =
+              match v1 with
+              | `Let tok -> (Let, token env tok) (* "let" *)
+              | `Const tok -> (Const, token env tok)
+              (* "const" *)
+            in
+            let id_or_pat = id_or_destructuring_pattern env v2 in
+            let _v3 =
+              match v3 with
+              | Some tok -> Some ((* automatic_semicolon *) token env tok)
+              | None -> None
+            in
+            let pat = id_or_pat |> sub_pattern in
+            let var =
+              Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None
+            in
+            Left var
+      in
 
-  let exprs = expressions env v4 in
-  let for_header =
-    match v3 with
-    | `In tok -> (* "in" *) ForIn (var_or_expr, token env tok, exprs)
-    | `Of tok -> (* "of" *) ForOf (var_or_expr, token env tok, exprs)
-  in
-  let _close =
-    token env v5
-    (* ")" *)
-  in
-  for_header
+      let exprs = expressions env v4 in
+      let for_header =
+        match v3 with
+        | `In tok -> (* "in" *) ForIn (var_or_expr, token env tok, exprs)
+        | `Of tok -> (* "of" *) ForOf (var_or_expr, token env tok, exprs)
+      in
+      let _close =
+        token env v5
+        (* ")" *)
+      in
+      for_header
+  | `LPAR_choice_using_choice_id_opt_auto_semi_choice_in_choice_exp_RPAR
+      (v1, v2, v3, v4, v5, v6, v7) ->
+      let _open =
+        token env v1
+        (* "(" *)
+      in
+      let var_kind =
+        match v2 with
+        | `Using tok -> (Using, token env tok (* "using" *))
+        | `Await_using (v1, v2) ->
+            let _v1 =
+              token env v1
+              (* "await" *)
+            in
+            (Using, token env v2 (* "using" *))
+      in
+      let id_or_pat = id_or_destructuring_pattern env v3 in
+      let _v4 =
+        match v4 with
+        | Some tok -> Some ((* automatic_semicolon *) token env tok)
+        | None -> None
+      in
+      let pat = id_or_pat |> sub_pattern in
+      let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None in
+      let exprs = expressions env v6 in
+      let for_header =
+        match v5 with
+        | `In tok -> (* "in" *) ForIn (Left var, token env tok, exprs)
+        | `Of tok -> (* "of" *) ForOf (Left var, token env tok, exprs)
+      in
+      let _close =
+        token env v7
+        (* ")" *)
+      in
+      for_header
 
 and expr_or_prim_expr (env : env) (x : CST.anon_choice_exp_9cd0ed5) : expr =
   match x with
@@ -2239,22 +2280,14 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Choice_jsx_elem x ->
       let xml = jsx_element_ env x in
       Xml xml
-  | `Assign_exp (v1, v2, v3, v4) ->
-      (* TODO: `using`
-         https://www.totaltypescript.com/typescript-5-2-new-keyword-using
-       *)
-      let _v1 =
-        match v1 with
-        | Some tok -> Some ((* "using" *) token env tok)
-        | None -> None
-      in
-      let v2 = paren_expr_or_lhs_expr env v2 in
-      let v3 =
-        token env v3
+  | `Assign_exp (v1, v2, v3) ->
+      let v1 = paren_expr_or_lhs_expr env v1 in
+      let v2 =
+        token env v2
         (* "=" *)
       in
-      let v4 = expression env v4 in
-      Assign (v2, v3, v4)
+      let v3 = expression env v3 in
+      Assign (v1, v2, v3)
   | `Augm_assign_exp (v1, v2, v3) ->
       let lhs =
         match v1 with
@@ -3597,6 +3630,22 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
   let _v4 = semicolon env v4 in
   build_vars kind vars
 
+and using_declaration (env : env) ((v1, v2, v3, v4) : CST.using_declaration)
+    : var list =
+  let kind =
+    match v1 with
+    | `Using tok -> (Using, token env tok (* "using" *))
+    | `Await_using (v1, v2) ->
+        let _v1 =
+          token env v1
+          (* "await" *)
+        in
+        (Using, token env v2 (* "using" *))
+  in
+  let vars = map_sep_list env v2 v3 variable_declarator in
+  let _v4 = semicolon env v4 in
+  build_vars kind vars
+
 and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : parent list
     =
   let _textends = (* "extends" *) token env v1 in
@@ -4123,6 +4172,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       | `Class_decl x -> [ class_declaration env x ]
       | `Lexi_decl x -> lexical_declaration env x |> vars_to_defs
       | `Var_decl x -> variable_declaration env x |> vars_to_defs)
+  | `Using_decl x -> using_declaration env x |> vars_to_defs
   | `Func_sign (v1, v2, v3, v4, v5) ->
       let _v1 =
         match v1 with

@@ -1,0 +1,196 @@
+==================================
+`using` as an ordinary identifier
+==================================
+
+const using = [1];
+f(using[1]);
+f(using.length);
+using;
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (array
+        (number))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (arguments
+        (subscript_expression
+          object: (identifier)
+          index: (number)))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (arguments
+        (member_expression
+          object: (identifier)
+          property: (property_identifier)))))
+  (expression_statement
+    (identifier)))
+
+==================================
+`as` and `satisfies` as variable names
+==================================
+
+let as = -1;
+as = 1;
+let satisfies = 1;
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (unary_expression
+        argument: (number))))
+  (expression_statement
+    (assignment_expression
+      left: (identifier)
+      right: (number)))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (number))))
+
+==================================
+`using` declarations
+==================================
+
+using x = foo();
+await using y = bar();
+export using z = baz();
+
+---
+
+(program
+  (using_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments))))
+  (using_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments))))
+  (export_statement
+    declaration: (using_declaration
+      (variable_declarator
+        name: (identifier)
+        value: (call_expression
+          function: (identifier)
+          arguments: (arguments))))))
+
+==================================
+`using` with `??` (issue #12075)
+==================================
+
+const using = /x(.*)/.exec(process.argv[2]);
+if (using) console.log(using[1] ?? '');
+eval(process.argv[2]);
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (member_expression
+          object: (regex
+            pattern: (regex_pattern))
+          property: (property_identifier))
+        arguments: (arguments
+          (subscript_expression
+            object: (member_expression
+              object: (identifier)
+              property: (property_identifier))
+            index: (number))))))
+  (if_statement
+    condition: (parenthesized_expression
+      (identifier))
+    consequence: (expression_statement
+      (call_expression
+        function: (member_expression
+          object: (identifier)
+          property: (property_identifier))
+        arguments: (arguments
+          (binary_expression
+            left: (subscript_expression
+              object: (identifier)
+              index: (number))
+            right: (string))))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (arguments
+        (subscript_expression
+          object: (member_expression
+            object: (identifier)
+            property: (property_identifier))
+          index: (number))))))
+
+==================================
+`using` in `for...of` and with a type annotation
+==================================
+
+for (using x of y) {}
+using a = foo(), b = bar();
+using x: Disposable = foo();
+
+---
+
+(program
+  (for_in_statement
+    left: (identifier)
+    right: (identifier)
+    body: (statement_block))
+  (using_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments)))
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments))))
+  (using_declaration
+    (variable_declarator
+      name: (identifier)
+      type: (type_annotation
+        (type_identifier))
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments)))))
+
+==================================
+`using as` is a declaration, `using as T` is an expression
+==================================
+
+using as = foo();
+let x = using as T;
+
+---
+
+(program
+  (using_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (call_expression
+        function: (identifier)
+        arguments: (arguments))))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      value: (as_expression
+        (identifier)
+        (type_identifier)))))

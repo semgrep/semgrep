@@ -30,6 +30,11 @@ module.exports = {
     [$.spread_element, $.rest_pattern, $.semgrep_ellipsis],
     [$.spread_element, $.rest_pattern, $.semgrep_ellipsis, $.semgrep_expression_ellipsis],
     [$.statement, $.pair, $.pair_pattern],
+    // `using` is a contextual keyword: `using as ...` can start either a
+    // `using` declaration of a variable named `as`, or an expression
+    // statement applying `as` to the variable `using`. Only the tokens
+    // after `as` disambiguate, so both interpretations stay live.
+    [$.primary_expression, $.using_declaration],
   ]),
 
 
@@ -51,6 +56,97 @@ module.exports = {
     statement: ($, previous) => choice(
       previous,
       $.semgrep_ellipsis,
+    ),
+
+    declaration: ($, previous) => choice(
+      previous,
+      $.using_declaration,
+    ),
+
+    // Explicit resource management declarations (TS 5.2), mirroring
+    // tree-sitter-javascript 0.25. A statement-level rule, so a leading
+    // `using` is only a keyword where a statement can start, and `using`
+    // stays an ordinary identifier everywhere else. This replaces the
+    // upstream `assignment_expression` hack (an optional `using` prefix),
+    // which made any expression starting with `using` unparsable, so
+    // `using[1]`, `using.length` and a bare `using` failed to parse.
+    using_declaration: $ => seq(
+      field('kind', choice(
+        'using',
+        seq('await', 'using'),
+      )),
+      seq($.variable_declarator, repeat(seq(',', $.variable_declarator))),
+      $._semicolon,
+    ),
+
+    // Upstream typescript parses `using x = ...` (and `await using x = ...`)
+    // through `assignment_expression` with an optional `using` prefix.
+    // That prefix poisons `using` in expression position, so drop it here;
+    // `using` declarations are covered by `using_declaration` above.
+    // Copied from tree-sitter-javascript, minus the `using` prefix.
+    assignment_expression: $ => prec.right('assign', seq(
+      field('left', choice($.parenthesized_expression, $._lhs_expression)),
+      '=',
+      field('right', $.expression),
+    )),
+
+    // `as` and `satisfies` are contextual keywords (type assertion
+    // operators). After `let`, which is itself a valid identifier, the
+    // lexer produces the keyword token, so a variable named `as` or
+    // `satisfies` could never be declared with an initializer (`let as = -1`
+    // was read as `let as -1`, an `as` expression, and `=` was unexpected).
+    // Accept the keyword token as the declarator name, mirroring how
+    // tree-sitter-javascript accepts `of` as an identifier.
+    variable_declarator: ($, previous) => choice(
+      previous,
+      seq(
+        field('name', choice(
+          alias('as', $.identifier),
+          alias('satisfies', $.identifier),
+        )),
+        field('type', optional($.type_annotation)),
+        optional($._initializer),
+      ),
+      prec('declaration', seq(
+        field('name', choice(
+          alias('as', $.identifier),
+          alias('satisfies', $.identifier),
+        )),
+        '!',
+        field('type', $.type_annotation),
+      )),
+    ),
+
+    // `using` is a contextual keyword: it may also name an ordinary
+    // variable. Listing it here lets the `using` keyword token act as an
+    // identifier in expression positions (including a bare `using;`
+    // statement), mirroring how `let`, `async` and friends already behave.
+    _reserved_identifier: ($, previous) => choice(
+      previous,
+      'using',
+    ),
+
+    // `using` declarations are also allowed in `for...in`/`for...of` heads,
+    // mirroring tree-sitter-javascript 0.25.
+    _for_header: ($, previous) => choice(
+      previous,
+      seq(
+        '(',
+        seq(
+          field('kind', choice(
+            'using',
+            seq('await', 'using'),
+          )),
+          field('left', choice(
+            $.identifier,
+            $._destructuring_pattern,
+          )),
+          optional($._automatic_semicolon),
+        ),
+        field('operator', choice('in', 'of')),
+        field('right', $._expressions),
+        ')',
+      ),
     ),
 
     // For `var $X = $FUNC($REQ, $RES, ...) {...}`.
