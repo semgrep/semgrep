@@ -1,0 +1,29 @@
+Test name: with git > explicit file and folder
+--- Scanning roots ---
+x.bak
+src
+--- Files added before 'git add' ---
+src/.semgrepignore
+src/a.py
+src/b.bak
+x.bak
+--- begin input files ---
+src/.semgrepignore
+src/a.py
+src/b.bak
+x.bak
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 4 files changed, 1 insertion(+)
+ create mode 100644 src/.semgrepignore
+ create mode 100644 src/a.py
+ create mode 100644 src/b.bak
+ create mode 100644 x.bak
+--- Errors ---
+--- Selected targets ---
+selected src/.semgrepignore
+selected src/a.py
+selected x.bak
+--- Skipped targets ---
+ignored src/b.bak [Semgrep_output_v1_t.Semgrepignore_patterns_match]

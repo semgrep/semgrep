@@ -1,4 +1,6 @@
 Test name: without git > scanning root as a symlink to a folder
+--- Scanning roots ---
+link-to-src
 --- Files not added to git ---
 link-to-src
 src/a.py

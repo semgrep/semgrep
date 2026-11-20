@@ -1,4 +1,6 @@
 Test name: without git > basic gitignore
+--- Scanning roots ---
+.
 --- Files not added to git ---
 .gitignore
 a

@@ -1,0 +1,16 @@
+Test name: without git > explicit files in two projects
+--- Scanning roots ---
+a.py
+hg/b.py
+--- Files not added to git ---
+.semgrepignore
+a.py
+hg/.semgrepignore
+hg/b.py
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected a.py
+selected hg/b.py
+--- Skipped targets ---
