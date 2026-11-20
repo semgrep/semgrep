@@ -1,0 +1,14 @@
+Test name: without git > explicit files only, one of them binary
+--- Scanning roots ---
+a.py
+logo.png
+--- Files not added to git ---
+a.py
+logo.png
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
+ignored logo.png [Semgrep_output_v1_t.Binary]

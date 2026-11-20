@@ -1,4 +1,6 @@
 Test name: with git > semgrepignore file takes precedence over --include
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 .semgrepignore
 c.c

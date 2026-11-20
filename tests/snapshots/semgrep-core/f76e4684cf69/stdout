@@ -1,4 +1,6 @@
 Test name: with git > basic include
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 a
 b

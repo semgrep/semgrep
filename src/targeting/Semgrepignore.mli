@@ -53,3 +53,10 @@ val create :
   project_root:Fpath.t ->
   unit ->
   Gitignore_filter.t
+
+(*
+   Parse the command-line exclusion patterns ('--exclude') like [create]
+   does, raising the same exception if one of them is malformed, but
+   without consulting the file system.
+*)
+val check_cli_patterns : string list -> unit

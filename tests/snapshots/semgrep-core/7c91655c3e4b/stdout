@@ -1,4 +1,6 @@
 Test name: with git > basic gitignore
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 .gitignore
 a
