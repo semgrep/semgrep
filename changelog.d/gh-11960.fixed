@@ -1,0 +1,1 @@
+The exit code of a scan with scan errors but no findings now comes from the highest-level error of the scan, not the last one reported. A warning reported after an error-level failure no longer turns the exit code into 0.
