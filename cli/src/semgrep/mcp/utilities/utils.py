@@ -39,9 +39,6 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 SETTINGS_FILENAME = "settings.yml"
-CLAUDE_AGENT_STRING = "claude"
-CURSOR_AGENT_STRING = "cursor"
-WINDSURF_AGENT_STRING = "windsurf"
 
 # File I/O in the MCP server must pin the codec explicitly. Python otherwise
 # falls back to the locale encoding, which is cp932 on a Japanese Windows

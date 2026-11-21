@@ -1,0 +1,5 @@
+Semgrep commands no longer fail at startup when the installed `mcp`
+package is version 2.x. The CLI used to import the MCP server module
+at startup, which pulls in `mcp.server.fastmcp`, a module that raises
+`ModuleNotFoundError` under mcp 2.x. The MCP server module is now
+imported lazily, so only `semgrep mcp` itself needs the MCP SDK.

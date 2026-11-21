@@ -19,6 +19,9 @@ from typing import Literal
 from opentelemetry import trace
 from pydantic import BaseModel
 
+from semgrep.mcp.constants import CLAUDE_AGENT_STRING
+from semgrep.mcp.constants import CURSOR_AGENT_STRING
+from semgrep.mcp.constants import WINDSURF_AGENT_STRING
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import run_semgrep_output
@@ -29,10 +32,7 @@ from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
-from semgrep.mcp.utilities.utils import CLAUDE_AGENT_STRING
-from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
 from semgrep.mcp.utilities.utils import HookResultStatus
-from semgrep.mcp.utilities.utils import WINDSURF_AGENT_STRING
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)

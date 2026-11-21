@@ -10,33 +10,30 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+from __future__ import annotations
+
 import os
 import sys
+from typing import TYPE_CHECKING
 
 import click
-from mcp.server.auth.settings import AuthSettings
-from mcp.server.auth.settings import ClientRegistrationOptions
-from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import AnyHttpUrl
 
 from semgrep import __VERSION__
-from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_hook
-from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
-from semgrep.mcp.hooks.stop import run_after_file_edit_hook
-from semgrep.mcp.hooks.stop import run_stop_scan_cli
-from semgrep.mcp.hooks.supply_chain import run_supply_chain_scan_cli
-from semgrep.mcp.server import deregister_tools
-from semgrep.mcp.server import get_authorization_server_url
-from semgrep.mcp.server import get_semgrep_api_url
-from semgrep.mcp.server import register
-from semgrep.mcp.server import server_lifespan
-from semgrep.mcp.server import setup_oauth_routes
-from semgrep.mcp.utilities.token_verifier import make_token_verifier
-from semgrep.mcp.utilities.utils import CLAUDE_AGENT_STRING
-from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
-from semgrep.mcp.utilities.utils import WINDSURF_AGENT_STRING
+from semgrep.mcp.constants import CLAUDE_AGENT_STRING
+from semgrep.mcp.constants import CURSOR_AGENT_STRING
+from semgrep.mcp.constants import WINDSURF_AGENT_STRING
 from semgrep.verbose_logging import getLogger
+
+# NOTE: the MCP SDK (`mcp` package) and the `semgrep.mcp` package are
+# deliberately NOT imported at module level. Importing them here would
+# make every `semgrep` command fail at startup when the installed `mcp`
+# major version is incompatible (for example, `mcp.server.fastmcp`
+# raises ModuleNotFoundError under mcp 2.x, where FastMCP was renamed).
+# They are imported lazily inside `setup_mcp_server()` and
+# `semgrep_mcp()` instead, so only `semgrep mcp` itself needs the SDK.
+# See https://github.com/semgrep/semgrep/issues/12069.
+if TYPE_CHECKING:
+    from mcp.server.fastmcp import FastMCP
 
 
 logger = getLogger(__name__)
@@ -50,6 +47,20 @@ SUPPLY_CHAIN_SCAN_FLAG = "supply-chain-scan"
 
 
 def setup_mcp_server(host: str, port: int) -> FastMCP:
+    # Imported lazily: the MCP SDK is only needed when the server
+    # actually starts. See the NOTE above.
+    from mcp.server.auth.settings import AuthSettings
+    from mcp.server.auth.settings import ClientRegistrationOptions
+    from mcp.server.fastmcp import FastMCP
+    from mcp.server.transport_security import TransportSecuritySettings
+    from pydantic import AnyHttpUrl
+
+    from semgrep.mcp.server import get_authorization_server_url
+    from semgrep.mcp.server import get_semgrep_api_url
+    from semgrep.mcp.server import server_lifespan
+    from semgrep.mcp.server import setup_oauth_routes
+    from semgrep.mcp.utilities.token_verifier import make_token_verifier
+
     server_url = f"http://{host}:{port}"
     semgrep_api_url = get_semgrep_api_url()
     authorization_server_url = get_authorization_server_url(semgrep_api_url)
@@ -152,6 +163,16 @@ def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None
     For stdio, it will read from stdin and write to stdout.
     For streamable-http, it will start an HTTP server on port 8000.
     """
+    # Imported lazily: the MCP SDK and the `semgrep.mcp` package are
+    # only needed when this command actually runs. See the NOTE above.
+    from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_hook
+    from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
+    from semgrep.mcp.hooks.stop import run_after_file_edit_hook
+    from semgrep.mcp.hooks.stop import run_stop_scan_cli
+    from semgrep.mcp.hooks.supply_chain import run_supply_chain_scan_cli
+    from semgrep.mcp.server import deregister_tools
+    from semgrep.mcp.server import register
+
     # Set environment variable to track scans by MCP
     os.environ["SEMGREP_MCP"] = "true"
 

@@ -21,13 +21,13 @@ import httpx
 from opentelemetry import trace
 from pydantic import BaseModel
 
+from semgrep.mcp.constants import CURSOR_AGENT_STRING
+from semgrep.mcp.constants import WINDSURF_AGENT_STRING
 from semgrep.mcp.utilities.tracing import attach_agent_info
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
-from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
 from semgrep.mcp.utilities.utils import suppress_exception
-from semgrep.mcp.utilities.utils import WINDSURF_AGENT_STRING
 
 CACHE_FILE = (
     Path(tempfile.gettempdir()) / "semgrep-mcp" / "claude-secure-defaults-cache.md"
