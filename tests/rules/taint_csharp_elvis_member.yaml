@@ -1,0 +1,10 @@
+rules:
+  - id: taint
+    mode: taint
+    languages: [csharp]
+    message: tainted
+    severity: WARNING
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink($X)
