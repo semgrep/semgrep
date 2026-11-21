@@ -273,7 +273,7 @@ let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
         Target.mk_unfilterable_target (Analyzer.of_lang lang) file)
   in
 
-  Eio_main.run @@ fun env ->
+  Parallelism_config.run_eio @@ fun env ->
   let (config : Core_scan_config.t) =
     {
       Core_scan_config.default with

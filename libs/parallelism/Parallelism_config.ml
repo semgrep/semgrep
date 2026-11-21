@@ -55,6 +55,34 @@ type eio_state = {
  * executor, obviating the need for this type entirely. *)
 type t = Process | Eio_executor of eio_state [@@deriving show]
 
+(* [Eio_main.run], but on Unix use Eio's posix backend unless $EIO_BACKEND
+ * says otherwise. With the io_uring backend every domain needs its own ring,
+ * and rings are charged to the user's RLIMIT_MEMLOCK (8 MiB by default in
+ * Docker/Kubernetes). Eio only falls back to posix if the *first* ring cannot
+ * be created; a worker domain that cannot get one kills the scan with
+ * ENOMEM from io_uring_queue_init (#11802). Several semgrep-core processes
+ * running at once (e.g. pre-commit) hit this easily. We use Eio for
+ * parallelism rather than IO, so the posix backend costs us nothing. *)
+let run_eio (f : Eio_unix.Stdenv.base -> 'a) : 'a =
+  match Sys.getenv_opt "EIO_BACKEND" with
+  | None
+  | Some ""
+    when Sys.unix -> (
+      (* Eio_main.run reads $EIO_BACKEND once, at startup. Afterwards, put
+       * back the empty value (which Eio treats as unset) so the caller's
+       * environment is left as it was. *)
+      Unix.putenv "EIO_BACKEND" "posix";
+      let reset () = Unix.putenv "EIO_BACKEND" "" in
+      match Eio_main.run f with
+      | res ->
+          reset ();
+          res
+      | exception e ->
+          let bt = Printexc.get_raw_backtrace () in
+          reset ();
+          Printexc.raise_with_backtrace e bt)
+  | _ -> Eio_main.run f
+
 let create (env : Eio_unix.Stdenv.base) =
   Eio_executor { env :> env; base = env }
 
