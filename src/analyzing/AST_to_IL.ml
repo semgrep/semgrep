@@ -1056,8 +1056,16 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       let xs = bracket_keep (List.map (map_expr env)) xs in
       let kind = map_composite_kind ~g_expr kind in
       mk_e (Composite (kind, xs)) eorig
+  | G.Comprehension (G.Dict, (b1, (e, xs), b2)) ->
+      let result =
+        map_comp_to_nested_loop env e xs ~map_body:(fun env ->
+            map_dict env (b1, [ e ], b2) g_expr)
+      in
+      { result with eorig }
   | G.Comprehension (kind, (b1, (e, xs), b2)) ->
-      let loop = map_comp_to_nested_loop env e xs in
+      let loop =
+        map_comp_to_nested_loop env e xs ~map_body:(fun env -> map_expr env e)
+      in
       let kind = map_composite_kind ~g_expr kind in
       mk_e (Composite (kind, (b1, [ loop ], b2))) eorig
   | G.Lambda fdef ->
@@ -1299,7 +1307,7 @@ and map_argument env arg : exp argument =
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
 
-and map_comp_to_nested_loop env e xs : exp =
+and map_comp_to_nested_loop env e xs ~map_body : exp =
   (* (e FOR pat IN iter IF cond) ->
 
       FOR pat IN iter {
@@ -1314,11 +1322,11 @@ and map_comp_to_nested_loop env e xs : exp =
       for the purposes of the dataflow analyses we are doing, this ought to
       suffice.
   *)
-  let ss, e' = map_expr_with_pre_stmts env e in
+  let ss, e' = with_pre_stmts env map_body in
   let fresh = fresh_lval env (G.fake "comp") in
   let assign = mk_s (Instr (mk_i (Assign (fresh, e')) (related_exp e))) in
   let rec fold_comps env = function
-    | [] -> [ assign ]
+    | [] -> ss @ [ assign ]
     | comp :: stmts -> (
         match comp with
         | G.CompFor (t_for, pat, t_in, iter) ->
@@ -1334,7 +1342,7 @@ and map_comp_to_nested_loop env e xs : exp =
             let st = fold_comps env stmts in
             ss @ [ mk_s (If (t_if, e', st, [])) ])
   in
-  fold_comps env xs @ ss |> add_stmts env;
+  fold_comps env xs |> add_stmts env;
   mk_e (Fetch fresh) (related_exp e)
 
 and map_record env ((_tok, origfields, _) as record_def) : exp =
@@ -1441,6 +1449,9 @@ and map_dict env (_, orig_entries, _) orig : exp =
             let ke = map_expr env korig in
             let ve = map_expr env vorig in
             Entry (ke, ve)
+        | G.Call ({ e = G.Special (G.Spread, _); _ }, (_, [ G.Arg mapping ], _))
+          ->
+            Spread (map_expr env mapping)
         | __else__ -> todo (G.E orig))
   in
   mk_e (RecordOrDict entries) (SameAs orig)

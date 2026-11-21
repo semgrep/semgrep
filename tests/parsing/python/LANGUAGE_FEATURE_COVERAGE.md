@@ -45,6 +45,8 @@ superseded by the language reference.
 | 3.13 | [Type-parameter defaults](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 696) | UNTESTED |
 | 3.14 | [Unparenthesized exception type lists in `except` / `except*`](https://docs.python.org/3/reference/compound_stmts.html#the-try-statement) (PEP 758) | `pep758_except.py` |
 | 3.14 | [Template strings — t-strings](https://docs.python.org/3/library/string.templatelib.html#template-strings) (PEP 750) | `parsing_todo/python/t_strings.py` (not yet supported — `t"…"` parses to `ERROR`) |
+| 3.15 | [Explicit lazy imports](https://docs.python.org/3.15/reference/simple_stmts.html#lazy) (PEP 810) | `pep810_lazy_imports.py` |
+| 3.15 | [Unpacking comprehensions and generator expressions](https://docs.python.org/3.15/reference/expressions.html#displays-for-lists-sets-and-dictionaries) (PEP 798) | `pep798_unpacking_comprehensions.py` |
 
 ## Other parsing tests in this directory
 

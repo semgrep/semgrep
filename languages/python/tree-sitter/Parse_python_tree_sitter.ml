@@ -1705,13 +1705,15 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
                   | _ -> invalid ())
                 xs
             in
-            [ ImportFrom (v1, ([ str env v2 ], None), xs) ]
+            [ ImportFrom (Eager, v1, ([ str env v2 ], None), xs) ]
       in
       v4
   | `Import_stmt (v1, v2) ->
       let v1 = (* "import" *) token env v1 in
       let v2 = map_import_list env v2 in
-      List.map (fun (dname, asopt) -> ImportAs (v1, (dname, None), asopt)) v2
+      List.map
+        (fun (dname, asopt) -> ImportAs (Eager, v1, (dname, None), asopt))
+        v2
   | `Import_from_stmt (v1, v2, v3, v4) -> (
       let tfrom = (* "from" *) token env v1 in
       let path =
@@ -1735,7 +1737,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
                 | _ -> invalid ())
               xs
           in
-          [ ImportFrom (tfrom, path, xs) ])
+          [ ImportFrom (Eager, tfrom, path, xs) ])
   | `Print_stmt x -> [ map_print_statement env x ]
   | `Assert_stmt (v1, v2, v3) ->
       let tassert = (* "assert" *) token env v1 in
