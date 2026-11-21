@@ -1,0 +1,6 @@
+The native Python parser now supports Python 3.14 template string literals
+(t-strings), including raw prefixes and interpolated expressions.
+Template values remain distinct from strings during matching and constant
+propagation. Escape decoding in interpolated strings respects raw prefixes.
+Ordinary and interpolated Python literals share numeric and Unicode-name
+escape decoding, including hex, octal, and Unicode name aliases.

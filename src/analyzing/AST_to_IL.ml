@@ -1268,6 +1268,7 @@ and map_call_special _env (x, tok) =
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> SpreadFn
     | G.Require -> Require
+    | G.TemplateString
     | G.EncodedString _
     | G.Defined
     | G.HashSplat
