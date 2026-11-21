@@ -1,0 +1,1 @@
+Fixed taint analysis for TypeScript arrow functions with typed object-destructured parameters and focused metavariables.
