@@ -14,6 +14,7 @@
 type mutable_state = {
   java_props_cache : Taint_rule_inst.java_props_cache;
   timeouts : Taint_rule_inst.file_timeout_stats;
+  taint_limit_hits : Taint_rule_inst.file_taint_limit_stats;
 }
 
 type t = mutable_state Taint_rule_inst.t
@@ -22,6 +23,7 @@ let fresh_muts () : mutable_state =
   {
     java_props_cache = Base.Hashtbl.Poly.create ~size:30 ();
     timeouts = Base.Hashtbl.Poly.create ~size:2 ();
+    taint_limit_hits = Base.Hashtbl.Poly.create ~size:2 ();
   }
 
 let of_config = Taint_rule_inst.of_config

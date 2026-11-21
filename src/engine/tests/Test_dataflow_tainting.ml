@@ -125,8 +125,11 @@ let test_dfg_tainting rules_file file =
   (* Check each function definition. *)
   v#visit_program () ast;
   let _errors =
-    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
-      muts.timeouts
+    Core_error.ErrorSet.union
+      (Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+         muts.timeouts)
+      (Taint_rule_inst.check_taint_limits_and_warn ~file:file_inst
+         muts.taint_limit_hits)
   in
   ()
 

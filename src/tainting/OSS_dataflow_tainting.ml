@@ -117,6 +117,12 @@ let record_timeout (taint_inst : OSS_taint_rule_inst.t) opt_name timeout =
       Taint_rule_inst.record_timeout ~timeouts:taint_inst.muts.timeouts
         ~rule:taint_inst.rule opt_name
 
+let record_taint_limit_hit (taint_inst : OSS_taint_rule_inst.t) opt_name hit =
+  if hit then
+    Taint_rule_inst.record_taint_limit_hit
+      ~limit_hits:taint_inst.muts.taint_limit_hits ~rule:taint_inst.rule
+      opt_name
+
 let map_check_expr env check_expr xs =
   let rev_taints_and_shapes, lval_env =
     xs
@@ -1764,6 +1770,8 @@ and fixpoint_aux func ~lambdas ~enter_lval_env ~in_lambda fun_cfg =
       ~init:init_mapping ~trans:(transfer env ~fun_cfg) ~forward:true ~flow
   in
   record_timeout env.func.taint_inst env.func.fname timeout;
+  record_taint_limit_hit env.func.taint_inst env.func.fname
+    (Lval_env.taint_limit_hit end_mapping.(flow.exit).Dataflow_core.out_env);
   (* In Pro: check taints at exit *)
   (!(env.effects_acc), end_mapping)
 

@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
+
 import pytest
 from tests.fixtures import RunSemgrep
 
@@ -54,3 +56,28 @@ def test_error_management_post_processor(run_semgrep_in_tmp: RunSemgrep):
         strict=False,
         assert_exit_code=0,
     )
+
+
+# semgrep/semgrep#12055: a taint chain longer than the default limit of 50
+# tainted variables per function loses the flow, so the scan must warn about
+# it in the JSON errors instead of staying silent. The warning must not fail
+# the scan on its own (strict=False, exit code 0).
+@pytest.mark.kinda_slow
+def test_taint_max_tainted_vars_warning(run_semgrep_in_tmp: RunSemgrep):
+    stdout, stderr = run_semgrep_in_tmp(
+        config="rules/taint_max_tainted_vars.yaml",
+        target_name="TaintMaxTaintedVars.java",
+        output_format=OutputFormat.JSON,
+        strict=False,
+        assert_exit_code=0,
+    )
+    parsed = json.loads(stdout)
+    assert parsed["results"] == []
+    warnings = [
+        error
+        for error in parsed["errors"]
+        if error["error_type"] == "SemgrepWarning"
+        and "tainted variables" in error["message"]
+    ]
+    assert len(warnings) == 1
+    assert "50" in warnings[0]["message"]

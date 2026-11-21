@@ -153,6 +153,12 @@ val equal_by_lval : env -> env -> IL.lval -> bool
 val to_string : env -> string
 val seq_of_tainted : env -> (IL.name * cell) Seq.t
 
+val taint_limit_hit : env -> bool
+(** Whether the 'Limits_semgrep.taint_MAX_TAINTED_VARS' limit was hit while
+    building this environment, that is, whether a tainted l-value was dropped
+    or refused tracking to stay within the limit. Callers read this after the
+    fixpoint to warn that some taint may have been missed. *)
+
 val track_if_var_was_touched___do_not_nest :
   env -> callback:(IL.name -> unit) -> (env -> 'a * env) -> 'a * env
 (** Run a computation while tracking whether a variable has been "touched"
