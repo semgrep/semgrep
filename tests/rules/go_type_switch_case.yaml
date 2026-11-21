@@ -1,0 +1,17 @@
+rules:
+  - id: go-type-switch-case
+    pattern: a.b
+    message: found a.b
+    languages:
+      - go
+    severity: INFO
+  - id: go-type-switch-stmt
+    pattern: |
+      switch $T := $V.(type) {
+      case a.b:
+          ...
+      }
+    message: found type switch on a.b
+    languages:
+      - go
+    severity: INFO
