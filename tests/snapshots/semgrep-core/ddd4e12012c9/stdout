@@ -2,98 +2,57 @@
    (Switch (_,
       (Some (Cond
                { e =
-                 (Container (Tuple,
-                    (_,
-                     [{ e =
-                        (Call (
-                           { e =
-                             (DotAccess (
-                                { e =
-                                  (N
-                                     (Id (("command", _),
-                                        { id_resolved = ref (None);
-                                          id_resolved_alternatives = ref ([]);
-                                          id_type = ref (None);
-                                          id_svalue = ref (Unknown);
-                                          id_flags = ref (0); id_info_id = _
-                                          }
-                                        )));
-                                  e_id = 0; e_range = None;
-                                  is_implicit_return = false;
-                                  facts = <opaque> },
-                                _,
-                                (FN
-                                   (Id (("split", _),
-                                      { id_resolved = ref (None);
-                                        id_resolved_alternatives = ref ([]);
-                                        id_type =
-                                        ref ((Some { t =
-                                                     (TyFun (
-                                                        [(OtherParam (
-                                                            ("TODO", _), 
-                                                            []))
-                                                          ],
-                                                        { t =
-                                                          (OtherType (
-                                                             ("TODO", _), 
-                                                             []));
-                                                          t_attrs = [] }
-                                                        ));
-                                                     t_attrs = [] }));
-                                        id_svalue = ref (Unknown);
-                                        id_flags = ref (0); id_info_id = _ }
-                                      )))
-                                ));
-                             e_id = 0; e_range = None;
-                             is_implicit_return = false; facts = <opaque> },
-                           (_, [], _)));
-                        e_id = 0; e_range = None; is_implicit_return = false;
-                        facts = <opaque> }
-                       ],
-                     _)
-                    ));
+                 (Call (
+                    { e =
+                      (DotAccess (
+                         { e =
+                           (N
+                              (Id (("command", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (Unknown);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           e_id = 0; e_range = None;
+                           is_implicit_return = false; facts = <opaque> },
+                         _,
+                         (FN
+                            (Id (("split", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type =
+                                 ref ((Some { t =
+                                              (TyFun (
+                                                 [(OtherParam (("TODO", _),
+                                                     []))
+                                                   ],
+                                                 { t =
+                                                   (OtherType (("TODO", _),
+                                                      []));
+                                                   t_attrs = [] }
+                                                 ));
+                                              t_attrs = [] }));
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )))
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> },
+                    (_, [], _)));
                  e_id = 0; e_range = None; is_implicit_return = false;
                  facts = <opaque> })),
       [(CasesAndBody
           ([(Case (_,
-               (PatTuple
+               (PatList
                   (_,
-                   [(PatList
-                       (_,
-                        [(OtherPat (("PatInterpolatedString", _),
-                            [(E
-                                { e =
-                                  (Call (
-                                     { e =
-                                       (Special
-                                          ((ConcatString (FString "f")), _));
-                                       e_id = 0; e_range = None;
-                                       is_implicit_return = false;
-                                       facts = <opaque> },
-                                     (_,
-                                      [(Arg
-                                          { e =
-                                            (L (String (_, ("go", _), _)));
-                                            e_id = 0; e_range = None;
-                                            is_implicit_return = false;
-                                            facts = <opaque> })
-                                        ],
-                                      _)
-                                     ));
-                                  e_id = 0; e_range = None;
-                                  is_implicit_return = false;
-                                  facts = <opaque> })
-                              ]
-                            ));
-                          (PatId (("direction", _),
-                             { id_resolved = ref ((Some (Global, _)));
-                               id_resolved_alternatives = ref ([]);
-                               id_type = ref (None);
-                               id_svalue = ref (Unknown); id_flags = ref (0);
-                               id_info_id = _ }
-                             ))
-                          ],
-                        _))
+                   [(PatLiteral (String (_, ("go", _), _)));
+                     (PatId (("direction", _),
+                        { id_resolved = ref ((Some (Global, _)));
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        ))
                      ],
                    _))
                ))
@@ -196,37 +155,9 @@
              s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
+                (PatList
                    (_,
-                    [(PatList
-                        (_,
-                         [(OtherPat (("PatInterpolatedString", _),
-                             [(E
-                                 { e =
-                                   (Call (
-                                      { e =
-                                        (Special
-                                           ((ConcatString (FString "f")), _));
-                                        e_id = 0; e_range = None;
-                                        is_implicit_return = false;
-                                        facts = <opaque> },
-                                      (_,
-                                       [(Arg
-                                           { e =
-                                             (L (String (_, ("go", _), _)));
-                                             e_id = 0; e_range = None;
-                                             is_implicit_return = false;
-                                             facts = <opaque> })
-                                         ],
-                                       _)
-                                      ));
-                                   e_id = 0; e_range = None;
-                                   is_implicit_return = false;
-                                   facts = <opaque> })
-                               ]
-                             ));
-                           (PatWildcard _)],
-                         _))
+                    [(PatLiteral (String (_, ("go", _), _))); (PatWildcard _)
                       ],
                     _))
                 ))
@@ -272,48 +203,20 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
+                (PatList
                    (_,
-                    [(PatList
-                        (_,
-                         [(OtherPat (("PatInterpolatedString", _),
-                             [(E
-                                 { e =
-                                   (Call (
-                                      { e =
-                                        (Special
-                                           ((ConcatString (FString "f")), _));
-                                        e_id = 0; e_range = None;
-                                        is_implicit_return = false;
-                                        facts = <opaque> },
-                                      (_,
-                                       [(Arg
-                                           { e =
-                                             (L (String (_, ("go", _), _)));
-                                             e_id = 0; e_range = None;
-                                             is_implicit_return = false;
-                                             facts = <opaque> })
-                                         ],
-                                       _)
-                                      ));
-                                   e_id = 0; e_range = None;
-                                   is_implicit_return = false;
-                                   facts = <opaque> })
-                               ]
-                             ));
-                           (OtherPat (("PatSplat", _),
-                              [(P
-                                  (PatId (("rest", _),
-                                     { id_resolved = ref ((Some (Global, _)));
-                                       id_resolved_alternatives = ref ([]);
-                                       id_type = ref (None);
-                                       id_svalue = ref (Unknown);
-                                       id_flags = ref (0); id_info_id = _ }
-                                     )))
-                                ]
-                              ))
-                           ],
-                         _))
+                    [(PatLiteral (String (_, ("go", _), _)));
+                      (OtherPat (("PatSplat", _),
+                         [(P
+                             (PatId (("rest", _),
+                                { id_resolved = ref ((Some (Global, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )))
+                           ]
+                         ))
                       ],
                     _))
                 ))
@@ -359,46 +262,41 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(PatConstructor (
-                        (Id (("Click", _),
-                           { id_resolved = ref (None);
-                             id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (Unknown);
-                             id_flags = ref (0); id_info_id = _ }
-                           )),
-                        [(PatKeyVal (
-                            (PatId (("position", _),
+                (PatConstructor (
+                   (Id (("Click", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (Unknown);
+                        id_flags = ref (0); id_info_id = _ }
+                      )),
+                   [(PatKeyVal (
+                       (PatId (("position", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (Unknown);
+                            id_flags = ref (0); id_info_id = _ }
+                          )),
+                       (PatTuple
+                          (_,
+                           [(PatId (("x", _),
                                { id_resolved = ref ((Some (Global, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
                                  id_svalue = ref (Unknown);
                                  id_flags = ref (0); id_info_id = _ }
-                               )),
-                            (PatTuple
-                               (_,
-                                [(PatId (("x", _),
-                                    { id_resolved = ref ((Some (Global, _)));
-                                      id_resolved_alternatives = ref ([]);
-                                      id_type = ref (None);
-                                      id_svalue = ref (Unknown);
-                                      id_flags = ref (0); id_info_id = _ }
-                                    ));
-                                  (PatId (("y", _),
-                                     { id_resolved = ref ((Some (Global, _)));
-                                       id_resolved_alternatives = ref ([]);
-                                       id_type = ref (None);
-                                       id_svalue = ref (Unknown);
-                                       id_flags = ref (0); id_info_id = _ }
-                                     ))
-                                  ],
-                                _))
-                            ))
-                          ]
-                        ))
-                      ],
-                    _))
+                               ));
+                             (PatId (("y", _),
+                                { id_resolved = ref ((Some (Global, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                ))
+                             ],
+                           _))
+                       ))
+                     ]
+                   ))
                 ))
               ],
             { s =
@@ -462,67 +360,34 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(PatDisj (
-                        (PatConstructor (
-                           (Id (("KeyPress", _),
-                              { id_resolved = ref (None);
-                                id_resolved_alternatives = ref ([]);
-                                id_type = ref (None);
-                                id_svalue = ref (Unknown);
-                                id_flags = ref (0); id_info_id = _ }
-                              )),
-                           [(PatKeyVal (
-                               (PatId (("key_name", _),
-                                  { id_resolved = ref ((Some (Global, _)));
-                                    id_resolved_alternatives = ref ([]);
-                                    id_type = ref (None);
-                                    id_svalue = ref (Unknown);
-                                    id_flags = ref (0); id_info_id = _ }
-                                  )),
-                               (OtherPat (("PatInterpolatedString", _),
-                                  [(E
-                                      { e =
-                                        (Call (
-                                           { e =
-                                             (Special
-                                                ((ConcatString (FString "f")),
-                                                 _));
-                                             e_id = 0; e_range = None;
-                                             is_implicit_return = false;
-                                             facts = <opaque> },
-                                           (_,
-                                            [(Arg
-                                                { e =
-                                                  (L
-                                                     (String (_, ("Q", _), _)));
-                                                  e_id = 0; e_range = None;
-                                                  is_implicit_return = false;
-                                                  facts = <opaque> })
-                                              ],
-                                            _)
-                                           ));
-                                        e_id = 0; e_range = None;
-                                        is_implicit_return = false;
-                                        facts = <opaque> })
-                                    ]
-                                  ))
-                               ))
-                             ]
-                           )),
-                        (PatConstructor (
-                           (Id (("Quit", _),
-                              { id_resolved = ref (None);
-                                id_resolved_alternatives = ref ([]);
-                                id_type = ref (None);
-                                id_svalue = ref (Unknown);
-                                id_flags = ref (0); id_info_id = _ }
-                              )),
-                           []))
-                        ))
-                      ],
-                    _))
+                (PatDisj (
+                   (PatConstructor (
+                      (Id (("KeyPress", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      [(PatKeyVal (
+                          (PatId (("key_name", _),
+                             { id_resolved = ref ((Some (Global, _)));
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
+                             )),
+                          (PatLiteral (String (_, ("Q", _), _)))))
+                        ]
+                      )),
+                   (PatConstructor (
+                      (Id (("Quit", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      []))
+                   ))
                 ))
               ],
             { s =
@@ -583,55 +448,23 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(PatConstructor (
-                        (Id (("KeyPress", _),
-                           { id_resolved = ref (None);
-                             id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (Unknown);
-                             id_flags = ref (0); id_info_id = _ }
-                           )),
-                        [(PatKeyVal (
-                            (PatId (("key_name", _),
-                               { id_resolved = ref ((Some (Global, _)));
-                                 id_resolved_alternatives = ref ([]);
-                                 id_type = ref (None);
-                                 id_svalue = ref (Unknown);
-                                 id_flags = ref (0); id_info_id = _ }
-                               )),
-                            (OtherPat (("PatInterpolatedString", _),
-                               [(E
-                                   { e =
-                                     (Call (
-                                        { e =
-                                          (Special
-                                             ((ConcatString (FString "f")), _));
-                                          e_id = 0; e_range = None;
-                                          is_implicit_return = false;
-                                          facts = <opaque> },
-                                        (_,
-                                         [(Arg
-                                             { e =
-                                               (L
-                                                  (String
-                                                     (_, ("up arrow", _), _)));
-                                               e_id = 0; e_range = None;
-                                               is_implicit_return = false;
-                                               facts = <opaque> })
-                                           ],
-                                         _)
-                                        ));
-                                     e_id = 0; e_range = None;
-                                     is_implicit_return = false;
-                                     facts = <opaque> })
-                                 ]
-                               ))
-                            ))
-                          ]
-                        ))
-                      ],
-                    _))
+                (PatConstructor (
+                   (Id (("KeyPress", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (Unknown);
+                        id_flags = ref (0); id_info_id = _ }
+                      )),
+                   [(PatKeyVal (
+                       (PatId (("key_name", _),
+                          { id_resolved = ref ((Some (Global, _)));
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (Unknown);
+                            id_flags = ref (0); id_info_id = _ }
+                          )),
+                       (PatLiteral (String (_, ("up arrow", _), _)))))
+                     ]
+                   ))
                 ))
               ],
             { s =
@@ -692,18 +525,14 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(PatConstructor (
-                        (Id (("KeyPress", _),
-                           { id_resolved = ref (None);
-                             id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (Unknown);
-                             id_flags = ref (0); id_info_id = _ }
-                           )),
-                        []))
-                      ],
-                    _))
+                (PatConstructor (
+                   (Id (("KeyPress", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (Unknown);
+                        id_flags = ref (0); id_info_id = _ }
+                      )),
+                   []))
                 ))
               ],
             { s =
@@ -714,28 +543,24 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(OtherPat (("PatAttribute", _),
-                        [(Name
-                            (IdQualified
-                               { name_last = (("pattern", _), None);
-                                 name_middle =
-                                 (Some (QDots
-                                          [(("long", _), None);
-                                            (("value", _), None)]));
-                                 name_top = None;
-                                 name_info =
-                                 { id_resolved = ref (None);
-                                   id_resolved_alternatives = ref ([]);
-                                   id_type = ref (None);
-                                   id_svalue = ref (Unknown);
-                                   id_flags = ref (0); id_info_id = _ }
-                                 }))
-                          ]
-                        ))
-                      ],
-                    _))
+                (OtherPat (("PatAttribute", _),
+                   [(Name
+                       (IdQualified
+                          { name_last = (("pattern", _), None);
+                            name_middle =
+                            (Some (QDots
+                                     [(("long", _), None);
+                                       (("value", _), None)]));
+                            name_top = None;
+                            name_info =
+                            { id_resolved = ref (None);
+                              id_resolved_alternatives = ref ([]);
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
+                            }))
+                     ]
+                   ))
                 ))
               ],
             { s =
@@ -746,16 +571,12 @@
               s_range = None }));
         (CasesAndBody
            ([(Case (_,
-                (PatTuple
-                   (_,
-                    [(PatId (("other_event", _),
-                        { id_resolved = ref ((Some (Global, _)));
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (Unknown);
-                          id_flags = ref (0); id_info_id = _ }
-                        ))
-                      ],
-                    _))
+                (PatId (("other_event", _),
+                   { id_resolved = ref ((Some (Global, _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }
+                   ))
                 ))
               ],
             { s =
@@ -800,18 +621,45 @@
                                               facts = <opaque> });
                                           (Arg
                                              { e =
-                                               (N
-                                                  (Id (("other_event", _),
-                                                     { id_resolved =
-                                                       ref ((Some (Global, _)));
-                                                       id_resolved_alternatives =
-                                                       ref ([]);
-                                                       id_type = ref (None);
-                                                       id_svalue =
-                                                       ref (Unknown);
-                                                       id_flags = ref (0);
-                                                       id_info_id = _ }
-                                                     )));
+                                               (Call (
+                                                  { e =
+                                                    (Special
+                                                       ((ConcatString
+                                                           (FString "f")),
+                                                        _));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> },
+                                                  (_,
+                                                   [(Arg
+                                                       { e =
+                                                         (N
+                                                            (Id (
+                                                               ("other_event",
+                                                                _),
+                                                               { id_resolved =
+                                                                 ref ((Some (
+                                                                 Global, _)));
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (Unknown);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ }
+                                                               )));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> })
+                                                     ],
+                                                   _)
+                                                  ));
                                                e_id = 0; e_range = None;
                                                is_implicit_return = false;
                                                facts = <opaque> })
