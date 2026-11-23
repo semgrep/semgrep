@@ -809,8 +809,12 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     | Parallelism_config.Eio_executor conf ->
         let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
         warn_if_insufficent_cpus num_jobs;
-        Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
-          targets
+        (* Scanning a target is cheap for most targets, but a few take a long
+           time. Batching saves the cost of handing each target to a worker
+           domain, and the small chunks keep a slow target from holding back
+           many others. *)
+        Concurrent_map_targets.map_targets ~element_cost:`Cheap_variable ~conf
+          ~num_jobs process_target targets
         |> List.map exception_handler
     | Parallelism_config.Process ->
         parmap_map ~num_jobs:config.num_jobs process_target targets
