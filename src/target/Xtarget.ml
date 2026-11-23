@@ -21,16 +21,17 @@ type t = {
   lazy_content : string Lazy_safe.t;
   lazy_utf8_valid : bool Lazy_safe.t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) Lazy_safe.t;
-  prefilter : string -> bool option;
+  prefilter : case_sensitive:bool -> string -> bool option;
 }
 
 let make ?prefilter ~path ~analyzer ~lazy_content ~lazy_ast_and_errors () =
   let prefilter =
     match prefilter with
-    | None -> Fun.const None
+    | None -> fun ~case_sensitive:_ _ -> None
     | Some prefilter ->
         let prefilter = Lazy_safe.map prefilter lazy_content in
-        fun needle -> Lazy_safe.force prefilter needle
+        fun ~case_sensitive needle ->
+          Lazy_safe.force prefilter ~case_sensitive needle
   in
   {
     path;
