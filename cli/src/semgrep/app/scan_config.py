@@ -153,12 +153,13 @@ def fetch_scan_config(
         )
         scan_info = create_scan_response.info
 
-        # Note: scan_info.id can be null for dry runs
-        if scan_info.id is not None:
+        # Dry runs do not have a registered scan ID.
+        scan_id = scan_info.id
+        if scan_id is not None:
             if on_scan_registered is not None:
-                on_scan_registered(scan_info.id)
-            logger.debug(f"Scan created with ID: {scan_info.id}")
-            span.set_attribute("scan.v2.scan_id", scan_info.id)
+                on_scan_registered(scan_id)
+            logger.debug(f"Scan created with ID: {scan_id}")
+            span.set_attribute("scan.v2.scan_id", scan_id)
 
         remaining_seconds = (
             overall_deadline - datetime.now().replace(tzinfo=None)
