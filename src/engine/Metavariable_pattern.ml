@@ -198,18 +198,16 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                           (fix_loc file) mast
                       in
                       let xtarget =
-                        {
-                          env.xtarget with
-                          path =
+                        Xtarget.make
+                          ~path:
                             {
                               env.xtarget.path with
                               internal_path_to_content = file;
-                            };
-                          lazy_ast_and_errors = lazy_safe (mast', []);
-                          lazy_content = lazy_safe contents;
-                          lazy_utf8_valid =
-                            lazy_safe (String.is_valid_utf_8 contents);
-                        }
+                            }
+                          ~analyzer:env.xtarget.analyzer
+                          ~lazy_content:(lazy_safe contents)
+                          ~lazy_ast_and_errors:(lazy_safe (mast', []))
+                          ()
                       in
                       (* Persist the bindings from inside the `metavariable-pattern`
                          matches
@@ -315,19 +313,15 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                msg);
                           []
                       | Ok lazy_ast_and_errors ->
-                          let xtarget : Xtarget.t =
-                            {
-                              path =
+                          let xtarget =
+                            Xtarget.make
+                              ~path:
                                 {
                                   origin = Unfilterable_target_file mval_file;
                                   internal_path_to_content = file;
-                                };
-                              analyzer;
-                              lazy_ast_and_errors;
-                              lazy_content = lazy_safe contents;
-                              lazy_utf8_valid =
-                                lazy_safe (String.is_valid_utf_8 contents);
-                            }
+                                }
+                              ~analyzer ~lazy_ast_and_errors
+                              ~lazy_content:(lazy_safe contents) ()
                           in
                           (* Persist the bindings from inside the `metavariable-pattern`
                              matches
