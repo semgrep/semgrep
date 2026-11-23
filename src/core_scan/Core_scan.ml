@@ -1000,7 +1000,9 @@ let scan_exn (config : Core_scan_config.t)
             Some (conf, Core_scan_config.finalize_num_jobs config.num_jobs)
         | Parallelism_config.Process -> None
       in
-      Match_env.make_prefilter ~rules:valid_rules ?par ()
+      Match_env.make_prefilter ~rules:valid_rules
+        ~interfile_rule:(fun _ -> false)
+        ?par ()
     else Match_env.NoPrefiltering
   in
   let file_results, (scanned_targets : Target.t list) =
