@@ -45,8 +45,8 @@ let check ?utf8_valid (prefilter : t) (content : string) : bool =
     (fun pred -> Predicate.eval ?utf8_valid pred content)
     prefilter.formula
 
-let check_many ?utf8_valid ?(find_needle = Fun.const None) (prefilters : t list)
-    (content : string) : bool list =
+let check_many ?utf8_valid ?(find_needle = fun ~case_sensitive:_ _ -> None)
+    (prefilters : t list) (content : string) : bool list =
   (* Different rules often ask the same question about a file. Evaluate each
      predicate only on its first use, while preserving Formula.eval's order
      and short-circuiting. Rule-generated regexes all use the same compile
@@ -56,10 +56,9 @@ let check_many ?utf8_valid ?(find_needle = Fun.const None) (prefilters : t list)
   let eval_uncached pred =
     let found =
       match pred with
-      | Predicate.String { needle; case_sensitive = true } -> find_needle needle
-      | Predicate.String { case_sensitive = false; _ }
-      | Predicate.Regex _ ->
-          None
+      | Predicate.String { needle; case_sensitive } ->
+          find_needle ~case_sensitive needle
+      | Predicate.Regex _ -> None
     in
     match found with
     | Some result -> result

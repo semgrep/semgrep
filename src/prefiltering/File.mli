@@ -65,7 +65,7 @@ val check : ?utf8_valid:bool Lazy_safe.t -> t -> string -> bool
 
 val check_many :
   ?utf8_valid:bool Lazy_safe.t ->
-  ?find_needle:(string -> bool option) ->
+  ?find_needle:(case_sensitive:bool -> string -> bool option) ->
   t list ->
   string ->
   bool list
@@ -73,7 +73,7 @@ val check_many :
     against [content]. [utf8_valid], when supplied, must describe this exact
     [content] string. Returns a list of results in the same order.
 
-    [find_needle], like {!Xtarget.t.prefilter}, answers case-sensitive needles
+    [find_needle], like {!Xtarget.t.prefilter}, answers literal needles
     of this [content] when it can; the rest use [Predicate.eval]. *)
 
 val to_formula : t -> predicate Formula.t
