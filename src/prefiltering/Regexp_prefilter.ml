@@ -229,6 +229,21 @@ let trusted_literal ((tok, _) : R.AST.loc) (c : char) : bool =
          && Char.equal src.[1] c
          && not (is_ascii_alnum c)
 
+(* True if the two characters are the lowercase and the uppercase form of the
+   same ASCII letter. *)
+let is_case_pair (a : char) (b : char) : bool =
+  (not (Char.equal a b))
+  && Char.equal (Char.lowercase_ascii a) (Char.lowercase_ascii b)
+
+(* Like [trusted_literal], for a class of two characters. The lexer does not
+   decode every escape in a class faithfully (for example, it reads [\cI] as
+   the letter [I]). So only trust the exact form [[xX]]: a class that starts
+   with [[] and has a length of 4 bytes, with no escape inside. *)
+let trusted_case_pair ((start_tok, end_tok) : R.AST.loc) : bool =
+  match Tok.content_of_tok_opt start_tok with
+  | Some "[" -> Tok.bytepos_of_tok end_tok - Tok.bytepos_of_tok start_tok =|= 3
+  | _ -> false
+
 (* [None] (here and below) means "give up on the whole regexp"; see
    [frag_of_node]. *)
 let frag_of_char_class ~caseless (loc : R.AST.loc) (cc : R.AST.char_class) :
@@ -246,6 +261,20 @@ let frag_of_char_class ~caseless (loc : R.AST.loc) (cc : R.AST.char_class) :
       (* A single concrete ASCII byte is a literal. We stay within [0x1, 0x7f]
          so the byte stands alone in UTF-8 (and never the NUL terminator). *)
       let r = { str = String.make 1 (Char.chr code); ci = caseless } in
+      Some { exact = Some r; prefix = r; suffix = r; req = None }
+  | Union (Singleton a, Singleton b)
+    when a >= 0x1 && a <= 0x7f && b >= 0x1 && b <= 0x7f
+         && is_case_pair (Char.chr a) (Char.chr b)
+         && trusted_case_pair loc ->
+      (* A class like [fF] holds the two cases of one letter. It is a
+         case-insensitive literal. Although rule authors can use (?i:facebook),
+         custom rules also spell keywords as [fF][aA][cC][eE][bB][oO][oO][kK].
+         Recognizing that equivalent syntax keeps their prefilters useful
+         without requiring rule changes. The source check above deliberately
+         limits this optimization to two literal ASCII bytes. *)
+      let r =
+        { str = String.make 1 (Char.lowercase_ascii (Char.chr a)); ci = true }
+      in
       Some { exact = Some r; prefix = r; suffix = r; req = None }
   | _ -> Some top
 
