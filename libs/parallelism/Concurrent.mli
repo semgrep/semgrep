@@ -23,6 +23,9 @@ val max_chunk_size : int
     [map]). Part of the sizing policy rather than of [map]'s interface: no
     caller supplies a chunk size. *)
 
+val max_variable_chunk_size : int
+(** The same bound for [variable_chunk_size]. *)
+
 val uniform_chunk_size : domain_count:int -> 'a list -> int
 (** [uniform_chunk_size ~domain_count l] is the chunk size [map] uses for
     [`Cheap_uniform] elements. It targets at least eight chunks per domain (so
@@ -35,8 +38,15 @@ val uniform_chunk_size : domain_count:int -> 'a list -> int
     otherwise overflow. Exposed for tests and for reasoning about the policy;
     [map] applies it itself. *)
 
+val variable_chunk_size : domain_count:int -> 'a list -> int
+(** [variable_chunk_size ~domain_count l] is the chunk size [map] uses for
+    [`Cheap_variable] elements. It is [uniform_chunk_size] with a smaller cap,
+    [max_variable_chunk_size], and a target of at least sixteen chunks per
+    domain. Chunking only engages once [l] has at least [32 * domain_count]
+    elements; smaller inputs yield 1, i.e. per-element submission. *)
+
 val map :
-  ?element_cost:[ `Coarse | `Cheap_uniform ] ->
+  ?element_cost:[ `Coarse | `Cheap_uniform | `Cheap_variable ] ->
   conf:Parallelism_config.eio_state ->
   domain_count:int ->
   ('a -> 'b) ->
@@ -57,7 +67,9 @@ val map :
     by [uniform_chunk_size]. It is only appropriate when element costs are
     both small and roughly uniform: elements sharing a chunk are serialized on
     one domain, so a chunk holding several expensive elements becomes a
-    straggler.
+    straggler. [`Cheap_variable] uses smaller chunks for mostly cheap work
+    whose cost varies, such as scanning source files. Its constants are
+    heuristics rather than empirically tuned optima.
 
     Elements sharing a chunk run serially, in list order, on one domain.
 
@@ -78,7 +90,7 @@ val map :
     which element was running, so every element of that chunk is reported as
     [Error] with that exception, rather than just the one that was running.
     Under [`Coarse] a chunk is a single element, so this is invisible; under
-    [`Cheap_uniform] it has two consequences for callers:
+    [`Cheap_uniform] or [`Cheap_variable] it has two consequences for callers:
 
     - [Error] does not imply that [f] did not run. Elements of a poisoned
       chunk that had already completed successfully are reported as [Error]

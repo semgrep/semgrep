@@ -52,6 +52,12 @@ let max_chunk_size = 256
    element costs are uneven. *)
 let min_chunks_per_domain = 8
 
+(* For mostly cheap but uneven work, smaller chunks limit stragglers and leave
+   more opportunities to balance domains. These constants are heuristic starting
+   values, not the result of a parameter sweep. *)
+let max_variable_chunk_size = 32
+let variable_min_chunks_per_domain = 16
+
 (* [divisor] below overflows for absurd domain counts, and wraps to exactly 0
    for multiples of 2^60, which would make the division raise. No real
    machine has this many domains, so clamping costs nothing. *)
@@ -61,12 +67,19 @@ let max_domain_count = 65_536
    reaches [domain_count * min_chunks_per_domain * max_chunk_size] elements,
    so [capped_length] up to that point determines the result exactly without
    traversing the rest of the input. *)
-let uniform_chunk_size ~domain_count l =
+let chunk_size_for ~min_chunks_per_domain ~max_chunk_size ~domain_count l =
   (* Tolerate nonsensical domain counts the same way [map] does. *)
   let domain_count = max 1 (min domain_count max_domain_count) in
   let divisor = domain_count * min_chunks_per_domain in
   let n = capped_length (divisor * max_chunk_size) l in
   max 1 (min max_chunk_size (n / divisor))
+
+let uniform_chunk_size ~domain_count l =
+  chunk_size_for ~min_chunks_per_domain ~max_chunk_size ~domain_count l
+
+let variable_chunk_size ~domain_count l =
+  chunk_size_for ~min_chunks_per_domain:variable_min_chunks_per_domain
+    ~max_chunk_size:max_variable_chunk_size ~domain_count l
 
 (* Single pass: visits each cell of [l] exactly once, without needing the
    total length. Requires [chunk_size >= 1]; [map] guarantees this. *)
@@ -91,8 +104,8 @@ let chunk_specs ~chunk_size l =
    [f] in list order (the [let] pins evaluation order; a bare
    [f x :: map_first ...] would run the recursive call first). Plain non-tail
    recursion is fine here: [n] is a chunk size, and every chunk size comes
-   either from [uniform_chunk_size], which caps at [max_chunk_size], or from
-   the literal 1. *)
+   either from [uniform_chunk_size] or [variable_chunk_size], both bounded by
+   [max_chunk_size], or from the literal 1. *)
 let rec map_first f n l =
   if n = 0 then []
   else
@@ -102,7 +115,8 @@ let rec map_first f n l =
         let y = f x in
         y :: map_first f (n - 1) tl
 
-let map ?(element_cost : [ `Coarse | `Cheap_uniform ] = `Coarse)
+let map
+    ?(element_cost : [ `Coarse | `Cheap_uniform | `Cheap_variable ] = `Coarse)
     ~(conf : Parallelism_config.eio_state) ~domain_count f l =
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
@@ -115,6 +129,7 @@ let map ?(element_cost : [ `Coarse | `Cheap_uniform ] = `Coarse)
     match element_cost with
     | `Coarse -> 1
     | `Cheap_uniform -> uniform_chunk_size ~domain_count l
+    | `Cheap_variable -> variable_chunk_size ~domain_count l
   in
   let specs = chunk_specs ~chunk_size l in
 

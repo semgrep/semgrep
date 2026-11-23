@@ -317,7 +317,10 @@ let test_concurrent_map_cost_equivalence () =
         expected (run `Coarse l);
       Alcotest.(check (list int))
         (Printf.sprintf "cheap_uniform, %d elements" n)
-        expected (run `Cheap_uniform l))
+        expected (run `Cheap_uniform l);
+      Alcotest.(check (list int))
+        (Printf.sprintf "cheap_variable, %d elements" n)
+        expected (run `Cheap_variable l))
     [ 0; 1; 10; 3_000 ]
 
 (* Within a chunk, [f]'s side effects must happen in list order. *)
@@ -362,7 +365,7 @@ let test_concurrent_map_reraises_cancelled_from_f () =
       with
       | _results -> Alcotest.fail "expected Cancelled to propagate"
       | exception Eio.Cancel.Cancelled _ -> ())
-    [ `Coarse; `Cheap_uniform ]
+    [ `Coarse; `Cheap_uniform; `Cheap_variable ]
 
 (* A genuine external cancel takes a different route than [f] raising
    [Cancelled]: [Executor_pool.submit] is [enqueue |> Promise.await], so the
@@ -431,6 +434,69 @@ let test_concurrent_map_chunk_poisoning () =
             (contains ~term:"GC Alarm triggered" (Printexc.to_string e)))
     res
 
+(* The policy for elements that are cheap on average but vary a lot: smaller
+   chunks than [uniform_chunk_size], and more of them for each domain. *)
+let test_variable_chunk_size () =
+  let l n = List.init n Fun.id in
+  Alcotest.(check int)
+    "small inputs stay per-element" 1
+    (Concurrent.variable_chunk_size ~domain_count:4 (l 100));
+  Alcotest.(check int)
+    "below the 32 * domain_count threshold stays per-element" 1
+    (Concurrent.variable_chunk_size ~domain_count:4 (l 127));
+  Alcotest.(check int)
+    "large inputs cap at the variable cap" Concurrent.max_variable_chunk_size
+    (Concurrent.variable_chunk_size ~domain_count:1 (l 100_000));
+  Alcotest.(check bool)
+    "the variable cap is below the uniform cap" true
+    (Concurrent.max_variable_chunk_size < Concurrent.max_chunk_size);
+  (* Deliberately below saturation, as in [test_uniform_chunk_size]: at
+     1_000/4 the chunk size is 15, giving 67 chunks for the 64 required. *)
+  let domain_count = 4 and length = 1_000 in
+  let cs = Concurrent.variable_chunk_size ~domain_count (l length) in
+  Alcotest.(check bool)
+    "chunk size is below the cap" true
+    (cs < Concurrent.max_variable_chunk_size);
+  Alcotest.(check bool)
+    "at least 16 chunks per domain" true
+    ((length + cs - 1) / cs >= 16 * domain_count);
+  Alcotest.(check int)
+    "domain_count 0 tolerated" 1
+    (Concurrent.variable_chunk_size ~domain_count:0 (l 3));
+  List.iter
+    (fun domain_count ->
+      Alcotest.(check int)
+        (Printf.sprintf "absurd domain_count %d clamped" domain_count)
+        1
+        (Concurrent.variable_chunk_size ~domain_count (l 3)))
+    [ 1 lsl 60; 1 lsl 61; 1 lsl 62; max_int ]
+
+(* A chunk of [`Cheap_variable] elements still maps every element once, in
+   order, and attributes a failure to the element that raised it. *)
+let test_concurrent_map_variable_chunks () =
+  Eio_main.run @@ fun env ->
+  let conf = conf_or_die env in
+  let bad = 7_777 in
+  let l = List.init 10_000 Fun.id in
+  Alcotest.(check int)
+    "input is actually chunked" Concurrent.max_variable_chunk_size
+    (Concurrent.variable_chunk_size ~domain_count:2 l);
+  let res =
+    Concurrent.map ~element_cost:`Cheap_variable ~conf ~domain_count:2
+      (fun x -> if x = bad then failwith "boom" else x * 2)
+      l
+  in
+  Alcotest.(check int) "one result per element" 10_000 (List.length res);
+  List.iteri
+    (fun i r ->
+      match r with
+      | Ok x -> Alcotest.(check int) "ok element, in order" (i * 2) x
+      | Error (x, exn) ->
+          Alcotest.(check int) "only the raising element errors" bad x;
+          Alcotest.(check int) "error at its own position" bad i;
+          Alcotest.(check exnt) "error payload" (Failure "boom") exn)
+    res
+
 let tests =
   Testo.categorize "Concurrent"
     [
@@ -455,4 +521,6 @@ let tests =
         test_concurrent_map_cancel_context;
       t "Concurrent.map chunk poisoning on worker death"
         test_concurrent_map_chunk_poisoning;
+      t "variable_chunk_size policy" test_variable_chunk_size;
+      t "Concurrent.map variable chunks" test_concurrent_map_variable_chunks;
     ]
