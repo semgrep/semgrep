@@ -697,6 +697,20 @@ let regexp_prefilter_tests =
          a control character) must not become required literals. *)
       check {|abc\Ndef|} (F.and_ [ str "abc"; str "def" ]);
       check {|abc\cIdef|} (F.and_ [ str "abc"; str "def" ]);
+      (* A class with the two cases of a letter is a case-insensitive literal. *)
+      check {|[fF][aA][cC][eE][bB][oO][oO][kK].*[tT][oO][kK][eE][nN]|}
+        (F.and_ [ istr "facebook"; istr "token" ]);
+      check
+        {|[fF][aA][cC][eE][bB][oO][oO][kK].*[tT][oO][kK][eE][nN].*['|"]?[0-9a-f]{32}['|"]?|}
+        (F.and_ [ istr "token"; istr "facebook" ]);
+      check {|[Aa][Bb][Cc]|} (Some (istr "abc"));
+      (* Soundness guard: the lexer reads [\cI] as the letter I, but PCRE reads
+         it as a TAB. A class with an escape is not a literal. *)
+      check {|[\cIi]abc|} (Some (str "abc"));
+      (* Soundness guard: a class of two different letters is not a literal. *)
+      check {|[aB][bC][cD]|} None;
+      (* ... and neither is a class of two digits. *)
+      check {|[12][34][56]|} None;
     ]
 
 let utf8_regex_prefilter_tests =
