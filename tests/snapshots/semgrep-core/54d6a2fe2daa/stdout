@@ -1,4 +1,6 @@
 Test name: without git > binary file is skipped
+--- Scanning roots ---
+.
 --- Files not added to git ---
 a.py
 logo.png

@@ -1,0 +1,25 @@
+Test name: without git > explicit files only, some of them ignored
+--- Scanning roots ---
+a.py
+semgrepignored.py
+sub/excluded.py
+link.py
+--- Files not added to git ---
+.semgrepignore
+a.py
+b.py
+link.py
+semgrepignored.py
+sub/excluded.py
+sub/other.py
+--- begin input files ---
+--- end input files ---
+--- '--exclude' patterns ---
+excluded.py
+--- Errors ---
+--- Selected targets ---
+selected a.py
+selected link.py
+selected semgrepignored.py
+selected sub/excluded.py
+--- Skipped targets ---
