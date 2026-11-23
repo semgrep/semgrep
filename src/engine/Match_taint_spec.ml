@@ -350,18 +350,14 @@ let raw_spec_matches_of_taint_rule ~per_file_formula_cache xconf file
   let lazy_ast_and_errors = lazy_safe ast_and_errors in
   let lazy_content = lazy_safe (UFile.read_file file) in
   (* TODO: should this function just take a target, rather than a file? *)
-  let xtarget : Xtarget.t =
-    {
-      path =
+  let xtarget =
+    Xtarget.make
+      ~path:
         {
           origin = Unfilterable_target_file file;
           internal_path_to_content = file;
-        };
-      analyzer = rule.target_analyzer;
-      lazy_content;
-      lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
-      lazy_ast_and_errors;
-    }
+        }
+      ~analyzer:rule.target_analyzer ~lazy_content ~lazy_ast_and_errors ()
   in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
     find_sources_ranges formula_cache xconf xtarget rule spec
