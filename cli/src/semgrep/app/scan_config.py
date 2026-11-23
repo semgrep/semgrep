@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from time import sleep
+from typing import Callable
 from typing import Optional
 
 import requests
@@ -88,7 +89,11 @@ def _raise_if_request_failed(response: requests.Response) -> None:
 
 # coupling(backend): if you change this you must change poll_scan_config_v2 in Semgrep_App.ml
 @telemetry.trace()
-def fetch_scan_config(request: out.CreateScanRequestV2) -> ScanConfigResponse:
+def fetch_scan_config(
+    request: out.CreateScanRequestV2,
+    *,
+    on_scan_registered: Optional[Callable[[int], None]] = None,
+) -> ScanConfigResponse:
     """
     Create a scan using the v2 endpoint with async config generation.
 
@@ -149,7 +154,9 @@ def fetch_scan_config(request: out.CreateScanRequestV2) -> ScanConfigResponse:
         scan_info = create_scan_response.info
 
         # Note: scan_info.id can be null for dry runs
-        if scan_info.id:
+        if scan_info.id is not None:
+            if on_scan_registered is not None:
+                on_scan_registered(scan_info.id)
             logger.debug(f"Scan created with ID: {scan_info.id}")
             span.set_attribute("scan.v2.scan_id", scan_info.id)
 

@@ -178,6 +178,85 @@ def test_fetch_scan_config_config_failure(
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize("failure_kind", ["failure", "gone", "poll_timeout"])
+def test_start_scan_reports_terminal_managed_pr_config_failure(
+    mocker, mock_state, mock_args, failure_kind
+):
+    project_metadata, project_config = mock_args
+    project_metadata.is_full_scan = False
+    mock_state.env.sms_scan_id = "123"
+    handler = ScanHandler(enable_transitive_reachability=None)
+    create_response = _make_response(mocker, CREATE_SCAN_RESPONSE)
+    error_response = _make_response(mocker, {})
+    expected_create_calls = 1
+
+    if failure_kind == "poll_timeout":
+        expected_create_calls = mock_state.env.v2_post_max_attempts
+        mocker.patch(
+            "semgrep.app.scan_config._poll_for_config_v2",
+            side_effect=_ConfigPollTimeout("timed out"),
+        )
+        expected_error = "timed out after 3 POST attempts"
+    elif failure_kind == "gone":
+        gone = _make_response(mocker, {}, status_code=410)
+        gone.raise_for_status.side_effect = requests.HTTPError("Gone")
+        mock_state.app_session.get.return_value = gone
+        expected_error = "API server .* returned this error"
+    else:
+        mock_state.app_session.get.return_value = _make_response(
+            mocker, FAILURE_CONFIG_RESPONSE
+        )
+        expected_error = "Config generation failed"
+
+    mock_state.app_session.post.side_effect = [
+        *[create_response] * expected_create_calls,
+        error_response,
+    ]
+    with pytest.raises(Exception, match=expected_error):
+        handler.start_scan(project_metadata, project_config)
+
+    assert [call.args[0] for call in mock_state.app_session.post.call_args_list] == [
+        f"{SEMGREP_URL}/api/cli/v2/scans"
+    ] * expected_create_calls + [f"{SEMGREP_URL}/api/agent/scans/42/error"]
+    assert mock_state.app_session.post.call_args.kwargs["json"] == {
+        "exit_code": 2,
+        "stderr": "",
+    }
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_does_not_report_managed_pr_config_retry_that_recovers(
+    mocker, mock_state, mock_args
+):
+    project_metadata, project_config = mock_args
+    project_metadata.is_full_scan = False
+    mock_state.env.sms_scan_id = "123"
+    handler = ScanHandler(enable_transitive_reachability=None)
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    response = ScanConfigResponse(
+        info=out.CreateScanResponseV2.from_json(CREATE_SCAN_RESPONSE).info,
+        config=out.ScanConfiguration.from_json(SUCCESS_CONFIG_RESPONSE["config"]),
+        engine_params=out.EngineConfiguration.from_json({}),
+    )
+    mocker.patch(
+        "semgrep.app.scan_config._poll_for_config_v2",
+        side_effect=[_ConfigPollTimeout("timed out"), response],
+    )
+
+    handler.start_scan(project_metadata, project_config)
+
+    assert handler.scan_id == 42
+    assert [call.args[0] for call in mock_state.app_session.post.call_args_list] == [
+        f"{SEMGREP_URL}/api/cli/v2/scans",
+        f"{SEMGREP_URL}/api/cli/v2/scans",
+    ]
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
 def test_start_scan_uses_v2(mocker, mock_state, mock_sleep, mock_args):
     """start_scan always uses the v2 endpoint."""
     project_metadata, project_config = mock_args

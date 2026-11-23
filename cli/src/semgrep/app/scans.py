@@ -39,6 +39,7 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scan_config import fetch_scan_config
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
+from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -132,6 +133,7 @@ class ScanHandler:
             ),
         )
         self.scan_response: Optional[out.ScanResponse] = None
+        self._registered_scan_id: Optional[int] = None
         self.dry_run = dry_run
         self._scan_params: str = ""
         self.ci_scan_results: Optional[out.CiScanResults] = None
@@ -146,7 +148,7 @@ class ScanHandler:
     def scan_id(self) -> Optional[int]:
         if self.scan_response:
             return self.scan_response.info.id
-        return None
+        return self._registered_scan_id
 
     @property
     def always_suppress_errors(self) -> bool:
@@ -431,21 +433,41 @@ class ScanHandler:
             span.set_attribute("scan.loaded_saved_config", True)
             return
 
+        self._registered_scan_id = None
+
+        def remember_scan_id(scan_id: int) -> None:
+            self._registered_scan_id = scan_id
+
         try:
             response = fetch_scan_config(
                 out.CreateScanRequestV2(
                     scan_metadata=self.scan_metadata,
                     project_metadata=project_metadata,
                     project_config=project_config.to_CiConfigFromRepo(),
-                )
+                ),
+                on_scan_registered=remember_scan_id,
             )
-        except SemgrepError as error:
-            if error.code == INVALID_API_KEY_EXIT_CODE:
+            if response.engine_params is None:
+                raise Exception("Config status is Success but engine_params is missing")
+        except Exception as error:
+            if (
+                isinstance(error, SemgrepError)
+                and error.code == INVALID_API_KEY_EXIT_CODE
+            ):
                 logger.info(str(error))
                 sys.exit(error.code)
+            if (
+                self._registered_scan_id is not None
+                and self.scan_metadata.sms_scan_id is not None
+                and not project_metadata.is_full_scan
+            ):
+                try:
+                    self.report_failure(FATAL_EXIT_CODE)
+                except Exception:
+                    logger.debug(
+                        f"Could not report the configuration failure for scan {self._registered_scan_id}."
+                    )
             raise
-        if response.engine_params is None:
-            raise Exception("Config status is Success but engine_params is missing")
         self._handle_scan_response(
             out.ScanResponse(
                 info=response.info,
@@ -456,10 +478,7 @@ class ScanHandler:
 
     @telemetry.trace()
     def report_failure(self, exit_code: int) -> None:
-        """
-        Send semgrep cli non-zero exit code information to server
-        and return what exit code semgrep should exit with.
-        """
+        """Report a failed scan, including failures before its config was loaded."""
         state = get_state()
 
         if self.partial_output:
