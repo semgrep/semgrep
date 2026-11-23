@@ -158,7 +158,6 @@ def fetch_scan_config(
         if scan_id is not None:
             if on_scan_registered is not None:
                 on_scan_registered(scan_id)
-            logger.debug(f"Scan created with ID: {scan_id}")
             span.set_attribute("scan.v2.scan_id", scan_id)
 
         remaining_seconds = (
