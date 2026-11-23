@@ -45,27 +45,39 @@ let check ?utf8_valid (prefilter : t) (content : string) : bool =
     (fun pred -> Predicate.eval ?utf8_valid pred content)
     prefilter.formula
 
-let check_many ?utf8_valid (prefilters : t list) (content : string) : bool list
-    =
+let check_many ?utf8_valid ?(find_needle = Fun.const None) (prefilters : t list)
+    (content : string) : bool list =
   (* Different rules often ask the same question about a file. Evaluate each
      predicate only on its first use, while preserving Formula.eval's order
      and short-circuiting. Rule-generated regexes all use the same compile
      options, so equal predicates have equal results. Predicates supplied by
      callers via [of_formula] may use different regex options and bypass the
      cache. This table is local to the file and safe with parallel targets. *)
+  let eval_uncached pred =
+    let found =
+      match pred with
+      | Predicate.String { needle; case_sensitive = true } -> find_needle needle
+      | Predicate.String { case_sensitive = false; _ }
+      | Predicate.Regex _ ->
+          None
+    in
+    match found with
+    | Some result -> result
+    | None -> Predicate.eval ?utf8_valid pred content
+  in
   let cache = Base.Hashtbl.create (module Predicate) in
   let eval pred =
     match Base.Hashtbl.find cache pred with
     | Some result -> result
     | None ->
-        let result = Predicate.eval ?utf8_valid pred content in
+        let result = eval_uncached pred in
         Base.Hashtbl.set cache ~key:pred ~data:result;
         result
   in
   List.map
     (fun prefilter ->
       if prefilter.generated then Formula.eval eval prefilter.formula
-      else check ?utf8_valid prefilter content)
+      else Formula.eval eval_uncached prefilter.formula)
     prefilters
 
 let to_formula (prefilter : t) : predicate Formula.t = prefilter.formula

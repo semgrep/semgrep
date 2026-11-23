@@ -1,0 +1,1 @@
+File prefilters can answer case-sensitive needle predicates from a per-target prefilter carried by the extended target, keeping their default evaluation behavior otherwise.

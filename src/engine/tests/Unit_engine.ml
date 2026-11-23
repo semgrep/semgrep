@@ -824,18 +824,17 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
     taint_rules
     |> List.concat_map (fun rule ->
         let lazy_content = lazy_safe (UFile.read_file file) in
-        let xtarget : Xtarget.t =
-          {
-            path =
+        let xtarget =
+          Xtarget.make
+            ~path:
               {
                 origin = Unfilterable_target_file file;
                 internal_path_to_content = file;
-              };
-            analyzer = Analyzer.L (lang, []);
-            lazy_content;
-            lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
-            lazy_ast_and_errors = lazy_safe (ast, []);
-          }
+              }
+            ~analyzer:(Analyzer.L (lang, []))
+            ~lazy_content
+            ~lazy_ast_and_errors:(lazy_safe (ast, []))
+            ()
         in
         let results, _errors =
           Match_tainting_mode.check_rules () ~matches_hook:Fun.id
