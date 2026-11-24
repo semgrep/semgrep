@@ -1,1 +1,0 @@
-Fixed unnecessary directory I/O, introduced in 1.164.0, when scanning only explicitly listed files.

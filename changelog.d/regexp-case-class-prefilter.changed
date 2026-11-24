@@ -1,1 +1,0 @@
-Improved prefilter generation for patterns comprising regex which use character classes to achieve case-insensitivity, e.g., `[fF][oO][oO]`.

@@ -1,1 +1,0 @@
-Reduce scan startup overhead by skipping prefilter work that no rule needs and stopping project-wide checks once all required conditions have been found.
