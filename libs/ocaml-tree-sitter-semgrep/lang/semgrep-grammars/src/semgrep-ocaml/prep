@@ -3,15 +3,15 @@
 # Import and patch up external files.
 #
 # Not the generic script because ocaml's grammar.js is in the subfolder
-# 'ocaml'.
+# 'grammars/ocaml'.
 #
 set -eu -o pipefail
 
 mkdir -p src
 
 rm -f src/scanner.c
-cat ../tree-sitter-ocaml/ocaml/src/scanner.c \
-  | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+cat ../tree-sitter-ocaml/grammars/ocaml/src/scanner.c \
+  | sed -e 's:"../../../common/scanner.h":"scanner.h":' \
   > src/scanner.c
 
 (
@@ -23,6 +23,9 @@ cat ../tree-sitter-ocaml/ocaml/src/scanner.c \
 mkdir -p test/corpus
 (
   cd test/corpus
-  rm -f inherited
-  ln -sf ../../../tree-sitter-ocaml/ocaml/corpus inherited
+  if [ -L inherited ]; then rm -f inherited; fi
+  mkdir -p inherited
+  for file in ../../../tree-sitter-ocaml/test/corpus/*.txt; do
+    ln -sf ../"$file" inherited/
+  done
 )
