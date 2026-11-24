@@ -1,0 +1,1 @@
+OCaml target parsing now supports OCaml 5.2 through 5.4 syntax (via `tree-sitter-ocaml` v0.24.2), including raw and Unicode identifiers, local opens in types, effect-handler cases, short dependent functor types, and labeled tuples. Writing these newer constructs directly in rule patterns remains unsupported.

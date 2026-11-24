@@ -1,0 +1,9 @@
+type t = [%unknown]
+let [%unknown] = value
+let f = function [%unknown] -> 1
+module M = [%unknown]
+module type S = [%unknown]
+class c = [%unknown]
+class type d = [%unknown]
+class e = object [%%unknown] end
+class type f = object [%%unknown] end

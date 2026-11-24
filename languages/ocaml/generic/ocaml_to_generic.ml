@@ -135,6 +135,13 @@ and type_kind = function
   | TyApp (v1, v2) ->
       let l, v1, r = bracket (list type_) v1 and v2 = name v2 in
       G.TyApply (G.TyN v2 |> G.t, (l, v1 |> list (fun t -> G.TA t), r))
+  | TyLabeled (label, ty) ->
+      G.OtherType
+        ( ("LabeledTupleElement", snd label),
+          [ G.I (ident label); G.T (type_ ty) ] )
+  | TyLocalOpen (path, dot, ty) ->
+      G.OtherType
+        (("LocalOpen", dot), [ G.E (type_open_path path); G.T (type_ ty) ])
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -142,6 +149,17 @@ and type_kind = function
       let t = todo_category t in
       let v1 = list type_ v1 in
       G.OtherType (t, list (fun x -> G.T x) v1)
+
+(* Generic names cannot represent applicative functors, so keep the complete
+ * path as an expression within the local-open type payload. *)
+and type_open_path = function
+  | TypeOpenName ids -> G.N (H.name_of_ids ids) |> G.e
+  | TypeOpenDot (path, id) ->
+      G.DotAccess
+        (type_open_path path, snd id, G.FN (G.Id (ident id, G.empty_id_info ())))
+      |> G.e
+  | TypeOpenApply (fn, arg) ->
+      G.Call (type_open_path fn, fb [ G.Arg (type_open_path arg) ]) |> G.e
 
 and expr_body e : G.stmt = stmt e
 
@@ -484,6 +502,15 @@ and pattern = function
   | PatConstructor (v1, v2) ->
       let v1 = name v1 and v2 = option pattern v2 in
       G.PatConstructor (v1, Option.to_list v2)
+  | PatConstructorAbstract (ctor, type_tok, names, pat) ->
+      let args =
+        List.map
+          (fun id ->
+            G.OtherTypeArg (("AbstractType", type_tok), [ G.I (ident id) ]))
+          names
+      in
+      let ctor = H.add_type_args_to_name (name ctor) (fb args) in
+      G.PatConstructor (ctor, [ pattern pat ])
   | PatPolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 in
@@ -494,6 +521,10 @@ and pattern = function
       let v1 = pattern v1 and v2 = tok v2 and v3 = pattern v3 in
       let n = H.name_of_ids [ ("::", v2) ] in
       G.PatConstructor (n, [ v1; v3 ])
+  | PatEffect (effect_tok, pat, continuation) ->
+      G.OtherPat
+        ( ("Effect", effect_tok),
+          [ G.P (pattern pat); G.P (pattern continuation) ] )
   | PatTuple v1 ->
       let v1 = bracket (list pattern) v1 in
       G.PatTuple v1
@@ -664,6 +695,25 @@ and module_expr = function
       let xs = list module_expr xs in
       G.OtherModule (t, list (fun x -> G.ModDk x) xs)
 
+and module_type_args mt =
+  match mt with
+  | ModuleTyPath n -> [ G.Name (name n) ]
+  | ModuleTySig items ->
+      items |> List.concat_map item |> List.map (fun s -> G.S s)
+  | ModuleTyFunctor (params, _arrow, codomain) ->
+      List.concat_map module_parameter_args params @ module_type_args codomain
+  | ModuleTyArrow (domain, _arrow, codomain) ->
+      module_type_args domain @ module_type_args codomain
+  | ModuleTyWith (mty, tys) ->
+      module_type_args mty @ List.map (fun t -> G.T (type_ t)) tys
+  | ModuleTyOf (tok, mexpr) ->
+      [ G.TodoK ("ModuleTypeOf", tok); G.ModDk (module_expr mexpr) ]
+  | ModuleTyTodo categ -> [ G.TodoK categ ]
+
+and module_parameter_args = function
+  | ModuleParam (id, mty) -> G.I (ident id) :: module_type_args mty
+  | ModuleParamUnit tok -> [ G.Tk tok ]
+
 and attributes xs = list attribute xs
 
 and attribute x =
@@ -762,6 +812,17 @@ and item { i; iattrs } =
       let ent, def = module_declaration v1 in
       let ent = add_attrs ent attrs in
       [ G.DefStmt (ent, G.ModuleDef def) |> G.s ]
+  | ModuleType (t, id, mty) ->
+      let nested =
+        match mty with
+        | None -> []
+        | Some mt -> module_type_args mt
+      in
+      [
+        G.OtherStmt
+          (G.OS_Todo, [ G.TodoK ("ModuleType", t); G.I (ident id) ] @ nested)
+        |> G.s;
+      ]
   | ItemTodo (t, xs) ->
       let t = todo_category t in
       let xs = list item xs |> List_.flatten in
