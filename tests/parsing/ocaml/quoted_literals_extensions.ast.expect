@@ -1,0 +1,182 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("text", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyN
+                                 (Id (("string", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (Unknown);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }));
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e = (L (String (_, ("hello @world %s", _), _)));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype = None; vtok = None })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("escaped", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("string", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (String (_, ("a\\n\\x41\\u{0042}", _), _)));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("char", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("char", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Char ("\\n", _))); e_id = 0; e_range = None;
+                     is_implicit_return = false; facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("payload", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (OtherExpr (("Extension", _), [])); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s = (OtherStmt (OS_Todo, [(TodoK ("Extension", _))])); s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("quoted", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (OtherExpr (("Extension", _), [])); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s = (OtherStmt (OS_Todo, [(TodoK ("Extension", _))])); s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("unicode_delimiter", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("string", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (String (_, ("normalized", _), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("after_comment", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("int", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Int ((Some 42L), _))); e_id = 0; e_range = None;
+                     is_implicit_return = false; facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None }
+  ]

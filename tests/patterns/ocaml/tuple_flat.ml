@@ -1,0 +1,5 @@
+(* ERROR: match *)
+let flat = (1, 2, 3)
+let nested_left = ((1, 2), 3)
+let nested_right = (1, (2, 3))
+let pair = (1, 2)

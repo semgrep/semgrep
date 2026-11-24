@@ -225,7 +225,7 @@
     "url": "https://github.com/tree-sitter-grammars/tree-sitter-objc.git"
   },
   "ocaml": {
-    "commit": "4a885a615634dd447ae6b9d8f2cee4a3ea495087",
+    "commit": "0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff",
     "regen": [
       "ocaml"
     ],

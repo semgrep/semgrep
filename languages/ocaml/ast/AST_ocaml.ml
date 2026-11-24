@@ -64,12 +64,21 @@ type todo_category = string wrap [@@deriving show]
 (* Types *)
 (*****************************************************************************)
 
+(** Paths in local type opens, retaining applicative functor arguments. *)
+type type_open_path =
+  | TypeOpenName of qualifier
+  | TypeOpenDot of type_open_path * ident
+  | TypeOpenApply of type_open_path * type_open_path
+[@@deriving show { with_path = false }]
+
 type type_ =
   | TyName of name (* include builtins *)
   | TyVar of ident (* 'a *)
   | TyAny of Tok.t (* _ *)
   | TyFunction of type_ * type_
   | TyApp of type_ list bracket * name (* less: could be merged with TyName *)
+  | TyLabeled of ident * type_ (* labeled tuple component *)
+  | TyLocalOpen of type_open_path * Tok.t * type_
   | TyTuple of type_ list (* at least 2 *)
   (* sgrep-ext: *)
   | TyEllipsis of Tok.t
@@ -229,9 +238,11 @@ and pattern =
   | PatLiteral of literal (* can be signed *)
   (* alt: PatConstructor of name * pattern list bracket option *)
   | PatConstructor of name * pattern option
+  | PatConstructorAbstract of name * Tok.t * ident list * pattern
   | PatPolyVariant of (Tok.t (* '`' *) * ident) * pattern option
   (* special cases of PatConstructor *)
   | PatConsInfix of pattern * Tok.t (* :: *) * pattern
+  | PatEffect of Tok.t * pattern * pattern (* effect and continuation *)
   (* some brackets are fake_info *)
   | PatTuple of pattern list bracket
   | PatList of pattern list bracket
@@ -423,14 +434,32 @@ and item_kind =
   | Let of Tok.t * rec_opt * let_binding list
   | TopExpr of expr
   | Module of Tok.t * module_declaration
+  (* 'module type'. The body keeps the signature, functor parameters,
+   * codomain, and with-constraints that rules need to see. *)
+  | ModuleType of Tok.t * ident * module_type option
   | Class of Tok.t (* 'class' *) * class_binding list
   (* TODO
    * - directives (#xxx)
    * - floating attributes ([@@@ ])
    * - include
-   * - module type
    *)
   | ItemTodo of todo_category * item list
+
+(* Module types are only as detailed as the children we can name. Paths,
+ * signatures, functors, and with-constraints are real nodes. 'module type
+ * of' keeps the module expression. The rest stays a todo. *)
+and module_type =
+  | ModuleTyPath of name
+  | ModuleTySig of item list
+  | ModuleTyFunctor of module_parameter list * Tok.t * module_type
+  | ModuleTyArrow of module_type * Tok.t * module_type
+  | ModuleTyWith of module_type * type_ list
+  | ModuleTyOf of Tok.t * module_expr
+  | ModuleTyTodo of todo_category
+
+and module_parameter =
+  | ModuleParam of ident * module_type
+  | ModuleParamUnit of Tok.t
 [@@deriving show { with_path = false }]
 
 type program = item list [@@deriving show]

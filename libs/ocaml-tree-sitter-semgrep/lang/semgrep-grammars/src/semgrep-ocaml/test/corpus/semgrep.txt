@@ -1,0 +1,231 @@
+============================================================
+Includes in structures
+============================================================
+
+include M
+include F(X)
+include (M : S)
+include [%impl]
+let x = 0
+
+---
+
+(compilation_unit
+  (include_module
+    (module_path
+      (module_name)))
+  (include_module
+    (module_application
+      (module_path
+        (module_name))
+      (parenthesized_module_expression
+        (module_path
+          (module_name)))))
+  (include_module
+    (typed_module_expression
+      (module_path
+        (module_name))
+      (module_type_path
+        (module_type_name))))
+  (include_module
+    (extension
+      (attribute_id)))
+  (value_definition
+    (let_binding
+      (value_name)
+      (number))))
+
+============================================================
+Includes in signatures
+============================================================
+
+include M
+include F(X).S
+include [%sig]
+val x : int
+
+---
+
+(compilation_unit
+  (include_module_type
+    (module_type_path
+      (module_type_name)))
+  (include_module_type
+    (module_type_path
+      (extended_module_path
+        (extended_module_path
+          (module_name))
+        (extended_module_path
+          (module_name)))
+      (module_type_name)))
+  (include_module_type
+    (extension
+      (attribute_id)))
+  (value_specification
+    (value_name)
+    (type_constructor_path
+      (type_constructor))))
+
+============================================================
+Functor signatures without an introducer
+============================================================
+
+include (X : S) -> S
+val x : int
+
+---
+
+(compilation_unit
+  (include_module_type
+    (functor_type
+      (module_parameter
+        (module_name)
+        (module_type_path
+          (module_type_name)))
+      (module_type_path
+        (module_type_name))))
+  (value_specification
+    (value_name)
+    (type_constructor_path
+      (type_constructor))))
+
+============================================================
+Effect names and patterns
+============================================================
+
+let effect x = x
+let y = effect ()
+let z = obj.effect
+let f = function effect -> effect
+let g = function (effect, x) -> effect x
+
+---
+
+(compilation_unit
+  (value_definition
+    (let_binding
+      (value_name)
+      (parameter
+        (value_pattern))
+      (value_path
+        (value_name))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (application_expression
+        (value_path
+          (value_name))
+        (unit))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (field_get_expression
+        (value_path
+          (value_name))
+        (field_path
+          (field_name)))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (function_expression
+        (match_case
+          (value_pattern)
+          (value_path
+            (value_name))))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (function_expression
+        (match_case
+          (parenthesized_pattern
+            (tuple_pattern
+              (value_pattern)
+              (value_pattern)))
+          (application_expression
+            (value_path
+              (value_name))
+            (value_path
+              (value_name))))))))
+
+============================================================
+Effect handlers retain their operands
+============================================================
+
+let f = function effect (Read x), k -> continue k x
+
+---
+
+(compilation_unit
+  (value_definition
+    (let_binding
+      (value_name)
+      (function_expression
+        (match_case
+          (effect_pattern
+            (parenthesized_pattern
+              (constructor_pattern
+                (constructor_path
+                  (constructor_name))
+                (value_pattern)))
+            (value_pattern))
+          (application_expression
+            (value_path
+              (value_name))
+            (value_path
+              (value_name))
+            (value_path
+              (value_name))))))))
+
+============================================================
+Dollar operators are not metavariables
+============================================================
+
+f $X;;
+let arg = $1
+
+---
+
+(compilation_unit
+  (expression_item
+    (infix_expression
+      (value_path
+        (value_name))
+      (rel_operator)
+      (constructor_path
+        (constructor_name))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (ocamlyacc_value))))
+
+============================================================
+Escaped names and quoted string boundaries
+============================================================
+
+let \#let = 1
+let café = {é|... $X|é}
+let s = {id|first|id}
+let t = "last"
+
+---
+
+(compilation_unit
+  (value_definition
+    (let_binding
+      (value_name)
+      (number)))
+  (value_definition
+    (let_binding
+      (value_name)
+      (quoted_string
+        (quoted_string_content))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (quoted_string
+        (quoted_string_content))))
+  (value_definition
+    (let_binding
+      (value_name)
+      (string
+        (string_content)))))
