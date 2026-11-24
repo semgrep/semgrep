@@ -1,4 +1,6 @@
 Test name: with git > .txt file with magic bytes is kept
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 notes.txt
 --- begin input files ---

@@ -46,17 +46,18 @@ type prefilter_policy =
 
    The [intrafile] table is always built (every scan does an intrafile
    matching pass).  The [interfile] table is built only when
-   [~need_interfile] is true — Pro deep/interfile scans need it; OSS
-   scans, Pro intrafile-only scans, and LSP search never query it, so
-   we'd otherwise be paying a full per-rule prefilter compute pass for
-   nothing.  If a caller queries [~interfile:true] when the table
-   wasn't built, we return [None] (no prefilter, file is scanned).
+   [~need_interfile] is true. [interfile_rule] selects the rules whose
+   interfile prefilters will be queried. Callers without interfile work pass
+   a predicate that is always false. If a caller queries [~interfile:true]
+   for a rule whose interfile prefilter was not built, we return [None]
+   (no prefilter, file is scanned).
 
    When [~par:(conf, domain_count)] is provided, the per-rule prefilter
    computation is fanned out across [domain_count] domains via
    [Concurrent.map].
 *)
 let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
+    ~(interfile_rule : Rule.t -> bool)
     ?(par : (Parallelism_config.eio_state * int) option) () =
   let%trace span = "prefilter.file.generation" in
   Tracing.add_data_to_span span
@@ -65,6 +66,10 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
       ("interfile", `Bool need_interfile);
     ];
   let mk ~interfile =
+    (* A scan only asks for the interfile prefilter of the rules that it runs
+       with interfile analysis. A rule without an entry gets no prefilter, and
+       so it is never skipped. *)
+    let rules = if interfile then List.filter interfile_rule rules else rules in
     let h = Base.Hashtbl.Poly.create ~size:(List.length rules) () in
     (* [Concurrent.map] runs this in other domains, where the ambient trace
        context is not set, so restore the current one. *)

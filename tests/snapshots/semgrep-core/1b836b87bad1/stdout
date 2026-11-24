@@ -1,0 +1,19 @@
+Test name: with git > same explicit file given several times
+--- Scanning roots ---
+a.py
+./a.py
+a.py
+--- Files added before 'git add' ---
+a.py
+--- begin input files ---
+a.py
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a.py
+--- Errors ---
+--- Selected targets ---
+selected ./a.py
+selected a.py
+--- Skipped targets ---

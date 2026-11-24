@@ -1,4 +1,6 @@
 Test name: without git > extension-less binary is skipped
+--- Scanning roots ---
+.
 --- Files not added to git ---
 a.py
 mytool
