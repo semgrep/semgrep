@@ -49,6 +49,12 @@ type level =
 
 val show_level : level -> string
 
+val get_level : unit -> level
+(** The current trace level, [Info] unless set otherwise. *)
+
+val set_level : level -> unit
+(** Set the trace level (of the current domain and of those spawned from it). *)
+
 (*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
