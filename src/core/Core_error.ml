@@ -388,3 +388,26 @@ let split_fixpoint_timeouts errors =
       | __else__ -> true)
   in
   (errors, `Fixpoint_timeouts fixpoint_timeouts)
+
+let count_of_type typ (errors : ErrorSet.t) : int =
+  ErrorSet.fold
+    (fun err n -> if Stdlib.(err.typ = typ) then n + 1 else n)
+    errors 0
+
+let rule_ids_of_type typ (errors : ErrorSet.t) : Rule_ID.t list =
+  ErrorSet.fold
+    (fun err acc ->
+      match err.rule_id with
+      | Some rule_id when Stdlib.(err.typ = typ) -> rule_id :: acc
+      | _ -> acc)
+    errors []
+
+let rule_counts_of_type typ (errors : ErrorSet.t) : (Rule_ID.t * int) list =
+  let tbl = Base.Hashtbl.Poly.create () in
+  rule_ids_of_type typ errors
+  |> List.iter (fun rid -> Base.Hashtbl.incr tbl rid);
+  Base.Hashtbl.to_alist tbl
+  |> List.sort (fun (r1, n1) (r2, n2) ->
+      match Int.compare n2 n1 with
+      | 0 -> String.compare (Rule_ID.to_string r1) (Rule_ID.to_string r2)
+      | c -> c)
