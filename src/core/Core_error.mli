@@ -75,3 +75,17 @@ val severity_of_error :
 
 val split_fixpoint_timeouts :
   t list -> t list * [> `Fixpoint_timeouts of t list ]
+
+val count_of_type : Semgrep_output_v1_t.error_type -> ErrorSet.t -> int
+(** Number of errors of the given type. Errors are distinct per rule and
+    file or function, since their message and location include them, so
+    timeouts are not merged. *)
+
+val rule_ids_of_type :
+  Semgrep_output_v1_t.error_type -> ErrorSet.t -> Rule_ID.t list
+(** The rules of the errors of the given type (with repeats). *)
+
+val rule_counts_of_type :
+  Semgrep_output_v1_t.error_type -> ErrorSet.t -> (Rule_ID.t * int) list
+(** Number of errors of the given type per rule, most frequent first (ties are
+    broken by rule ID). *)
