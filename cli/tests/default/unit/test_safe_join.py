@@ -12,6 +12,7 @@
 #
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -105,3 +106,41 @@ def test_safe_join_with_normalized_base():
     # Should still prevent traversal with normalized base
     with pytest.raises(ValueError, match="Untrusted path escapes the base directory!"):
         safe_join(base_dir, "../file.txt")
+
+
+@pytest.mark.quick
+@pytest.mark.skipif(os.name != "nt", reason="Windows-specific path anchoring")
+def test_safe_join_blocks_windows_root_and_drive_relative_paths():
+    """Paths anchored to the drive root are not absolute for pathlib on Windows"""
+    base_dir = tempfile.mkdtemp(prefix="semgrep_scan_")
+
+    for path in ("/Windows/System32", "\\Windows\\Temp", "D:file.txt"):
+        with pytest.raises(ValueError, match="Untrusted path must be relative"):
+            safe_join(base_dir, path)
+
+
+@pytest.mark.quick
+def test_safe_join_never_escapes_base_dir():
+    """An accepted path must resolve inside the base directory"""
+    base_dir = tempfile.mkdtemp(prefix="semgrep_scan_")
+    base_path = Path(base_dir).resolve()
+
+    for path in (
+        "file.txt",
+        "sub/file.txt",
+        "./file.txt",
+        "..",
+        "../file.txt",
+        "sub/../../file.txt",
+        "/etc/passwd",
+        "/Windows/System32",
+        "\\Windows\\Temp",
+        "C:Windows",
+        "D:file.txt",
+        "C:/Windows",
+    ):
+        try:
+            result = safe_join(base_dir, path)
+        except ValueError:
+            continue
+        assert Path(result).resolve().is_relative_to(base_path)
