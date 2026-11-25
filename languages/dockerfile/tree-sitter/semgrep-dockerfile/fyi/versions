@@ -20,11 +20,61 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-dockerfile/grammar.js
 Git repo name: workspace
-Latest commit in repo: 41551908f12ba0143ee3bbad449af82f71943d04
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit 821d00a136532d3f36308d244c7f6a490d810342
-  Author: Carlos Acosta <93443910+charle-z@users.noreply.github.com>
-  Date:   Fri Sep 25 14:15:36 2026 +0000
+  commit 06f0602cb7a1605fdf839583a364b429ea34770a
+  Author: Marc-André Laverdière <marc-andre@semgrep.com>
+  Date:   Wed Sep 30 18:34:08 2026 -0600
   
-      fix(dockerfile): parse EXPOSE env ports with protocols
+      Merge OSS PR 11928 into Proprietary (#7157)
+      
+      What:
+      Import OSS PR https://github.com/semgrep/semgrep/pull/11934 into
+      proprietary under `OSS/`, preserving the contributor's three commits
+      (author Carlos Acosta / @charle-z). Fixes Dockerfile parsing for
+      environment-expanded `EXPOSE` ports with TCP/UDP protocols, plus
+      changelog and tree-sitter 0.26.3 regeneration.
+      
+      Why:
+      `sync-with-PRO` failed on this already-merged OSS PR because proprietary
+      tracks `parser.c` as Git LFS while OSS stores it as a normal blob. We
+      need these OSS changes in proprietary so they stay in the Pro↔OSS sync
+      loop.
+      
+      How:
+      Applied the OSS commits with `git am --3way --directory=OSS`, resolving
+      `parser.c` conflicts by taking the OSS file content and re-adding it
+      through LFS. No intentional logic changes beyond the imported OSS
+      commits.
+      
+      Test plan:
+      - [x] Compared branch file contents to OSS PR tip (non-`parser.c` match;
+      `parser.c` LFS oid matches OSS sha256)
+      - [x] Confirmed all three commits retain Author: Carlos Acosta
+      - [x] CI on this PR
+      
+      Synced from OSS PR https://github.com/semgrep/semgrep/pull/11934
+      Author: @charle-z
+      Imported by: @malaverdiere
+      
+      OSS-sync-author: Carlos Acosta
+      <93443910+charle-z@users.noreply.github.com>
+      
+      Co-authored-by: Carlos Acosta
+      <93443910+charle-z@users.noreply.github.com>
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---

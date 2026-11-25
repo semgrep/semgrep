@@ -14,18 +14,14 @@ matches_version() {
   [[ "$reported" == "tree-sitter $version" || "$reported" == "tree-sitter $version "* ]]
 }
 
-if [[ "${FORCE:-0}" != "1" && -x "$prefix/bin/tree-sitter" ]] \
-    && matches_version "$prefix/bin/tree-sitter"; then
-  echo "tree-sitter $version CLI already provisioned at $prefix"
-  exit 0
-fi
-
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m)
+exe_ext=""
 case "$os" in
-  linux)  os_tag="linux" ;;
-  darwin) os_tag="macos" ;;
-  *)      error "Unsupported OS: $os" ;;
+  linux)                os_tag="linux" ;;
+  darwin)               os_tag="macos" ;;
+  mingw*|msys*|cygwin*) os_tag="windows"; exe_ext=".exe" ;;
+  *)                    error "Unsupported OS: $os" ;;
 esac
 case "$arch" in
   x86_64)        arch_tag="x64" ;;
@@ -33,13 +29,61 @@ case "$arch" in
   *)             error "Unsupported architecture: $arch" ;;
 esac
 
+bin_path="$prefix/bin/tree-sitter${exe_ext}"
+if [[ "${FORCE:-0}" != "1" && -x "$bin_path" ]] \
+    && matches_version "$bin_path"; then
+  echo "tree-sitter $version CLI already provisioned at $prefix"
+  exit 0
+fi
+
+expected_checksum() {
+  case "$1:$2" in
+    0.22.6:linux-arm64)   echo "9335ab8b5f5f25e6146da955ca3586f3e1db75a249a82b5857627ebc262a961d" ;;
+    0.22.6:linux-x64)     echo "a3ef0ff0b0ec96a7782ad02a8393d455177e29800fee257b1e74c19bbb7c2452" ;;
+    0.22.6:macos-arm64)   echo "3f1f2e85c165c633e5d17b72f462cc8f9e2d2f7241bd583d11083c8b7fa834e2" ;;
+    0.22.6:macos-x64)     echo "c131f5e92142146f27598d69797a7289503c18747b1ae696b5b22c2291e22c5d" ;;
+    0.22.6:windows-arm64) echo "0b3d4c38be5a640b7eb3fc2748046390512810b587fb32d9d92fd536d9edc7db" ;;
+    0.22.6:windows-x64)   echo "75bb644474a817849ba4cac071a6a051d40696a34c2c44df7e4c8749547d3992" ;;
+    0.26.11:linux-arm64)  echo "e47dd59bf2f21ad7c15771546a724464ee3c008a60fbb61c6860bd19a44b3060" ;;
+    0.26.11:linux-x64)    echo "8dac3c89bb632eece700ea7a261ad963b251f2228c4aef3b58458ebea8dbe4eb" ;;
+    0.26.11:macos-arm64)  echo "0bb646b2a29007233bd44855f00d0b8e238084d5b442f097d841b476318c2c90" ;;
+    0.26.11:macos-x64)    echo "0da547d2622ba1583e4c748bb44db5b79af56462da41acf377b9fdc2eb2cd49f" ;;
+    0.26.11:windows-arm64) echo "436c5fd1f1b999fedb6ba007c43f73bdfee01549a965420c0cee6a7f6c7f1a44" ;;
+    0.26.11:windows-x64)   echo "9d836a8c405ed50cea6b3410905576de3bff2b42ca12edc1e825ec86fe918a5f" ;;
+    *) error "No checksum registered for tree-sitter $1 ($2). Add one to expected_checksum in this script." ;;
+  esac
+}
+
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | cut -d' ' -f1
+  else
+    error "Neither sha256sum nor shasum found."
+  fi
+}
+
+verify_checksum() {
+  local file="$1"
+  local expected="$2"
+  local actual
+  actual=$(sha256_file "$file")
+  if [[ "$actual" != "$expected" ]]; then
+    error "Checksum mismatch for $file! Expected: $expected Actual: $actual"
+  fi
+}
+
+expected=$(expected_checksum "$version" "${os_tag}-${arch_tag}")
 cli_url="https://github.com/tree-sitter/tree-sitter/releases/download/v${version}/tree-sitter-${os_tag}-${arch_tag}.gz"
 echo "Downloading tree-sitter $version CLI ($os_tag-$arch_tag)."
 mkdir -p "$prefix/bin"
 work=$(mktemp -d "$prefix/bin/.download.XXXXXX")
 trap 'rm -rf "$work"' EXIT
-curl -fL "$cli_url" | gunzip > "$work/tree-sitter"
-chmod +x "$work/tree-sitter"
-matches_version "$work/tree-sitter" || error "Downloaded CLI does not report version $version"
-mv -f "$work/tree-sitter" "$prefix/bin/tree-sitter"
+curl -fL "$cli_url" -o "$work/cli.gz"
+verify_checksum "$work/cli.gz" "$expected"
+gunzip -c "$work/cli.gz" > "$work/tree-sitter${exe_ext}"
+chmod +x "$work/tree-sitter${exe_ext}"
+matches_version "$work/tree-sitter${exe_ext}" || error "Downloaded CLI does not report version $version"
+mv -f "$work/tree-sitter${exe_ext}" "$bin_path"
 echo "tree-sitter $version CLI provisioned at $prefix"

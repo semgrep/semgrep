@@ -22,19 +22,124 @@ Last change in file:
       Update tree-sitter to 0.22.5
 ---
 File: semgrep-grammars/src/semgrep-swift/grammar.js
-Git repo name: semgrep-proprietary
-Latest commit in repo: 062fb511e2ac03af94450faa3155af877a00fc08
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit 062fb511e2ac03af94450faa3155af877a00fc08
-  Author: Cursor Agent <cursoragent@cursor.com>
-  Date:   Mon Oct 26 21:44:39 2026 +0000
+  commit d8a492b9323403495c4c32152f43bf170f5eb9fd
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Wed Oct 28 10:46:43 2026 -0600
   
-      docs(skills): catch soft-keyword and obsolete scanner.patch cases
+      Update tree-sitter grammars: swift (#7396)
       
-      Teach fix-semgrep-grammar to probe contextual identifiers / pack introducers
-      (e.g. Swift each()) during the compatibility audit so valid calls are not
-      deferred to CST→AST, and to delete an obsolete patches/scanner.patch when
-      upstream already contains the fix.
+      Automated grammar update for **swift**.
       
+      ### swift
+      
+      - Swift parsing now supports type and value parameter packs, including
+      each/repeat expansions and pack constraints.
+      - Swift parsing now supports if and switch expressions used as variable
+      initializers.
+      - Swift parsing now supports macro declarations with typed signatures
+      and #externalMacro definitions. This does not implement macro expansion.
+      - Swift property observers now retain their willSet/didSet bodies and
+      parameters separately from property initializers.
+      - Swift parsing now supports borrowing, consuming, package, and
+      distributed modifiers while preserving their distinct spellings.
+      - Swift parsing now supports #unavailable conditions and distinguishes
+      them from #available conditions.
+      - Swift parsing now supports member access on parenthesized existential
+      types, such as (any P).self, and preserves the underlying parenthesized
+      existential or opaque type.
+      - Swift parsing now supports references to the bitwise AND operator
+      using (&).
+      
+      Pin: `597d544b` →
+      [`c9c669b4`](https://github.com/alex-pinkus/tree-sitter-swift/tree/c9c669b4513479e07a0ff44cf14f72351959ac21)
+      (**0.5.0**)
+      
+      Parser and CST files are regenerated; vendored grammar sources are
+      copied from the selected upstream revisions.
+      
+      Test plan:
+      
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Verification details:
+      
+      - Swift parsing now supports type and value parameter packs, including
+      each/repeat expansions and pack constraints. Before: The pre-update
+      Swift parser lacked pack productions and produced parsing errors for
+      pack declarations, parameter types, constraints, and value expansions.
+      Evidence: `OSS/tests/parsing/swift/parameter_packs.swift`,
+      `OSS/tests/patterns/swift/pack_declaration.swift`,
+      `OSS/tests/patterns/swift/parameter_packs.swift`
+      - Swift parsing now supports if and switch expressions used as variable
+      initializers. Before: The pre-update parser produced errors for these
+      initializer expressions instead of representing their conditions and
+      branches. Evidence:
+      `OSS/tests/parsing/swift/conditional_expressions.swift`,
+      `OSS/tests/patterns/swift/conditional_expressions.swift`,
+      `OSS/tests/patterns/swift/switch_expression.swift`
+      - Swift parsing now supports macro declarations with typed signatures
+      and #externalMacro definitions. This does not implement macro expansion.
+      Before: The pre-update grammar had no macro declaration production and
+      produced parsing errors for the regression examples. Evidence:
+      `OSS/tests/parsing/swift/macro_declarations.swift`,
+      `OSS/tests/patterns/swift/macro_declarations.swift`
+      - Swift property observers now retain their willSet/didSet bodies and
+      parameters separately from property initializers. Before: The pre-update
+      parser treated initialized property observers as trailing closures on a
+      call to the initializer, and uninitialized observers as ordinary
+      computed-property statements. Evidence:
+      `OSS/tests/parsing/swift/property_observers.swift`,
+      `OSS/tests/snapshots/semgrep-core/5d1a77f16853/stdout`,
+      `OSS/tests/patterns/swift/property_observers.swift`
+      - Swift parsing now supports borrowing, consuming, package, and
+      distributed modifiers while preserving their distinct spellings. Before:
+      These modifier alternatives were absent from the pre-update grammar; the
+      ownership and visibility regression fixture produced parsing errors.
+      Evidence: `OSS/tests/parsing/swift/ownership_modifiers.swift`,
+      `OSS/tests/patterns/swift/ownership_modifiers.swift`,
+      `OSS/tests/patterns/swift/package_modifier.swift`
+      - Swift parsing now supports #unavailable conditions and distinguishes
+      them from #available conditions. Before: The pre-update availability
+      production accepted only #available and produced errors for
+      #unavailable. Evidence:
+      `OSS/tests/parsing/swift/unavailable_condition.swift`,
+      `OSS/tests/patterns/swift/unavailable_condition.swift`
+      - Swift parsing now supports member access on parenthesized existential
+      types, such as (any P).self, and preserves the underlying parenthesized
+      existential or opaque type. Before: The pre-update parser rejected (any
+      P).self and represented parenthesized existential and opaque type
+      annotations as single-field tuple types. Evidence:
+      `OSS/tests/parsing/swift/parenthesized_types.swift`,
+      `OSS/tests/snapshots/semgrep-core/d2114a6199c2/stdout`
+      - Swift parsing now supports references to the bitwise AND operator
+      using (&). Before: The pre-update parser interpreted (&) as a prefix
+      expression with a missing operand rather than an operator reference.
+      Evidence: `OSS/tests/parsing/swift/operator_contexts.swift`,
+      `OSS/tests/patterns/swift/operator_reference.swift`
+      
+      ---------
+      
+      Co-authored-by: semgrep-ci <semgrep-ci[bot]@users.noreply.github.com>
+      Co-authored-by: Marc-André Laverdière <marc-andre@semgrep.com>
+      Co-authored-by: Cursor Agent <cursoragent@cursor.com>
       Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
 ---
