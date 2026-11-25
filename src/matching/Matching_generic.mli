@@ -208,6 +208,9 @@ val m_string : string matcher
 val filepath_is_prefix : string -> string -> bool
 val m_filepath_prefix : string matcher
 
+val adjust_info_remove_enclosing_quotes :
+  string AST_generic.wrap -> string AST_generic.wrap
+
 val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 

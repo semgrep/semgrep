@@ -828,8 +828,12 @@ let adjust_info_remove_enclosing_quotes (s, info) =
       | Not_found ->
           Log.debug (fun m ->
               m "could not find %s in %s" s (String_.show ~max_len:100 raw_str));
-          (* return original token ... better than failwith? *)
-          (s, info))
+          (* The value is not a contiguous substring of the token text.
+           * This happens with fused adjacent string literals (e.g. C
+           * "AAAA" "BBBB"), where the token text contains the quotes of
+           * each part. Reuse the clean value as the token text so that
+           * metavariable content and ranges do not contain quotes. *)
+          (s, Tok.rewrap_str s info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket

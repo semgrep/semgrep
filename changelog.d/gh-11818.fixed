@@ -1,0 +1,1 @@
+Fix metavariable content for concatenated C string literals including quote characters.
