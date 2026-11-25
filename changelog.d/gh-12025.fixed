@@ -1,0 +1,1 @@
+Local rule files are now read as UTF-8, so rules containing non-ASCII text no longer fail with `UnicodeDecodeError` on platforms whose default encoding is not UTF-8.

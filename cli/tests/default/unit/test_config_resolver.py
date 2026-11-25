@@ -12,6 +12,7 @@
 #
 import json
 import re
+from pathlib import Path
 from typing import Dict
 from typing import List
 from uuid import uuid4
@@ -25,6 +26,7 @@ from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import ConfigType
 from semgrep.config_resolver import legacy_url_for_scan
 from semgrep.config_resolver import parse_config_string
+from semgrep.config_resolver import read_config_at_path
 from semgrep.config_resolver import PRODUCT_NAMES
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import InvalidRuleSchemaError
@@ -643,3 +645,23 @@ rules:
 
     assert exc_info.value.long_msg is not None
     assert "severity" in exc_info.value.long_msg.lower()
+
+
+@pytest.mark.quick
+def test_read_config_at_path_reads_utf8(mocker, tmp_path):
+    rule_file = tmp_path / "utf8-rule.yaml"
+    contents = (
+        "rules:\n"
+        "  - id: utf8-rule\n"
+        '    message: "\u26a0\ufe0f \u00e9chec"\n'
+    )
+    rule_file.write_bytes(contents.encode("utf-8"))
+
+    def legacy_read_text(self, encoding=None, errors=None):
+        # Simulate platforms whose default encoding is not UTF-8 (e.g. cp936 on Windows).
+        return self.read_bytes().decode(encoding or "cp1252", errors or "strict")
+
+    mocker.patch.object(Path, "read_text", legacy_read_text)
+
+    config = read_config_at_path(rule_file)
+    assert config.contents == contents
