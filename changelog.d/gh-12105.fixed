@@ -1,0 +1,1 @@
+Fixed Go pre-release versions (including `-0.` pseudo-versions) being ordered after the corresponding final release in dependency-aware rules, so `< X.Y.Z` constraints now match them correctly.

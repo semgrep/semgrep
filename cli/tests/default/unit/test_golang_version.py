@@ -54,6 +54,13 @@ from semdep.golang_version import ParsedGolangVersion
         (("0.20.0-alpha.0", ">=0.20.0-alpha.0"), True),
         (("0.2.0", ">=0.20.0-alpha.0"), False),
         (("1.0.0-1.a", ">=1.0.0-2"), False),
+        # A pre-release is lower than the same-core final release (#12105)
+        (("1.56.3-0.20230706185337-bd1f038e7234", "<1.56.3"), True),
+        (("1.56.3-0.20230706185337-bd1f038e7234", ">1.56.3"), False),
+        (("1.2.0-alpha-1", "<1.2.0"), True),
+        (("1.2.0-alpha-1", ">1.2.0"), False),
+        (("1.0.0-alpha.1", "<1.0.0"), True),
+        (("1.0.0", ">1.0.0-alpha.1"), True),
     ],
 )
 def test_golang_version_comparison(versions: Tuple[str, str], results: bool):
@@ -274,6 +281,27 @@ def test_cmp_golang_pre_release(
 ):
     parsed_pre_release, specifier_pre_release = pre_releases
     assert cmp_pre_release(parsed_pre_release, specifier_pre_release) == diff
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "parsed_raw_version,specifier_raw_version,diff",
+    [
+        # pre-release < same-core final release (#12105)
+        ("1.56.3-0.20230706185337-bd1f038e7234", "1.56.3", -1),
+        ("1.56.3", "1.56.3-0.20230706185337-bd1f038e7234", 1),
+        ("1.2.0-alpha-1", "1.2.0", -1),
+        ("1.2.0", "1.2.0-alpha-1", 1),
+        ("1.0.0-alpha.1", "1.0.0", -1),
+        ("1.0.0", "1.0.0-alpha.1", 1),
+    ],
+)
+def test_cmp_golang_versions_pre_release_vs_core(
+    parsed_raw_version: str, specifier_raw_version: str, diff: int
+):
+    parsed_version = parse_golang_version(parsed_raw_version)
+    specifier_version = parse_golang_version(specifier_raw_version)
+    assert cmp_golang_versions(parsed_version, specifier_version) == diff
 
 
 @pytest.mark.quick
