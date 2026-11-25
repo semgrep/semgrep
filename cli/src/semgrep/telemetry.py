@@ -17,10 +17,13 @@
 #
 # Communicates with OCaml tracing defined in ../../../libs/tracing/unix/Tracing.ml
 # For more info, see https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
+import atexit
 import functools
 import json
 import logging
 import os
+import threading
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -37,11 +40,11 @@ from opentelemetry._logs import set_logger_provider
 from opentelemetry.attributes import BoundedAttributes
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.logging.handler import LoggingHandler
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.threading import ThreadingInstrumentor
 from opentelemetry.sdk import resources
 from opentelemetry.sdk._logs import LoggerProvider
-from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.environment_variables import OTEL_RESOURCE_ATTRIBUTES
 from opentelemetry.sdk.resources import get_aggregated_resources
@@ -298,6 +301,49 @@ class DockerOTELResourceDetector(ResourceDetector):
         return Resource(env_resource_map)
 
 
+# How long to wait at exit for telemetry to finish exporting before dropping
+# what is left. The OTLP exporters retry connection errors until their own 10s
+# timeout, so without a deadline an unreachable collector delays exit by ~10s.
+# Like semgrep-core's exporter (see ../../../libs/telemetry/Telemetry.ml), the
+# deadline only starts at shutdown, so exports during the run are unaffected.
+_EXIT_FLUSH_TIMEOUT_S = 2.0
+_OTEL_LOGGING_HANDLER_NAME = "otel-logging-handler"
+
+
+def _shutdown_at_exit(
+    shutdown_providers: Collection[Callable[[], None]],
+    shutdown_exporters: Collection[Callable[[], object]],
+) -> None:
+    # Detach the log handler first, so that anything logged while shutting
+    # down (such as export failures) is not fed back into the log pipeline that
+    # is being shut down.
+    root = logging.getLogger()
+    for handler in list(root.handlers):
+        if handler.get_name() == _OTEL_LOGGING_HANDLER_NAME:
+            root.removeHandler(handler)
+    if not root.handlers:
+        # With no handler at all, Python would print those logs to stderr.
+        root.addHandler(logging.NullHandler())
+
+    # Shutting a provider down flushes its queue. Run the providers
+    # concurrently so they share one deadline; daemon threads that are still
+    # running when we give up don't hold up exit.
+    threads = [
+        threading.Thread(target=shutdown, daemon=True)
+        for shutdown in shutdown_providers
+    ]
+    for thread in threads:
+        thread.start()
+    deadline = time.monotonic() + _EXIT_FLUSH_TIMEOUT_S
+    for thread in threads:
+        thread.join(max(0.0, deadline - time.monotonic()))
+    if any(thread.is_alive() for thread in threads):
+        # Interrupts exports that are waiting to retry; whatever has not been
+        # exported yet is dropped.
+        for shutdown in shutdown_exporters:
+            shutdown()
+
+
 @define
 class Telemetry:
     enabled: bool = False
@@ -349,8 +395,9 @@ class Telemetry:
         if not self.enabled:
             return
 
-        tracer_provider = TracerProvider(resource=self.resource)
-        logger_provider = LoggerProvider(resource=self.resource)
+        # The providers are shut down by _shutdown_at_exit, with a deadline.
+        tracer_provider = TracerProvider(resource=self.resource, shutdown_on_exit=False)
+        logger_provider = LoggerProvider(resource=self.resource, shutdown_on_exit=False)
 
         set_logger_provider(logger_provider)
         otrace.set_tracer_provider(tracer_provider)
@@ -370,7 +417,11 @@ class Telemetry:
 
         tracer_provider.add_span_processor(span_processor)
         logger_provider.add_log_record_processor(log_processor)
-        tracer_provider.add_span_processor(span_processor)
+        atexit.register(
+            _shutdown_at_exit,
+            [tracer_provider.shutdown, logger_provider.shutdown],
+            [exporter_spans.shutdown, exporter_logs.shutdown],
+        )
 
         # add logging handler to root logger only so we can send logs to Otel and therefore datadog.
         # child loggers will propagate to root logger by default
@@ -380,12 +431,14 @@ class Telemetry:
             # semgrep-core too!
             level=logging.INFO,
             logger_provider=logger_provider,
+            # Keep the code.* attributes that the SDK handler always added.
+            log_code_attributes=True,
         )
-        logging_handler.set_name("otel-logging-handler")
+        logging_handler.set_name(_OTEL_LOGGING_HANDLER_NAME)
         # only add handler if it's not already present. it is possible for us to call configure multiple times
         # from the MCP. in that case, we would add the handler multiple times without this check.
         if not any(
-            handler.get_name() == "otel-logging-handler"
+            handler.get_name() == _OTEL_LOGGING_HANDLER_NAME
             for handler in logging.getLogger().handlers
         ):
             logging.getLogger().addHandler(logging_handler)
