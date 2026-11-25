@@ -1,0 +1,1 @@
+Fix `semgrep scan --test` matching the wrong test files to configs when basenames contain dots (e.g. `my.rule.a.yaml` no longer conflates with `my.rule.b.yaml`).

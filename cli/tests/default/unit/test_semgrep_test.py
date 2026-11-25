@@ -123,3 +123,14 @@ def test_relatively_eq():
         relatively_eq(p1, p1 / "my-rule-a" / "views.py", p2, p2 / "my-rule-a.yaml")
         is True
     )
+    # dotted basenames keep their full stem (gh-6880): my.rule.a.* and
+    # my.rule.b.* must not conflate
+    assert relatively_eq(p1, p1 / "my.rule.a.py", p2, p2 / "my.rule.a.yaml") is True
+    assert relatively_eq(p1, p1 / "my.rule.b.py", p2, p2 / "my.rule.a.yaml") is False
+    assert (
+        relatively_eq(p1, p1 / "my.rule.a.other.py", p2, p2 / "my.rule.a.yaml") is True
+    )
+    # the "." boundary keeps prefix-like names from matching
+    assert relatively_eq(p1, p1 / "my-rule-a2.py", p2, p2 / "my-rule-a.yaml") is False
+    # the .test.yaml convention for YAML rules keeps working
+    assert relatively_eq(p1, p1 / "my-rule.test.yaml", p2, p2 / "my-rule.yaml") is True
