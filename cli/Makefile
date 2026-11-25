@@ -23,7 +23,7 @@ check:
 # TODO: is there a way to run the same commands as the pre-commit hook
 # without code duplication and without depending on pre-commit?
 # Various issues with external libraries arise when trying to
-# run 'pipenv run mypy' here directly.
+# run 'uv run mypy' here directly.
 .PHONY: typecheck
 typecheck:
 	pre-commit run mypy -a
