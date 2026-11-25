@@ -1,0 +1,1 @@
+Rust: a `let` binding with a plain identifier is now lowered to a named variable definition, so a metavariable bound by `$X = ...` unifies with later uses of `$X` (such as `$X.arg(...)`) across `pattern-inside` clauses.

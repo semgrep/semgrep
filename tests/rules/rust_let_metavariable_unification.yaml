@@ -1,0 +1,15 @@
+rules:
+  - id: rust-let-metavariable-unification
+    message: Semgrep found a match
+    languages:
+      - rust
+    severity: WARNING
+    patterns:
+      - pattern-inside: |
+          $COMMAND = std::process::Command::new("$SHELL");
+          ...
+      - pattern-inside: |
+          $COMMAND.arg("-c");
+          ...
+      - pattern: $COMMAND.arg($CMDINPUT)
+      - pattern-not: $COMMAND.arg("-c")

@@ -1315,6 +1315,16 @@ and m_entity_name a b =
   | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
     when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.E b1)
+  (* A metavariable binder such as `let $X = $E;` must still match a
+   * destructuring target such as `let (a, b) = f();`, whose entity keeps its
+   * EPattern name. Bind the same mvalue that m_pattern would (gh-8361). *)
+  | G.EN (G.Id ((str, tok), _idinfoa)), B.EPattern b1
+    when Mvar.is_metavar_name str -> (
+      try
+        let e1 = H.pattern_to_expr b1 in
+        envf (str, tok) (MV.E e1)
+      with
+      | H.NotAnExpr -> envf (str, tok) (MV.P b1))
   (* boilerplate *)
   | G.EDynamic a, B.EDynamic b -> m_expr a b
   | G.EPattern a, B.EPattern b -> m_pattern a b
