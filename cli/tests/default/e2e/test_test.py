@@ -29,6 +29,8 @@
 #    (and the fact that the e2e rules and targets are in different dirs)
 #    (maybe we could write this test in Testo instead and for osemgrep-only
 #    once we removed test.py)
+import json
+
 import pytest
 from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
@@ -178,3 +180,92 @@ def test_cli_todook_filtering(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
         results,
         "results.json",
     )
+
+
+_TEST_RULE = """\
+rules:
+- id: my-test-rule
+  pattern: foo($X)
+  message: found foo
+  languages: [python]
+  severity: INFO
+"""
+
+
+def _write_rule_and_target(tmp_path, target_text):
+    rule = tmp_path / "myrule.yaml"
+    rule.write_text(_TEST_RULE)
+    target = tmp_path / "myrule.py"
+    target.write_text(target_text)
+    return rule, target
+
+
+# A missed annotation should yield passed=false in the JSON report and a
+# nonzero exit code (first TODO at the top of this file).
+@pytest.mark.slow
+def test_cli_test_failing_annotation_json(run_semgrep_in_tmp: RunSemgrep, tmp_path):
+    _, target = _write_rule_and_target(tmp_path, "# ruleid: my-test-rule\nbar(1)\n")
+    rule = tmp_path / "myrule.yaml"
+    result = run_semgrep_in_tmp(
+        config=str(rule),
+        subcommand="scan",
+        target_name=str(target),
+        assume_targets_dir=False,
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+        assert_exit_code=1,
+    )
+    data = json.loads(result.stdout)
+    # stdout paths are masked to <MASKED> by the runner; assert structurally
+    assert len(data["results"]) == 1
+    checks = next(iter(data["results"].values()))["checks"]
+    assert checks["my-test-rule"]["passed"] is False
+
+
+# An annotation naming a rule that does not exist in the config should fail
+# with a rule id mismatch error.
+@pytest.mark.slow
+def test_cli_test_ruleid_mismatch(run_semgrep_in_tmp: RunSemgrep, tmp_path):
+    _, target = _write_rule_and_target(tmp_path, "# ruleid: no-such-rule\nfoo(1)\n")
+    rule = tmp_path / "myrule.yaml"
+    _, stderr = run_semgrep_in_tmp(
+        config=str(rule),
+        subcommand="scan",
+        target_name=str(target),
+        assume_targets_dir=False,
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+        assert_exit_code=2,
+    )
+    assert "rule id mismatch" in stderr
+
+
+# Configs without any paired test file should be listed in
+# config_missing_tests without failing the run.
+@pytest.mark.slow
+def test_cli_test_reports_config_missing_tests(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path
+):
+    rules_dir = tmp_path / "myrules"
+    rules_dir.mkdir()
+    (rules_dir / "with_tests.yaml").write_text(_TEST_RULE)
+    (rules_dir / "without_tests.yaml").write_text(
+        _TEST_RULE.replace("my-test-rule", "other-rule")
+    )
+    targets_dir = tmp_path / "mytargets"
+    targets_dir.mkdir()
+    (targets_dir / "with_tests.py").write_text("# ruleid: my-test-rule\nfoo(1)\n")
+    result = run_semgrep_in_tmp(
+        config=str(rules_dir),
+        subcommand="scan",
+        target_name=str(targets_dir),
+        assume_targets_dir=False,
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+        assert_exit_code=0,
+    )
+    data = json.loads(result.stdout)
+    assert len(data["config_missing_tests"]) == 1
+    assert len(data["results"]) == 1
+    checks = next(iter(data["results"].values()))["checks"]
+    assert checks["my-test-rule"]["passed"] is True
