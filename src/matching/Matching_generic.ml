@@ -103,6 +103,24 @@ type tin = {
    * the stmt with 'bar();' will be at the head of the list).
    *)
   stmts_matched : AST_generic.stmt list;
+  (* A similar hack to stmts_matched above, but for reporting the range of a
+   * match (see #2199): when an ExprStmt pattern like 'foo();' matches a
+   * subexpression of a statement thanks to the implicit deep matching of
+   * m_expr_deep_implict (e.g., inside 'print(foo());'), this field records
+   * the deep-matched subexpression so that Match_patterns can report just
+   * its range instead of the whole statement's.
+   * Note that in case of nested deep matches, this records the innermost
+   * (deepest) matched subexpression, which is the one the pattern actually
+   * matched.
+   *)
+  deep_expr_matched : AST_generic.expr option;
+  (* The ExprStmt target statement whose implicit deep matching recorded
+   * deep_expr_matched above. Match_patterns narrows the reported range
+   * only when this is physically the statement being reported, so that a
+   * deep match happening inside a larger stmt pattern (e.g., a 'foo();'
+   * inside an if pattern) does not wrongly narrow the whole match.
+   *)
+  deep_expr_matched_stmt : AST_generic.stmt option;
   (* TODO: this does not have to be in 'tout', because those fields are not
    * modified, so maybe we should split tin in two and have tout use only one
    * part of this new tin?
@@ -428,6 +446,8 @@ let default_environment lang config =
   {
     mv = [];
     stmts_matched = [];
+    deep_expr_matched = None;
+    deep_expr_matched_stmt = None;
     lang;
     config;
     deref_sym_vals = 0;
