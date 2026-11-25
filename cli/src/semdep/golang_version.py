@@ -310,9 +310,9 @@ def cmp_golang_versions(
             return pre_release_diff
     # If one has a pre-release and the other doesn't, the one with the pre-release is lower
     elif parsed_version.pre_release:
-        return 1
-    elif specifier_version.pre_release:
         return -1
+    elif specifier_version.pre_release:
+        return 1
 
     # Check pseudo version
     if parsed_version.pseudo and specifier_version.pseudo:
