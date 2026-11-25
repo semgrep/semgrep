@@ -1013,7 +1013,9 @@ and pattern env (p : AST_python.pattern) =
             | PatKeyVal (PatId (id, _), p2) -> (([ id ], p2) :: id_ps, other_ps)
             | PatKeyVal (PatLiteral _, _)
             | PatKeyVal (OtherPat (("PatInterpolatedString", _), _), _)
-            | PatKeyVal (OtherPat (("PatComplex", _), _), _) ->
+            | PatKeyVal (OtherPat (("PatComplex", _), _), _)
+            | PatKeyVal (OtherPat (("PatAttribute", _), _), _)
+            | PatKeyVal (OtherPat (("PatConcatenatedString", _), _), _) ->
                 (id_ps, p :: other_ps)
             | _ -> raise Impossible)
           ps ([], [])
