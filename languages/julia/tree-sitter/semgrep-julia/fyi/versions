@@ -23,43 +23,53 @@ Last change in file:
       Solution: Expose `block` rule, except for at `source_file`.
 ---
 File: semgrep-grammars/src/semgrep-julia/grammar.js
-Git repo name: semgrep-proprietary
-Latest commit in repo: b993e276b1ba58ccdd0bf1215872ab0c334bd68c
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit b993e276b1ba58ccdd0bf1215872ab0c334bd68c
-  Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Oct 30 16:13:32 2026 -0600
+  commit f1415495c6c5d6775cc14bb6c73af93052219118
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Fri Nov 6 16:18:33 2026 -0600
   
-      feat: load grammar wrapper guidance and default to Sol 6.1 High (#7414)
+      Update tree-sitter grammars: julia (#7450)
       
-      ## What
+      Automated grammar update for **julia**.
       
-      - Load optional wrapper-local `AGENTS.md` guidance during grammar,
-      converter, and validation repair.
-      - Add Scala guidance from the v0.25.1 update and default agents to
-      GPT-6.1-Sol High.
-      - Refresh the pricing catalog and remove stale release cutoffs
+      ### julia
       
-      ## Why?
-      Repeated failures updating Scala showed that some languages grammars
-      have pecularities that we can't really encode in the skills.
+      - Julia source parsing and rule patterns now support public API
+      declarations while distinguishing them from export declarations and
+      calls named public.
+      - Julia source parsing and rule patterns now support outer-qualified
+      loop bindings, preserving their distinction from ordinary bindings and a
+      variable named outer.
+      - Julia parsing and matching now support typed const fields without
+      initializers in mutable structs.
+      - Julia source parsing and rule patterns now support renaming imported
+      macros, such as import A: @m as @n.
+      - Julia rules can now match unary ± expressions and distinguish binary ±
+      from ∓, reducing operator-related false positives.
+      - Julia numeral juxtaposition such as 1__2 is now represented as
+      multiplication by __2 and can be found by multiplication patterns.
+      - Julia function-definition patterns now retain where constraints,
+      avoiding matches against definitions with a different constraint.
       
-      I ran an unattended test comparing Sol 6.1 medium/high vs Astra 6.0 low
-      and Sol high gave the best results.
+      Pin: `87394e7c` →
+      [`e0f9dcd1`](https://github.com/tree-sitter/tree-sitter-julia/tree/e0f9dcd180fdcfcfa8d79a3531e11d99e79321d3)
+      (**v0.25.0**)
+      
+      Parser and CST files are regenerated; vendored grammar sources are
+      copied from the selected upstream revisions.
       
       Test plan:
-      - Existing / updated unit tests.
-      - Unattended Scala v0.25.1 dry run at `a80c2b1d84`: validated with the
-      locked default Sol High configuration; core, core-test, Forge and six
-      in-repo rules suites passed; 191 Scala tests passed (nine new parsing
-      fixtures and sixteen pattern tests).
       
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
       
       --- Text above this line is public. Place SENSITIVE info below! ---
       
       PR checklist:
       - [x] Documentation is up-to-date
-      - [x] N/A An entry was added to
+      - [x] An entry was added to
       [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
       for user-facing changes, and to [CLI
       notes](https://golinks.io/cli-notes) for customer support (if needed)
@@ -69,4 +79,76 @@ Last change in file:
       WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
       
       See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Verification details:
+      
+      - Julia source parsing and rule patterns now support public API
+      declarations while distinguishing them from export declarations and
+      calls named public. Before: At 87394e7ce3b1aca1a7c7912d2bbc599551591093,
+      the grammar had no public declaration production. The pre-update engine
+      reported parsing errors for public declarations and rejected the public
+      $X rule pattern; the updated engine matches the regression's two
+      declarations without matching export or call forms. Evidence:
+      `OSS/tests/parsing/julia/public_declarations.jl`,
+      `OSS/tests/patterns/julia/public_declaration.jl`,
+      `OSS/tests/patterns/julia/public_declaration.sgrep`
+      - Julia source parsing and rule patterns now support outer-qualified
+      loop bindings, preserving their distinction from ordinary bindings and a
+      variable named outer. Before: At
+      87394e7ce3b1aca1a7c7912d2bbc599551591093, for_binding lacked the outer
+      qualifier. The pre-update engine reported a source parsing error and
+      rejected the outer-qualified loop pattern; the updated regression
+      matches only the qualified loop. Evidence:
+      `OSS/tests/parsing/julia/outer_bindings.jl`,
+      `OSS/tests/patterns/julia/outer_loop.jl`,
+      `OSS/tests/patterns/julia/outer_loop.sgrep`
+      - Julia parsing and matching now support typed const fields without
+      initializers in mutable structs. Before: At
+      87394e7ce3b1aca1a7c7912d2bbc599551591093, const_statement required an
+      assignment. The pre-update engine could not cleanly parse const
+      value::Int or its struct rule pattern. The updated regression preserves
+      the const attribute and field type and excludes the non-const field.
+      Evidence: `OSS/tests/parsing/julia/type_heads_signatures.jl`,
+      `OSS/tests/patterns/julia/const_struct_field.jl`,
+      `OSS/tests/patterns/julia/const_struct_field.sgrep`
+      - Julia source parsing and rule patterns now support renaming imported
+      macros, such as import A: @m as @n. Before: At
+      87394e7ce3b1aca1a7c7912d2bbc599551591093, import aliases accepted only
+      an identifier after as. The pre-update engine reported a source parsing
+      error and rejected the macro-alias rule pattern; the updated regression
+      matches the specified module and alias only. Evidence:
+      `OSS/tests/parsing/julia/scoped_imports_macros.jl`,
+      `OSS/tests/patterns/julia/import_macro_alias.jl`,
+      `OSS/tests/patterns/julia/import_macro_alias.sgrep`
+      - Julia rules can now match unary ± expressions and distinguish binary ±
+      from ∓, reducing operator-related false positives. Before: With
+      87394e7ce3b1aca1a7c7912d2bbc599551591093 and the pre-update converter,
+      the unary ±$X pattern failed to parse, and a binary ± pattern also
+      matched a ∓ expression because operator spelling was discarded. Old/new
+      scans verify successful unary matches and removal of the binary ∓ false
+      positive. Evidence: `OSS/tests/parsing/julia/operator_grouping.jl`,
+      `OSS/tests/patterns/julia/unary_pm.jl`,
+      `OSS/tests/patterns/julia/unary_pm.sgrep`,
+      `OSS/tests/patterns/julia/binary_pm.jl`,
+      `OSS/tests/patterns/julia/binary_pm.sgrep`
+      - Julia numeral juxtaposition such as 1__2 is now represented as
+      multiplication by __2 and can be found by multiplication patterns.
+      Before: At 87394e7ce3b1aca1a7c7912d2bbc599551591093, the numeral token
+      consumed 1__2 as an integer instead of retaining its identifier operand.
+      The pre-update multiplication scan matched only explicit 2 * __2; the
+      updated scan also matches 1__2, consistent with Julia's reference
+      parser. Evidence: `OSS/tests/parsing/julia/numeral_terminators.jl`,
+      `OSS/tests/patterns/julia/numeral_juxtaposition.jl`,
+      `OSS/tests/patterns/julia/numeral_juxtaposition.sgrep`
+      - Julia function-definition patterns now retain where constraints,
+      avoiding matches against definitions with a different constraint.
+      Before: The pre-update converter used with
+      87394e7ce3b1aca1a7c7912d2bbc599551591093 discarded signature where
+      clauses. A pattern requiring where T incorrectly matched an otherwise
+      identical definition using where U. Old/new scans verify that the
+      updated converter removes this false positive while retaining the
+      intended match. Evidence:
+      `OSS/tests/parsing/julia/type_heads_signatures.jl`,
+      `OSS/tests/patterns/julia/where_signature.jl`,
+      `OSS/tests/patterns/julia/where_signature.sgrep`
 ---

@@ -52,7 +52,7 @@ version=$(cat tree-sitter-version)
 expected_checksum() {
   case "$1" in
     0.22.6) echo "e2b687f74358ab6404730b7fb1a1ced7ddb3780202d37595ecd7b20a8f41861f" ;;
-    0.26.3) echo "7f4a7cf0a2cd217444063fe2a4d800bc9d21ed609badc2ac20c0841d67166550" ;;
+    0.26.11) echo "1bab01ed21464f3272665b9c60e39ee79f68da1333e80b23f2c9356569d06971" ;;
     *) error "No checksum registered for tree-sitter $1. Add one to expected_checksum in this script." ;;
   esac
 }

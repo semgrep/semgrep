@@ -99,7 +99,7 @@ the metadata when generating.
 | tree-sitter >= 0.24.0 (otherwise) | 14 |
 | older tree-sitter | `--no-bindings` (no ABI flag) |
 
-The shared 0.26.3 runtime accepts parser ABIs 13 through 15. Existing committed
+The shared 0.26.11 runtime accepts parser ABIs 13 through 15. Existing committed
 parsers remain at their current ABI until their language is regenerated; a
 grammar update regenerates only its configured destinations.
 

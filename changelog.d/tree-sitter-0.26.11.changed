@@ -1,0 +1,1 @@
+The bundled tree-sitter C runtime and regenerated parsers now use tree-sitter 0.26.11.

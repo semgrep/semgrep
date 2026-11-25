@@ -53,127 +53,102 @@ Last change in file:
       Co-authored-by: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 ---
 File: semgrep-grammars/src/semgrep-dart/grammar.js
-Git repo name: semgrep
-Latest commit in repo: afc50add9a0efc82b64fbefcaf6023d9c021e2d1
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit afc50add9a0efc82b64fbefcaf6023d9c021e2d1
-  Author: Alexandre Laroche <larochealexandre@hotmail.com>
-  Date:   Wed Sep 23 21:17:03 2026 -0400
+  commit d7baecb85d7ed969c0af2d872b581e2aa109ef08
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Tue Oct 6 23:52:42 2026 +0000
   
-      feat(dart): promote to GA with type/import equivalences
+      feat(dart): promote to GA with type/import equivalences (#7186)
       
-      Vendors the wrapper-grammar fixes from ocaml-tree-sitter-semgrep#600
-      (semgrep_dot_ellipsis_selector, semgrep_statement_list, class-body and
-      top-level ellipsis arms) directly into this repo now that
-      libs/ocaml-tree-sitter-semgrep is in-tree rather than a submodule, and
-      regenerates languages/dart/tree-sitter/semgrep-dart from it.
+      ## Summary
       
-      On top of that, closes the remaining GA gaps for Dart from PR #11735:
-      - Typing.ml: && / || are boolean-typed for Dart (spec 17.21).
-      - Parse_dart_tree_sitter.ml: populate id_info.id_type on typed locals
-        and class fields so Naming_AST propagates types to use sites.
-      - Naming_AST.ml / Naming_utils.ml: canonicalize Dart import segments
-        (dart_canonical_segments) so patterns written against a library's
-        conventional prefix match code that imports it under any alias.
-      - Unit_engine.ml: Dart moves to the GA maturity tier.
+      Lift Dart from Experimental to GA maturity by closing the remaining gaps
+      the GA bar requires. This is a rebase of #11735 onto the new in-tree
+      grammar workflow (`libs/ocaml-tree-sitter-semgrep` is no longer a
+      submodule), per @malaverdiere's guidance on that PR: rebase, fold in the
+      ocaml-tree-sitter-semgrep#600 companion change, regenerate — now doable
+      as a single PR instead of being spread across repos.
       
-      Also bumps the vendored upstream tree-sitter-dart pin from 02e9bb191
-      to be07cf711 (4 commits: Dart 3+ highlighting, labeled statements,
-      prec-based operator precedence, and the a.b<c>(d) generic-invocation
-      ambiguity), and updates Parse_dart_tree_sitter.ml for the resulting
-      CST changes:
-      - additive/multiplicative/bitwise-and/bitwise-or/bitwise-xor/shift
-        binary expressions switched from a "base + (op, rhs) list" shape to
-        a single-op binary node (left-associativity now comes from nesting,
-        not a fold), and multiplicative operands widened from
-        unary_expression to real_expression.
-      - labeled statements are now their own CST node; maps to G.Label.
-      One existing parsing snapshot (switch_object_pattern.dart) changed
-      because Box<int>(42) was previously misparsed as the relational chain
-      (Box < int) > (42); it now parses correctly as a generic constructor
-      call, which is what that fix was for.
+      **Grammar**
+      - Vendors the wrapper-grammar fixes from
+      [`ocaml-tree-sitter-semgrep#600`](https://github.com/semgrep/ocaml-tree-sitter-semgrep/pull/600)
+      directly into
+      `libs/ocaml-tree-sitter-semgrep/lang/semgrep-grammars/src/semgrep-dart/grammar.js`:
+      `semgrep_dot_ellipsis_selector`, `semgrep_statement_list`, a
+      `_class_member_definition` ellipsis arm, and a `_top_level_definition`
+      expression-statement arm.
+      - Bumps the vendored upstream `tree-sitter-dart` pin in
+      `upstream-grammars.json` from `02e9bb191` to `be07cf711` (4 commits:
+      Dart 3+ highlighting, labeled statements, `prec`-based operator
+      precedence, and the `a.b<c>(d)` generic-invocation ambiguity fix), and
+      regenerates `languages/dart/tree-sitter/semgrep-dart` from both.
+      - Updates `Parse_dart_tree_sitter.ml` for the resulting CST changes: the
+      binary-operator cases (additive/multiplicative/bitwise-and/or/xor/shift)
+      switched from a `base + (op, rhs) list` fold shape to a single-op node
+      now that left-associativity comes from grammar nesting instead of a flat
+      repeat, and labeled statements are now their own CST node, mapped to
+      `G.Label`.
+      - One existing parsing snapshot (`switch_object_pattern.dart`) changed
+      because `Box<int>(42)` was previously misparsed as the relational chain
+      `(Box < int) > (42)`; it now correctly parses as a generic constructor
+      call.
       
-      Includes fixture coverage under tests/patterns/dart, tests/parsing/dart,
-      and tests/rules, plus a refresh of parsing snapshots whose other diffs
-      were an unrelated id_svalue representation change already on develop.
+      **Engine**
+      - `Typing.ml` — `&&` / `||` are boolean-typed for Dart (spec §17.21).
+      - `Parse_dart_tree_sitter.ml` — populate `id_info.id_type` on typed
+      local declarations and class fields, so `Naming_AST` propagates the type
+      to use sites for `metavar_typed` and friends.
+      - `Naming_AST.ml` — canonicalize Dart import segments via
+      `Naming_utils.dart_canonical_segments` so a rule pattern written against
+      a library's conventional prefix (e.g. `http.get(...)`) matches code that
+      imports it under any local alias, including relative-path imports.
+      - `Naming_utils.ml`/`.mli` — new exported `dart_canonical_segments`.
       
-      Ports semgrep/semgrep#11735 (by AlexLaroche) onto the post-sync in-tree
-      grammar workflow, per malaverdiere's guidance on that PR: rebase, fold
-      in the ocaml-tree-sitter-semgrep#600 companion change, regenerate.
+      **Maturity**
+      `Unit_engine.ml` — Dart moves to the GA tier with an empty exception
+      list.
       
-      Addresses review on #11928 (dart_canonical_segments false-positive risk):
-      two different packages whose main files share a basename, e.g.
-      `package:http/http.dart` and `package:other/http.dart`, both naively
-      reduced to the `http` prefix, letting a pattern targeting one match the
-      other. Naming_utils.unsafe_canonicals is a new, language-agnostic helper
-      that groups a file's imports by candidate canonical name and flags any
-      name claimed by more than one distinct import; Naming_AST runs it once
-      per Dart file and falls back to the unreduced import for any flagged
-      name instead of conflating the two. Go and other basename-reducing
-      languages hit the same class of collision through a different,
-      unguarded code path and could reuse this helper later, but only Dart is
-      wired up here. Adds tests/patterns/dart/dart_import_package_collision.*
-      (the collision itself) and dart_import_collision_scoped.* (confirms the
-      guard is scoped per canonical name, not file-wide).
+      **Fixtures**
+      - `tests/patterns/dart/` — Experimental/Beta/GA feature fixtures.
+      - `tests/parsing/dart/typed_locals.dart` — parsing snapshot pinning
+      `id_info.id_type` population on typed locals.
+      - `tests/rules/` — rule-level YAML coverage for equivalences,
+      `metavar_regex`, `metavar_anno`, and import-alias taint.
       
-      Addresses review on #11928 (Unit_engine.ml's maturity check only verifies
-      fixture existence and successful parsing, not actual behavior): adds
-      targeted behavioral tests for six specific claims.
-      - metavar_typed_bool.* : `foo($X as bool)` matches `a && b` / `a || b`,
-        not an int argument (Typing.ml's Dart boolean-typing change).
-      - metavar_typed_field.* / metavar_typed_param.* : a class field's and a
-        function parameter's declared type reach a bare-identifier use site
-        inside a method/function body, with a differently-typed negative case.
-        Both already worked end-to-end; no fix needed.
-      - tests/parsing/dart/labeled_statement.dart : confirms `outer: while
-        (...) { break outer; }` produces a real `Label` node wrapping the
-        `While`/`Break`, not a placeholder.
-      - operator_precedence.* : `$X + $Y * $Z` matches `a + b * c` but not
-        `(a + b) * c`, exercising the prec-based grammar fix structurally.
-      - generic_method_invocation.* : `obj.method<int>(42)` parses and matches
-        a call-shaped pattern instead of mis-parsing as the relational chain
-        `(obj.method < int) > (42)`. Note: this only proves the call parses
-        correctly; the `<int>` type argument itself is not yet threaded into
-        the Generic AST's Call node (pre-existing `_tyargs_TODO` in
-        map_selector_choice, predating this PR), so a pattern can't yet
-        distinguish `method<int>(...)` from `method<String>(...)`. Left as-is
-        since it's a separate, pre-existing limitation outside this PR's scope.
+      **Changelog**
+      `changelog.d/dart-ga-types-equivalences.added`.
       
-      Fixes the generic-invocation type-argument drop flagged in review
-      (obj.method<int>(arg)): map_selector_choice's Arg_part case discarded
-      the type_arguments half of argument_part entirely. Adds
-      add_type_arguments_to_callee, threading explicit type arguments onto
-      the callee's name_last (method calls) or into TyApply (generic
-      constructors), the same convention Rust/Move-on-Sui/Move-on-Aptos use
-      for turbofish-style type arguments. generic_method_invocation.sgrep now
-      asserts $O.method<int>($X) matches obj.method<int>(42) but not
-      obj.method<String>('x') -- previously both a real bug (type args
-      silently dropped) and, mid-fix, a compile error from mis-modeling
-      map_argument_part's return type as optional when it is not (defaults to
-      an empty bracket, not None). Refreshes the switch_object_pattern.dart
-      snapshot, whose Box<int>(42) constructor call now correctly carries its
-      type argument (TyApply instead of a bare TyN).
+      ## Test plan
       
-      Rebased onto develop (now includes #11942, "fix: align generated tree-sitter
-      C bindings" -- regeneration picked up the corrected tree_sitter_dart(void)
-      signature and (void)unit consumption in bindings.c automatically).
+      - [x] `make core` — clean build
+      - [x] `./test -s 'dart'` — 62/62 pass
+      - [x] `./test -s 'naming'` — 23/23 pass
       
-      Also fixes the CI grammar-test failure malaverdiere flagged on this PR
-      (the semgrep-dart wrapper's inherited copy of tree-sitter-dart's own test
-      corpus diverging on "comment selector 1"). Root cause: the wrapper's
-      _top_level_definition rule (from ocaml-tree-sitter-semgrep#600, commit
-      3b01075) widened what's accepted at the top level of *any* Dart file, not
-      just semgrep pattern fragments, so it parses some invalid-at-top-level
-      constructs differently than the unmodified base grammar -- which is what
-      the inherited test was pinned against. That relaxation was only ever
-      needed for multi-statement top-level patterns like `$V = get(); ...;
-      eval($V);`, and a later commit (dde5fe3) already handles that properly
-      through the isolated __SEMGREP_EXPRESSION entry point via
-      semgrep_statement_list, which never touches normal file parsing. Removed
-      the now-redundant global relaxation and its associated conflict
-      declaration instead of leaving the divergence in place: verified the full
-      Dart test suite (including the multi-statement pattern tests) still
-      passes end to end through semgrep_statement_list alone, and the
-      wrapper's inherited upstream corpus, including "comment selector 1", now
-      matches the base grammar exactly with zero exclusions needed.
+      Synced from OSS PR https://github.com/semgrep/semgrep/pull/11928
+      Author: @AlexLaroche
+      Imported by: @malaverdiere
+      
+      Closes https://github.com/semgrep/semgrep/pull/11928
+      OSS-sync-author: Alexandre Laroche <larochealexandre@hotmail.com>
+      
+      Test plan:
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Co-authored-by: Alexandre Laroche <larochealexandre@hotmail.com>
 ---

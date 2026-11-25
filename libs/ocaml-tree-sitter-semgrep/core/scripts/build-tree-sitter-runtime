@@ -1,0 +1,23 @@
+#! /usr/bin/env bash
+# Build the tree-sitter C runtime into <out-dir> from a writable copy of <repo-dir>.
+set -eu -o pipefail
+
+make_cmd="${1:?usage: build-tree-sitter-runtime <make> <repo-dir> <out-dir>}"
+repo="${2:?usage: build-tree-sitter-runtime <make> <repo-dir> <out-dir>}"
+out="${3:?usage: build-tree-sitter-runtime <make> <repo-dir> <out-dir>}"
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+cp -R "$repo"/. "$work"
+chmod -R u+w "$work"
+
+mkdir -p "$out"
+out_abs=$(cd "$out" && pwd)
+if command -v cygpath >/dev/null 2>&1; then
+  out_abs=$(cygpath -m "$out_abs")
+fi
+"$make_cmd" -C "$work" "PREFIX=$out_abs" install
+
+pc="$out/lib/pkgconfig/tree-sitter.pc"
+sed 's|^prefix=.*|prefix=${pcfiledir}/../..|' "$pc" > "$work/tree-sitter.pc.tmp"
+mv "$work/tree-sitter.pc.tmp" "$pc"

@@ -23,18 +23,51 @@ Last change in file:
       * Regenerate
 ---
 File: semgrep-grammars/src/semgrep-ocaml/grammar.js
-Git repo name: semgrep-proprietary
-Latest commit in repo: b300a1807ac6381587dcd0da3e371019dc5a4437
+Git repo name: workspace
+Latest commit in repo: 239db0f7f772b300743596dc5bd8e91a20c996f5
 Last change in file:
-  commit b300a1807ac6381587dcd0da3e371019dc5a4437
-  Author: Cursor Agent <cursoragent@cursor.com>
-  Date:   Thu Nov 12 19:44:58 2026 +0000
+  commit 972c01a9657c5f05179d0f333461e24112b04449
+  Author: semgrep-ci <semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Thu Nov 12 23:02:11 2026 +0000
   
-      fix: let the grammar agent retarget a renamed fyi.list path
+      Update tree-sitter grammars: ocaml
       
-      Regeneration copies the paths in fyi.list after the repair agent exits.
-      A listed file that upstream renamed can be pointed at its new path.
-      Every other entry stays unchanged.
+      Automated grammar update for **ocaml**.
       
-      Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
+      ### ocaml
+      
+      - OCaml target parsing now accepts raw identifiers such as \#type and Unicode identifiers in declarations and qualified references. Writing these spellings directly in rule patterns remains unsupported.
+      - OCaml target parsing now supports effect-handler cases, retaining effect arguments, continuation bindings, guards, and handler bodies. Direct effect-handler syntax in rule patterns remains unsupported.
+      - OCaml target parsing now supports labeled tuple expressions, binding and match patterns, and types, including shorthand and typed components. Direct labeled-tuple syntax in rule patterns remains unsupported.
+      - OCaml target parsing now accepts local opens in types, including dotted module paths and applicative functor paths. Existing limitations in polymorphic-variant and package-type AST detail remain.
+      - OCaml target parsing now accepts short dependent functor types such as (X : S) -> S. Detailed module-type matching and this syntax in rule patterns remain unsupported.
+      - OCaml target parsing now accepts quoted strings whose Unicode delimiters use equivalent composed and decomposed spellings, preserving their literal contents.
+      
+      Pin: `4a885a61` → [`0cc270ff`](https://github.com/tree-sitter/tree-sitter-ocaml/tree/0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff) (**v0.24.2**)
+      
+      Parser and CST files are regenerated; vendored grammar sources are copied from the selected upstream revisions.
+      
+      Test plan:
+      
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [ ] Documentation is up-to-date
+      - [ ] An entry was added to [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for user-facing changes, and to [CLI notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [ ] Change has no security implications (otherwise, ping security team)
+      - [ ] Change does not log any sensitive information to the INFO, WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Verification details:
+      
+      - OCaml target parsing now accepts raw identifiers such as \#type and Unicode identifiers in declarations and qualified references. Writing these spellings directly in rule patterns remains unsupported. Before: At upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087, isolated parser probes for raw and Unicode identifiers produced ERROR nodes; the unchanged Menhir fallback also rejected both forms. The regenerated parser and repaired converter parse them cleanly. Evidence: `OSS/tests/parsing/ocaml/raw_unicode_identifiers.ml`, `OSS/tests/parsing/ocaml/raw_unicode_identifiers.ast.expect`, `OSS/tests/patterns/ocaml/raw_identifier.ml`, `OSS/tests/patterns/ocaml/raw_identifier.sgrep`
+      - OCaml target parsing now supports effect-handler cases, retaining effect arguments, continuation bindings, guards, and handler bodies. Direct effect-handler syntax in rule patterns remains unsupported. Before: The parser at upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 produced ERROR nodes for a minimal effect-handler case, and the unchanged Menhir fallback rejected it. The updated target parser produces a clean AST with both effect and continuation patterns. Evidence: `OSS/tests/parsing/ocaml/effect_handlers.ml`, `OSS/tests/parsing/ocaml/effect_handlers.ast.expect`, `OSS/tests/patterns/ocaml/effect_handler_body.ml`, `OSS/tests/patterns/ocaml/effect_handler_body.sgrep`
+      - OCaml target parsing now supports labeled tuple expressions, binding and match patterns, and types, including shorthand and typed components. Direct labeled-tuple syntax in rule patterns remains unsupported. Before: At upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087, a minimal labeled tuple produced parser ERROR nodes and was rejected by the unchanged Menhir fallback. The updated conversion retains labels, component values, types, and binding patterns. Evidence: `OSS/tests/parsing/ocaml/labeled_tuples.ml`, `OSS/tests/parsing/ocaml/labeled_tuples.ast.expect`, `OSS/tests/patterns/ocaml/labeled_tuple_children.ml`, `OSS/tests/patterns/ocaml/labeled_tuple_children.sgrep`, `OSS/tests/patterns/ocaml/labeled_tuple_distinct.ml`, `OSS/tests/patterns/ocaml/labeled_tuple_distinct.sgrep`
+      - OCaml target parsing now accepts local opens in types, including dotted module paths and applicative functor paths. Existing limitations in polymorphic-variant and package-type AST detail remain. Before: A local type open such as type t = M.(u * v) produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 and was rejected by the unchanged Menhir fallback. The updated converter retains the opened path, including functor arguments, and the inner type. Evidence: `OSS/tests/parsing/ocaml/local_open_types.ml`, `OSS/tests/parsing/ocaml/local_open_types.ast.expect`
+      - OCaml target parsing now accepts short dependent functor types such as (X : S) -> S. Detailed module-type matching and this syntax in rule patterns remain unsupported. Before: The short dependent functor-type probe produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 and was rejected by the unchanged Menhir fallback. The updated target parser accepts it; module-type AST detail remains at its existing limited level. Evidence: `OSS/tests/parsing/ocaml/short_functor_types.mli`, `OSS/tests/parsing/ocaml/short_functor_types.ast.expect`
+      - OCaml target parsing now accepts quoted strings whose Unicode delimiters use equivalent composed and decomposed spellings, preserving their literal contents. Before: A quoted string using composed à in its opening delimiter and decomposed à in its closing delimiter produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087; the unchanged Menhir fallback also rejected it. The updated parser produces the expected string literal. Evidence: `OSS/tests/parsing/ocaml/quoted_literals_extensions.ml`, `OSS/tests/parsing/ocaml/quoted_literals_extensions.ast.expect`, `OSS/tests/patterns/ocaml/unicode_quoted_string.ml`, `OSS/tests/patterns/ocaml/unicode_quoted_string.sgrep`
 ---

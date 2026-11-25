@@ -5,7 +5,7 @@ Last change in file:
   commit 22cc75a0f850cb496602c976be585cf5cd13b818
   Author: Antonio de Jesus Ochoa Solano <antoniodejesusochoasolano@gmail.com>
   Date:   Sat Jul 18 18:48:30 2020 -0700
-
+  
       Add LICENSE
 ---
 File: semgrep-grammars/src/tree-sitter-hack/grammar.js
@@ -15,19 +15,65 @@ Last change in file:
   commit bc5b3a10d6d27e8220a113a9a7fe9bec0a1574b0
   Author: Andrea Aquino <andryak@fb.com>
   Date:   Wed Jan 22 22:06:29 2025 +0000
-
+  
       Add support for internal visibility modifier (#67)
+      
+      Summary:
+      Modern Hacklang introduced modules and the internal visibility modifier
+      to mark methods and functions as only accessible from within the current
+      module.
+      
+      The Hacklang treesitter grammar doesn't support the internal visibility
+      modifier yet. This diff addresses it.
+      
+      Test Plan:
+      
+      Grammar tests pass:
+      ```
+      tree-sitter generate
+      tree-sitter test
+      ```
+      
+      Reviewers:
+      
+      Subscribers:
+      
+      Tasks:
+      
+      Tags:
 ---
 File: semgrep-grammars/src/semgrep-hack/grammar.js
-Git repo name: nouakchott
-Latest commit in repo: 0a5c86045ff6b22e6dfb76362128a476c28620f3
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit f8e6c96e50156031e3e7552477ae914e25506fba
+  commit abebbef74a96e232e3d3743987d21863e315cc27
   Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Sep 11 20:44:29 2026 -0600
-
-      feat: ots grammar operator (registry, test/regen, check-vendored-ots) (#7026)
----
-
-      Dogfood follow-ups: CODE-9919, CODE-9921.
+  Date:   Wed Oct 14 10:40:27 2026 -0600
+  
+      feat: update Hack grammar to 1a7ded90 (#7161)
+      
+      Updated Hack to upstream commit
+      `1a7ded90288189746c54861ac144ede97df95081`. This adds
+      contexts/capabilities, enum classes and labels, function references,
+      typed collections, expression trees, file attributes, and internal
+      visibility.
+      Importantly, it also replaces the upstream C++ scanner with C.
+      
+      Test plan:
+      - Added tests
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---
