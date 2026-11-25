@@ -25,7 +25,7 @@ from semgrep.commands.login import login
 from semgrep.commands.mcp import semgrep_mcp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
-from semgrep.default_group import DefaultGroup
+
 from semgrep.git import git_check_output
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
@@ -67,7 +67,7 @@ def maybe_set_git_safe_directories() -> None:
 ##############################################################################
 
 
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.group(name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
@@ -90,6 +90,6 @@ cli.add_command(cmd=ci)
 cli.add_command(cmd=login)
 cli.add_command(cmd=publish)
 cli.add_command(cmd=scan, name="scan")
-cli.commands["scan"].help = "Scan code using Semgrep rules (default)"
+cli.commands["scan"].help = "Scan code using Semgrep rules"
 cli.add_command(cmd=semgrep_mcp, name="mcp")
 cli.add_command(cmd=install_semgrep_pro)
