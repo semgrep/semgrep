@@ -49,8 +49,15 @@ let initialize_server server
       |> Option.value ~default:false
     in
     let res =
-      scan_options |> Legacy_user_settings.t_of_yojson
-      |> Result.value ~default:server.session.user_settings
+      match scan_options |> Legacy_user_settings.t_of_yojson with
+      | Ok settings -> settings
+      | Error msg ->
+          Logs.warn (fun m ->
+              m
+                "Failed to parse \"scan\" settings from initializationOptions, \
+                 falling back to previous settings: %s"
+                msg);
+          server.session.user_settings
     in
     { res with do_hover; pro_intrafile }
   in
