@@ -1,0 +1,7 @@
+rules:
+  - id: dict-key-splat
+    pattern: '{"k": $V, **$_}'
+    message: found key k alongside unpacking
+    languages:
+      - python
+    severity: INFO
