@@ -697,6 +697,20 @@ let regexp_prefilter_tests =
          a control character) must not become required literals. *)
       check {|abc\Ndef|} (F.and_ [ str "abc"; str "def" ]);
       check {|abc\cIdef|} (F.and_ [ str "abc"; str "def" ]);
+      (* A class with the two cases of a letter is a case-insensitive literal. *)
+      check {|[fF][aA][cC][eE][bB][oO][oO][kK].*[tT][oO][kK][eE][nN]|}
+        (F.and_ [ istr "facebook"; istr "token" ]);
+      check
+        {|[fF][aA][cC][eE][bB][oO][oO][kK].*[tT][oO][kK][eE][nN].*['|"]?[0-9a-f]{32}['|"]?|}
+        (F.and_ [ istr "token"; istr "facebook" ]);
+      check {|[Aa][Bb][Cc]|} (Some (istr "abc"));
+      (* Soundness guard: the lexer reads [\cI] as the letter I, but PCRE reads
+         it as a TAB. A class with an escape is not a literal. *)
+      check {|[\cIi]abc|} (Some (str "abc"));
+      (* Soundness guard: a class of two different letters is not a literal. *)
+      check {|[aB][bC][cD]|} None;
+      (* ... and neither is a class of two digits. *)
+      check {|[12][34][56]|} None;
     ]
 
 let utf8_regex_prefilter_tests =
@@ -824,18 +838,17 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
     taint_rules
     |> List.concat_map (fun rule ->
         let lazy_content = lazy_safe (UFile.read_file file) in
-        let xtarget : Xtarget.t =
-          {
-            path =
+        let xtarget =
+          Xtarget.make
+            ~path:
               {
                 origin = Unfilterable_target_file file;
                 internal_path_to_content = file;
-              };
-            analyzer = Analyzer.L (lang, []);
-            lazy_content;
-            lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
-            lazy_ast_and_errors = lazy_safe (ast, []);
-          }
+              }
+            ~analyzer:(Analyzer.L (lang, []))
+            ~lazy_content
+            ~lazy_ast_and_errors:(lazy_safe (ast, []))
+            ()
         in
         let results, _errors =
           Match_tainting_mode.check_rules () ~matches_hook:Fun.id

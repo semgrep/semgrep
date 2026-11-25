@@ -1,4 +1,6 @@
 Test name: with git > binary file is skipped
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 a.py
 logo.png

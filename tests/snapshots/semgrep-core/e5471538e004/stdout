@@ -1,4 +1,6 @@
 Test name: without git > scanning root as a file
+--- Scanning roots ---
+a.py
 --- Files not added to git ---
 a.py
 --- begin input files ---

@@ -919,6 +919,58 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
   (selected_targets, skipped_targets)
 
 (*
+   Fast path for a project whose scanning roots are all regular files or
+   symlinks to regular files, as in 'semgrep scan a.py b/c.py'.
+
+   'force_select_scanning_roots' selects such roots regardless of
+   the filters (gitignore, semgrepignore, --include, --exclude) and
+   removes them from the skipped targets. With no folder to expand, nothing
+   else can be selected or skipped, so we return the roots directly
+   without consulting git or creating the gitignore/semgrepignore filter.
+   Creating the filter walks the whole project to find its '.semgrepignore'
+   files (see Gitignore_cache.create), which is slow for large projects or
+   slow file systems.
+   The size, minified and binary filters are applied later in 'get_targets'.
+
+   The command-line patterns are still parsed so that a malformed
+   '--exclude' or '--include' pattern is reported as before.
+
+   This is a targeted fix for scans of explicitly listed files, not a
+   general one: as soon as one scanning root is a folder, we take the
+   general path and walk the whole project, however small the folder.
+   The walk is done eagerly so that the resulting cache can be shared
+   safely by the parallel path filtering. Loading only the
+   '.semgrepignore' files that can affect the targets (e.g. those listed
+   by git plus those in the scanning roots' parent folders) is left to do;
+   see CODE-10323.
+*)
+let explicit_files_of_project (conf : conf)
+    (project_roots : Project.scanning_roots) : Fppath.t list option =
+  let roots =
+    List.map Project.fppath_of_scanning_root_info project_roots.scanning_roots
+  in
+  if
+    List.for_all
+      (fun (root : Fppath.t) -> UFile.is_reg ~follow_symlinks:true root.fpath)
+      roots
+  then (
+    Semgrepignore.check_cli_patterns conf.exclude;
+    conf.include_
+    |> Option.iter (fun patterns ->
+        Include_filter.create
+          ~project_root:(Rfpath.to_fpath project_roots.project.root)
+          patterns
+        |> ignore);
+    Log.info (fun m ->
+        m
+          "selecting the %d scanning roots of project %s directly since they \
+           are all regular files"
+          (List.length roots)
+          (Project.show project_roots.project));
+    Some roots)
+  else None
+
+(*
    Target files are identified by following these steps:
 
    1. A list of folders or files are specified explicitly on the command line.
@@ -937,9 +989,8 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
       Typically, the sets of files produced by (2) and (3) overlap vastly.
    4. Take the union of (2) and (3).
 *)
-let get_targets_for_project (conf : conf)
+let get_targets_by_listing (conf : conf)
     (project_roots : Project.scanning_roots) =
-  Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
   let git_tracked =
@@ -967,8 +1018,15 @@ let get_targets_for_project (conf : conf)
     | _, None ->
         get_targets_from_filesystem conf project_roots
   in
+  force_select_scanning_roots project_roots selected_targets skipped_targets
+
+let get_targets_for_project (conf : conf)
+    (project_roots : Project.scanning_roots) =
+  Log.debug (fun m -> m "Find_target.get_targets_for_project");
   let selected_targets, skipped_targets =
-    force_select_scanning_roots project_roots selected_targets skipped_targets
+    match explicit_files_of_project conf project_roots with
+    | Some files -> (Fppath_set.of_list files, [])
+    | None -> get_targets_by_listing conf project_roots
   in
   Log.debug (fun m ->
       m "selected targets: %s" (Fppath_set.show selected_targets));
