@@ -1,0 +1,1 @@
+Clarify scan summaries when gitignore filtering is enabled; untracked files are not necessarily excluded.
