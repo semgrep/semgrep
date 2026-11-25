@@ -468,13 +468,33 @@ let resolved_name_kind env lang =
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
   params |> Tok.unbracket
-  |> List.filter_map (function
+  |> List.concat_map (function
     | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
-        let sid = SId.mk () in
-        let resolved = { entname = (Parameter, sid); enttype = typ } in
-        set_resolved env id_info resolved;
-        Some (H.str_of_ident id, resolved)
-    | _ -> None)
+        [ (id, id_info, typ) ]
+    | ParamPattern
+        (OtherPat (("ExprToPattern", _), [ E { e = Record (_, fields, _); _ } ]))
+      when Lang.is_js env.lang ->
+        (* JS object parameters are represented as records. Bind the field
+         * values, not the property names: { key: local } declares local. *)
+        fields
+        |> List.filter_map (function
+          | F
+              {
+                s =
+                  DefStmt
+                    ( _,
+                      FieldDefColon
+                        { vinit = Some { e = N (Id (id, id_info)); _ }; _ } );
+                _;
+              } ->
+              Some (id, id_info, None)
+          | _ -> None)
+    | _ -> [])
+  |> List.map (fun (id, id_info, typ) ->
+      let sid = SId.mk () in
+      let resolved = { entname = (Parameter, sid); enttype = typ } in
+      set_resolved env id_info resolved;
+      (H.str_of_ident id, resolved))
 
 let js_get_angular_constructor_args env attrs defs =
   let is_injectable =
