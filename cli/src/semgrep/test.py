@@ -40,6 +40,7 @@ from ruamel.yaml import YAML
 import semgrep.run_scan
 from semgrep.constants import BREAK_LINE
 from semgrep.engine import EngineType
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.run_scan import AutofixBehavior
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
@@ -631,7 +632,15 @@ def generate_test_results(
         "fixtest_results": fixtest_results_output,
     }
 
-    strict_error = bool(config_with_errors_output) and strict
+    # An invalid rule config is a hard error: exit with code 7
+    # (MISSING_CONFIG_EXIT_CODE), as documented in the CLI reference
+    # ("if there is at least one invalid rule in the configuration then
+    # the status code should be 7") and as the osemgrep test subcommand
+    # does (Test_subcommand.ml raises missing_config for invalid rules).
+    # Previously config errors only affected the exit code under --strict
+    # (as exit code 1), so `semgrep --test` silently exited 0.
+    any_config_errors = bool(config_with_errors_output)
+
     any_failures = any(
         not check_results["passed"]
         for file_results in results_output.values()
@@ -643,7 +652,11 @@ def generate_test_results(
         for fixtest_file_results in fixtest_results_output.values()
     )
 
-    exit_code = int(strict_error or any_failures or any_fixtest_failures)
+    exit_code = (
+        MISSING_CONFIG_EXIT_CODE
+        if any_config_errors
+        else int(any_failures or any_fixtest_failures)
+    )
 
     if json_output:
         print(json.dumps(output, indent=4, separators=(",", ": ")))
