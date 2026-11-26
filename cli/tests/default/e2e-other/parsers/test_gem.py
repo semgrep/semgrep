@@ -12,6 +12,8 @@
 #
 import pytest
 
+from pathlib import Path
+
 from semdep.external.parsy import any_char
 from semdep.external.parsy import string
 from semdep.parsers import gem
@@ -33,3 +35,39 @@ def test_gem_direct_dep_block(original: str, output: str):
     ).parse_partial(original)
     assert result[0] == output
     assert not result[1]
+
+
+@pytest.mark.quick
+def test_gemfile_platform_suffix_stripped(tmp_path: Path):
+    """Bundler writes precompiled native gems with a platform suffix inside
+    the parentheses, e.g. `nokogiri (1.13.1-x86_64-linux)`. The suffix must
+    not leak into FoundDependency.version, or Gem range matching breaks
+    (see #12103)."""
+    lockfile = tmp_path / "Gemfile.lock"
+    lockfile.write_text(
+        "GEM\n"
+        "  remote: https://rubygems.org/\n"
+        "  specs:\n"
+        "    nokogiri (1.13.1-x86_64-linux)\n"
+        "      racc (~> 1.4)\n"
+        "    racc (1.7.3)\n"
+        "    ffi (1.17.1-x64-mingw-ucrt)\n"
+        "    jruby-openssl (0.14.0-java)\n"
+        "\n"
+        "PLATFORMS\n"
+        "  x86_64-linux\n"
+        "\n"
+        "DEPENDENCIES\n"
+        "  nokogiri\n"
+        "\n"
+        "BUNDLED WITH\n"
+        "   2.5.6\n"
+    )
+    deps, errors = gem.parse_gemfile(lockfile, None)
+    assert not errors
+    assert {dep.package: dep.version for dep in deps} == {
+        "nokogiri": "1.13.1",
+        "racc": "1.7.3",
+        "ffi": "1.17.1",
+        "jruby-openssl": "0.14.0",
+    }

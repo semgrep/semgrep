@@ -1,0 +1,1 @@
+Fixed `Gemfile.lock` parsing retaining Bundler platform suffixes (e.g. `-x86_64-linux`) in dependency versions, so dependency-aware rules with Gem version ranges now match platform-specific precompiled gems correctly.
