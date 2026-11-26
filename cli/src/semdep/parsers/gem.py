@@ -123,10 +123,16 @@ def parse_gemfile(
         for line_number, dep in deps:
             if not dep:
                 continue
+            # Bundler writes precompiled native gems with a platform suffix
+            # inside the parentheses, e.g. `nokogiri (1.13.1-x86_64-linux)`.
+            # Like Bundler's LockfileParser, split on "-" and keep only the
+            # version: the platform is not part of the version, and keeping
+            # it breaks range matching in `is_in_range` (see #12103).
+            version = dep[1].split("-", 1)[0]
             output.append(
                 FoundDependency(
                     package=dep[0],
-                    version=dep[1],
+                    version=version,
                     ecosystem=Ecosystem(Gem()),
                     allowed_hashes={},
                     transitivity=transitivity(manifest_deps, [dep[0]]),
