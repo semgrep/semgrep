@@ -1,0 +1,1 @@
+Fixed `build.gradle` parsing marking double-quoted dependencies after the first as transitive, so dependency-aware rules now classify all double-quoted Gradle dependencies as direct.
