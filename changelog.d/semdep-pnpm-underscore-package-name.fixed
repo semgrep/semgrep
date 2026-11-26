@@ -1,0 +1,1 @@
+﻿fix(cli): keep an underscore in the package name when stripping a pnpm peer suffix

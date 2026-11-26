@@ -218,6 +218,32 @@ def test_sanitize_dependency_post_v9(input_dependency, expected_dependency):
             "3.21.0_typescript@4.6.2",
             ParseResult(package="", version="3.21.0"),
         ),
+        # Package names that contain `_` must survive the peer-suffix strip
+        (
+            "@types/babel__core@7.20.5",
+            ParseResult(package="@types/babel__core", version="7.20.5"),
+        ),
+        (
+            "string_decoder@1.3.0",
+            ParseResult(package="string_decoder", version="1.3.0"),
+        ),
+        (
+            "@jsr/std__fmt@1.0.10",
+            ParseResult(package="@jsr/std__fmt", version="1.0.10"),
+        ),
+        (
+            "a_b_c@1.2.3",
+            ParseResult(package="a_b_c", version="1.2.3"),
+        ),
+        # ... and still behind a legacy peer suffix
+        (
+            "string_decoder@1.3.0_bar@2.0.0",
+            ParseResult(package="string_decoder", version="1.3.0"),
+        ),
+        (
+            "@types/babel__core@7.20.5_bar@2.0.0",
+            ParseResult(package="@types/babel__core", version="7.20.5"),
+        ),
     ],
 )
 def test_parse_dependency_version(input_version, expected_result):
