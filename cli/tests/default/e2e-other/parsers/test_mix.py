@@ -88,7 +88,7 @@ def test_mix_options_block(original: str):
             "hexpm",
             "2aa8f95fbfb66c1ac62349f63dbb04ac36353953ef4b24ec3e193b53b8ccfe09"
         }""",
-            (4, ("poison", "4.0.2")),
+            (4, ("poison", "4.0.2", "poison")),
         ),
         (
             """{
@@ -101,7 +101,7 @@ def test_mix_options_block(original: str):
             "hexpm",
             "f6b37a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
         }""",
-            (4, ("telemetry", "0.4.3")),
+            (4, ("telemetry", "0.4.3", "telemetry")),
         ),
         (
             """{
@@ -113,7 +113,12 @@ def test_mix_options_block(original: str):
         [],
         "hexpm"
         }""",
-            (4, ("testing", "1.0.1")),
+            (4, ("testing", "1.0.1", "testing")),
+        ),
+        (
+            # `hex: :plug` on a dependency whose mix.exs key is the local alias
+            """{:hex, :plug, "1.14.0", "ba4f558468f69cbd9f6b356d25443d0b796fbdc887e03fa89001384a9cac638f", [:mix], [], "hexpm"}""",
+            (1, ("plug", "1.14.0", "my_plug_alias")),
         ),
     ],
 )
@@ -121,7 +126,10 @@ def test_mix_options_block(original: str):
 @pytest.mark.osemfail
 @pytest.mark.quick
 def test_mix_package_entry_value_block(original: str, output: Tuple):
-    result = mix.package_entry_hex_value_block(output[1][0]).parse_partial(original)
+    # The third element is the lockfile's outer key, which the parser is given;
+    # it is the same as the package name unless the two cases above differ.
+    app = output[1][2]
+    result = mix.package_entry_hex_value_block(app).parse_partial(original)
     assert result[0] == output
     assert not result[1]
 
@@ -131,7 +139,7 @@ def test_mix_package_entry_value_block(original: str, output: Tuple):
     [
         (
             '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]}',
-            (1, ("grpc-erl", "0.6.12")),
+            (1, ("grpc-erl", "0.6.12", "grpc-erl")),
         ),
         (
             '{:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", []}',
@@ -189,7 +197,7 @@ def test_mix_package_key_value_block():
 """
 
     result = mix.package_key_value_block.parse_partial(original)
-    assert result[0] == (2, ("websock_adapter", "0.5.5"))
+    assert result[0] == (2, ("websock_adapter", "0.5.5", "websock_adapter"))
     assert not result[1]
 
 
@@ -203,7 +211,10 @@ def test_mix_many_package_blocks():
     """
 
     result = mix.many_package_blocks.parse_partial(original)
-    assert result[0] == [(2, ("acceptor_pool", "1.0.0")), (3, ("bamboo", "2.3.0"))]
+    assert result[0] == [
+        (2, ("acceptor_pool", "1.0.0", "acceptor_pool")),
+        (3, ("bamboo", "2.3.0", "bamboo")),
+    ]
     assert not result[1]
 
 
@@ -226,14 +237,14 @@ def test_mix_lockfile_parser():
     """
     result = mix.lockfile_parser.parse_partial(full_lockfile)
     assert result[0] == [
-        (2, ("bamboo_smtp", "4.2.2")),
-        (3, ("bypass", "2.1.0")),
-        (4, ("castore", "1.0.5")),
-        (5, ("cloak", "1.1.2")),
-        (6, ("combination", "0.0.3")),
-        (7, ("cowboy", "2.10.0")),
-        (8, ("cowboy_telemetry", "0.4.0")),
-        (9, ("credo", "1.7.3")),
+        (2, ("bamboo_smtp", "4.2.2", "bamboo_smtp")),
+        (3, ("bypass", "2.1.0", "bypass")),
+        (4, ("castore", "1.0.5", "castore")),
+        (5, ("cloak", "1.1.2", "cloak")),
+        (6, ("combination", "0.0.3", "combination")),
+        (7, ("cowboy", "2.10.0", "cowboy")),
+        (8, ("cowboy_telemetry", "0.4.0", "cowboy_telemetry")),
+        (9, ("credo", "1.7.3", "credo")),
         "my-branch",
         None,
     ]
