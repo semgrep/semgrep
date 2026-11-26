@@ -182,6 +182,8 @@ def parse_dependency_version(version_str: str) -> ParseResult:
     - "string-width@4.2.3" -> ParseResult("string-width", "4.2.3")
     - "@docusaurus/react-loadable@6.0.0" -> ParseResult("@docusaurus/react-loadable", "6.0.0")
     - "/@pnpm/node-fetch@1.0.0" -> ParseResult("@pnpm/node-fetch", "1.0.0")
+    - "@types/babel__core@7.20.5" -> ParseResult("@types/babel__core", "7.20.5")
+    - "foo@1.0.0_bar@2.0.0" -> ParseResult("foo", "1.0.0")
     """
     if not version_str:
         return ParseResult("", "")
@@ -191,8 +193,22 @@ def parse_dependency_version(version_str: str) -> ParseResult:
     if base_version.startswith("/"):
         base_version = base_version[1:]
 
-    if "_" in base_version:
-        base_version = base_version.split("_")[0]
+    # pnpm before v9 appends peer dependencies after the version, as
+    # "foo@1.0.0_bar@2.0.0" or, when the entry has no package part,
+    # "0.13.11_vue@3.2.45". A "_" inside a package name must survive:
+    # "string_decoder@1.3.0", "@types/babel__core@7.20.5".
+    def is_version_prefix(text: str) -> bool:
+        if not text or not text[0].isdigit() or "." not in text:
+            return False
+        return all(part.isdigit() for part in text.split("."))
+
+    peer_separator = base_version.find("_")
+    while peer_separator != -1:
+        prefix = base_version[:peer_separator]
+        if "@" in base_version[1:peer_separator] or is_version_prefix(prefix):
+            base_version = prefix
+            break
+        peer_separator = base_version.find("_", peer_separator + 1)
 
     if "@" not in base_version:
         return ParseResult("", base_version)
