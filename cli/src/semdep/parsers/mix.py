@@ -71,12 +71,19 @@ git_branch = string("branch") >> colon >> quoted_str
 
 comment = regex(r" *#") >> line
 
+# Lockfile entry as returned to _build_found_dependencies:
+#   (package, version, app) where `app` is the lockfile's outer key, which is
+#   what mix.exs declares and therefore what transitivity is decided on.
+#   For a Hex entry `package` is the published package name, which differs from
+#   `app` when the dependency is declared with `hex: :other_package`.
+LockfileEntry = tuple[str, str, str]
 
-def git_tag(package: str) -> Parser[tuple[int, tuple[str, str]]]:
+
+def git_tag(app: str) -> Parser[tuple[int, LockfileEntry]]:
     return (
         string("tag")
         >> colon
-        >> version_block.bind(lambda version: mark_line(success((package, version))))
+        >> version_block.bind(lambda version: mark_line(success((app, version, app))))
     )
 
 
@@ -90,35 +97,41 @@ def git_tag(package: str) -> Parser[tuple[int, tuple[str, str]]]:
 #     "hexpm",
 #     "98767a5d1c6c3e3d20497b03293be7f83b46f89a6f3987cc1f9262d299f1eaa7"
 #   }
-def package_entry_hex_value_block(package: str) -> Parser[tuple[int, tuple[str, str]]]:
+# The second atom is the Hex package name; the outer map key (`app`) is the OTP
+# application name. They differ whenever the dependency is declared with
+# `hex:`, e.g. `{:uuid, "~> 2.0", hex: :uuid_erl}`.
+def package_entry_hex_value_block(app: str) -> Parser[tuple[int, LockfileEntry]]:
     return (
         whitespace
         >> lbrace
         >> atom
         >> comma
-        >> atom
-        >> comma
-        >> version_block.bind(lambda version: mark_line(success((package, version))))
-        << comma
-        << quoted_str
-        << comma
-        << any_array
-        << comma
-        << lbrack
-        << many_independency_blocks
-        << rbrack
-        << comma
-        << quoted_str
-        << (comma << quoted_str).optional()
-        << rbrace
-        << comma.optional()
+        >> atom.bind(
+            lambda package: comma
+            >> version_block.bind(
+                lambda version: mark_line(success((package, version, app)))
+            )
+            << comma
+            << quoted_str
+            << comma
+            << any_array
+            << comma
+            << lbrack
+            << many_independency_blocks
+            << rbrack
+            << comma
+            << quoted_str
+            << (comma << quoted_str).optional()
+            << rbrace
+            << comma.optional()
+        )
     )
 
 
 # {:git, "https://github.com/emqx/grpc-erl.git", "31370f25643666c4be43310d62ef749ca1fc20e2", [tag: "0.6.12"]},
 def package_entry_git_value_block(
-    package: str,
-) -> Parser[tuple[int, tuple[str, str]] | str | None]:
+    app: str,
+) -> Parser[tuple[int, LockfileEntry] | str | None]:
     return (
         whitespace
         >> lbrace
@@ -129,7 +142,7 @@ def package_entry_git_value_block(
         >> quoted_str
         >> comma
         >> lbrack
-        >> (git_tag(package) | git_ref | git_branch).optional()
+        >> (git_tag(app) | git_ref | git_branch).optional()
         << rbrack
         << rbrace
         << comma.optional()
@@ -224,21 +237,21 @@ def _parse_manifest_deps(manifest: list[tuple[int, str]]) -> set[str]:
 def _build_found_dependencies(
     lockfile_path: Path,
     direct_deps: set[str],
-    lockfile_deps: list[tuple[int, tuple[str, str]] | None],
+    lockfile_deps: list[tuple[int, LockfileEntry] | None],
     manifest_path: Path | None,
 ) -> list[FoundDependency]:
     result = []
     for dep in lockfile_deps:
         if dep is None:
             continue
-        line_number, (package, version) = dep
+        line_number, (package, version, app) = dep
         result.append(
             FoundDependency(
                 package=package,
                 version=version,
                 ecosystem=Ecosystem(Hex()),
                 allowed_hashes={},
-                transitivity=transitivity(direct_deps, [package]),
+                transitivity=transitivity(direct_deps, [app]),
                 line_number=line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
                 manifest_path=Fpath(str(manifest_path)) if manifest_path else None,

@@ -1,0 +1,1 @@
+﻿fix(cli): report the Hex package name for mix.lock entries declared with a hex: alias
