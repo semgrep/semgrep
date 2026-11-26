@@ -62,8 +62,8 @@ manifest_line = (
             r"""
     [\sa-zA-Z]+       # whitespace, followed by "implementation" or "testImplementation" or any number of other things
     ["']              # opening quote
-        ([^:]+:[^:]+) # package name
-        (?::[^']+)?   # optional version
+        ([^:'"\n]+:[^:'"\n]+) # package name
+        (?::[^:'"\n]+)?   # optional version
     ["']"""
         ),  # closing quote
         flags=re.VERBOSE,
