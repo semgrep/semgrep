@@ -11,10 +11,12 @@
 # LICENSE for more details.
 #
 import json
+from pathlib import Path
 
 import pytest
-from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
+
+from semgrep.constants import OutputFormat
 
 
 # Regression test for https://github.com/semgrep/semgrep/issues/11560
@@ -48,20 +50,54 @@ def test_paths(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     )
 
 
-# Skip on Windows: this test makes pytest hang indefinitely on Windows
-# since PR https://github.com/semgrep/semgrep-proprietary/pull/3859
-# Behaves fine when run as a standalone semgrep or osemgrep command.
-#
-# This happens because we log a warning about ambiguous rule exclude paths, and
-# for some reason that message is too long and causes pytest to hang on windows
-# only. Even if we split up the logger warning AND flush, it still hangs. So who
-# knows, we just won't run this on Windows.
-@skip_on_windows
 @pytest.mark.kinda_slow
-def test_paths_warnings(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
-    posix_snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/paths_warnings.yaml", target_name="exclude_include"
-        ).stdout,
-        "results.json",
+@pytest.mark.parametrize("filter_kind", ["include", "exclude"])
+@pytest.mark.parametrize(
+    "pattern, matching_paths",
+    [
+        ("/test.py", {"test.py"}),
+        ("test.py", {"test.py", "a/test.py", "x/a/test.py"}),
+        ("a/test.py", {"a/test.py"}),
+        ("/a/test.py", {"a/test.py"}),
+        ("**/a/test.py", {"a/test.py", "x/a/test.py"}),
+        ("a/", {"a/test.py", "x/a/test.py"}),
+    ],
+)
+def test_rule_path_anchoring(
+    run_semgrep: RunSemgrep,
+    tmp_path: Path,
+    monkeypatch,
+    filter_kind,
+    pattern,
+    matching_paths,
+):
+    monkeypatch.chdir(tmp_path)
+    all_paths = {"test.py", "a/test.py", "x/a/test.py"}
+    for path in all_paths:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("hello\n")
+    config = Path("rule.yaml")
+    config.write_text(
+        "rules:\n"
+        "- id: anchored-paths\n"
+        "  pattern: hello\n"
+        "  languages: [python]\n"
+        "  message: found something\n"
+        "  severity: ERROR\n"
+        f"  paths:\n    {filter_kind}: [{json.dumps(pattern)}]\n"
     )
+    result = run_semgrep(
+        config,
+        target_name=".",
+        assume_targets_dir=False,
+        output_format=OutputFormat.JSON,
+    )
+    findings = json.loads(result.stdout)["results"]
+    expected_paths = (
+        matching_paths if filter_kind == "include" else all_paths - matching_paths
+    )
+    assert {Path(finding["path"]) for finding in findings} == {
+        Path(path) for path in expected_paths
+    }
+    assert "will soon be interpreted" not in result.stderr

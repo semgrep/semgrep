@@ -39,152 +39,99 @@ Last change in file:
       build: bump `tree-sitter-c` to 0.23.1
 ---
 File: semgrep-grammars/src/semgrep-cpp/grammar.js
-Git repo name: nouakchott
-Latest commit in repo: b89dc9bbdc0b9630ed7ebb4f974a389af7b5dd58
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit f8e6c96e50156031e3e7552477ae914e25506fba
+  commit 5c980b3ad224f8ee3a3cc6ee5812039abc800050
   Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Sep 11 20:44:29 2026 -0600
+  Date:   Thu Sep 24 14:36:55 2026 -0600
   
-      feat: ots grammar operator (registry, test/regen, check-vendored-ots) (#7026)
+      Update tree-sitter grammars: c + cpp (#7131)
       
-      ## Summary
+      Automated grammar update for **c**, **cpp**.
       
-      Converts the ocaml-tree-sitter-semgrep submodule into a part of the
-      Semgrep code base.
-      Most files are copied as-is, but some modifications are necessary.
+      ### c
       
-      ## Details
+      - No verified user-facing improvements: Agent feature assessment was not
+      run for this grammar.
       
-      1. Registry: we no longer include and pin upstream grammars as
-      .gitmodules because that creates large checkouts for a part of code
-      that's not needed in the build. Instead, we have a registry
-      (`upstream-grammars.json`) and a command-line utility for querying it
-      (`grammar_registry.py`). Relevant scripts now use the registry CLI.
+      Pin: `ecdd5008` → `b780e47f` (**v0.24.2**)
       
-      2. Integrity check: we check the integrity of what's copied using
-      `scripts/check-vendored-ots`. That script also lists the exclusions -
-      files that were not needed in the new repo or needed to be updated along
-      the way.
+      ### cpp
       
-      3. CI updates:
+      - C++ target parsing now supports attributes on namespace definitions
+      and preserves their arguments in the AST.
+      - C++ target parsing now supports reference typedef declarators,
+      including references to arrays and functions.
+      - C++ target parsing now supports C++20 lambda pack init-captures such
+      as [...values = args] and [&...values = args]. Capture-sensitive
+      matching remains an existing limitation.
+      - C++ target parsing now supports GNU inline-assembly output operands
+      that are expressions, including pointer dereferences and array accesses.
+      - C++ target parsing now supports composite type arguments in alignas
+      declarations, such as alignas(int *), while preserving the alignment
+      argument.
+      - C++ target parsing now accepts single-digit hexadecimal escapes in
+      string literals, such as "\xA", while retaining support for longer
+      hexadecimal escapes.
       
-      * `ots_is_submodule=false` now set, and increased conformity with the
-      rest of the repo for pinning and caching
-      * Improved dependencies caching for grammar tests, which were otherwise
-      flaky due to too many jobs hitting OPAM at once.
+      Pin: `4ca37be8` → `f41e1a04` (**v0.23.4**)
       
-      5. Script updates: besides what is mentioned in 1., we also ensured that
-      all relevant scripts are in `OSS/lib/ocaml-tree-sitter-semgrep/scripts`
+      Test plan:
       
-      6. Intentional omissions and removal:
-      
-      * Nothing related to update automation. This will be included in a
-      future PR.
-      * Removed temporary CI workflows that are no longer needed after the
-      integration of the semgrep-LANG submodules.
-      
-      ## Test plan
-      
-      - [x] CI tests passing
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
       
       --- Text above this line is public. Place SENSITIVE info below! ---
       
-      Dogfood follow-ups: CODE-9919, CODE-9921.
-      Closes CODE-9913.
+      ### Generated and copied files
       
-      ## Reviewer guide: pre-existing files
-      
-      Compared with the merge base of `origin/develop` and HEAD. Excludes
-      newly added files and all contents of the former OTS submodule. Small
-      but behavior-changing integration edits are included as substantive.
-      Generated files and deletions are listed separately so none of the
-      pre-existing changed paths are hidden.
-      
-      ### Substantive integration changes
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +6/−2 | Include
-      shared OSS workflow changes in triggers. |
-      | `.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` | +2/−2 |
-      Switch from submodule checkout to in-tree grammar tooling. |
-      | `.github/workflows/regen-grammar.jsonnet` | +11/−7 | Use integrated
-      generator and shared build setup for Solidity canary. |
-      | `.gitignore` | +0/−6 | Remove temporary OTS Docker-context exclusion.
-      |
-      | `.gitmodules` | +0/−4 | Remove OTS submodule configuration. |
-      | `.pre-commit-config.yaml` | +7/−4 | Keep upstream core/lang excluded;
-      lint integration scripts; test typing exclusions. |
-      | `OSS/.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +74/−58 | Root
-      OCaml/Python test targets, shared setup and build caching. |
-      | `OSS/.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` |
-      +6/−6 | In-tree grammar checkout and script paths. |
-      | `OSS/.github/workflows/ocaml-tree-sitter.libsonnet` | +67/−50 | Shared
-      dependency setup, build paths, CLI/build caches, lockfile hashes and
-      triggers. |
-      | `OSS/.gitignore` | +2/−5 | Replace broad OTS exclusion with ephemeral
-      grammar-clone exclusion. |
-      | `OSS/.gitmodules` | +0/−5 | Remove OTS submodule configuration. |
-      | `OSS/.pre-commit-config.yaml` | +5/−3 | Keep upstream core/lang
-      excluded; lint integration scripts; test typing exclusions. |
-      | `OSS/Makefile` | +39/−4 | Root grammar build/test/setup targets; OTS
-      tests in test-all; cleanup integration. |
-      | `OSS/semgrep.opam.template` | +1/−1 | Pin tree-sitter to the vendored
-      local core instead of a remote repository. |
-      
-      ### Removed or replaced files
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/check-vendored-grammars.jsonnet` | +0/−145 |
-      Replaced by the in-tree OTS tooling/documentation. |
-      | `.github/workflows/check-vendored-grammars.yml` | +0/−98 | Replaced by
-      the in-tree OTS tooling/documentation. |
-      | `OSS/languages/GRAMMAR_INTEGRATION.md` | +0/−136 | Replaced by the
-      in-tree OTS tooling/documentation. |
-      | `OSS/libs/ocaml-tree-sitter-semgrep` | +0/−1 | Gitlink replaced by
-      ordinary vendored files; this was not an ordinary source file. |
-      | `OSS/scripts/regen-grammar` | +0/−168 | Replaced by the in-tree OTS
-      tooling/documentation. |
-      | `scripts/check-vendored-grammars` | +0/−133 | Replaced by the in-tree
-      OTS tooling/documentation. |
-      | `scripts/newly-vendored-grammars` | +0/−31 | Replaced by the in-tree
-      OTS tooling/documentation. |
-      
-      
-      ### Small supporting edits
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/Makefile` | +1/−1 | Documentation, comment, or
-      build wiring update. |
-      | `AGENTS.md` | +6/−0 | Documentation, comment, or build wiring update.
-      |
-      | `Makefile` | +1/−0 | Documentation, comment, or build wiring update. |
-      | `OSS/AGENTS.md` | +7/−0 | Documentation, comment, or build wiring
-      update. |
-      | `OSS/dune-project` | +2/−1 | Documentation, comment, or build wiring
-      update. |
-      | `README.md` | +1/−5 | Documentation, comment, or build wiring update.
-      |
-      | `WINDOWS.md` | +1/−5 | Documentation, comment, or build wiring update.
-      |
+      -
+      `OSS/languages/cpp/tree-sitter/semgrep-cpp/fyi/semgrep-grammars/src/semgrep-cpp/grammar.js`
+      — copied from `semgrep-cpp/grammar.js`
+      -
+      `OSS/languages/cpp/tree-sitter/semgrep-cpp/fyi/semgrep-grammars/src/tree-sitter-c/grammar.js`
+      — copied from [upstream
+      `grammar.js`](https://github.com/tree-sitter/tree-sitter-c/blob/b780e47fc780ddc8da13afa35a3f4ed5c157823d/grammar.js)
+      -
+      `OSS/languages/cpp/tree-sitter/semgrep-cpp/fyi/semgrep-grammars/src/tree-sitter-cpp/grammar.js`
+      — copied from [upstream
+      `grammar.js`](https://github.com/tree-sitter/tree-sitter-cpp/blob/f41e1a044c8a84ea9fa8577fdd2eab92ec96de02/grammar.js)
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/fyi/tree-sitter-version` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/fyi/versions` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/Boilerplate.ml` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/CST.ml` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/Parse.ml` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/bindings.c` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/dune` — auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/parser.c` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/scanner.c` — copied
+      from [upstream
+      `src/scanner.c`](https://github.com/tree-sitter/tree-sitter-cpp/blob/f41e1a044c8a84ea9fa8577fdd2eab92ec96de02/src/scanner.c)
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/tree_sitter/alloc.h` —
+      copied from [upstream
+      `src/tree_sitter/alloc.h`](https://github.com/tree-sitter/tree-sitter-cpp/blob/f41e1a044c8a84ea9fa8577fdd2eab92ec96de02/src/tree_sitter/alloc.h)
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/tree_sitter/array.h` —
+      auto-generated
+      - `OSS/languages/cpp/tree-sitter/semgrep-cpp/lib/tree_sitter/parser.h` —
+      auto-generated
       
       PR checklist:
-      
-      - [x] Documentation is up-to-date
-      * Updated `OSS/libs/ocaml-tree-sitter-semgrep/README.md`,
-      `doc/add-or-update-grammar.md`, `OSS/AGENTS.md`
-        * Removed OSS/languages/GRAMMAR_INTEGRATION.md
-        * TODO PR for website update
-      - [x] An entry was added to
+      - [ ] Documentation is up-to-date
+      - [ ] An entry was added to
       [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
       for user-facing changes, and to [CLI
       notes](https://golinks.io/cli-notes) for customer support (if needed)
-      - [x] Change has no security implications (otherwise, ping security
+      - [ ] Change has no security implications (otherwise, ping security
       team)
-      - [x] Change does not log any sensitive information to the INFO,
+      - [ ] Change does not log any sensitive information to the INFO,
       WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
       
       See [go/saf-pr](http://go/saf-pr) for a guide on our code review process

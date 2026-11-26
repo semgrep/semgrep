@@ -1,6 +1,6 @@
 (*
    Tree-sitter grammar specification types.
-   See <https://raw.githubusercontent.com/tree-sitter/tree-sitter/refs/tags/v0.26.3/docs/src/assets/schemas/grammar.schema.json>
+   See <https://raw.githubusercontent.com/tree-sitter/tree-sitter/refs/tags/v0.26.11/docs/src/assets/schemas/grammar.schema.json>
 *)
 
 type ident = string

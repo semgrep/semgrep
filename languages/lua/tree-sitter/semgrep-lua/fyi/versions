@@ -22,16 +22,57 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-lua/grammar.js
 Git repo name: workspace
-Latest commit in repo: 36b1b9e11f6b22746a88d6bfd1ae23ceac7b9674
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit 5571975b20adfc70e3ec0c745d81244812841831
-  Author: Cursor Agent <cursoragent@cursor.com>
-  Date:   Thu Oct 8 21:42:27 2026 +0000
+  commit 1df6670ab58e789fdd3e1d283dea0f711855975d
+  Author: Marc-André Laverdière <marc-andre@semgrep.com>
+  Date:   Fri Oct 16 10:03:53 2026 -0600
   
-      docs(lua): note the hashbang override is a narrow upstream exception
+      Update tree-sitter grammars: lua (#7235)
       
-      Upstream skips any first line starting with '#'. The wrapper only
-      keeps '#$X' length patterns out of that rule.
+      Automated grammar update for **lua**.
       
-      Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
+      ### lua
+      
+      - Changed upstream. The grammar is now maintained in the tree-sitter
+      repo.
+      - Lua parsing now supports Lua 5.4 variable attributes and Lua 5.5
+      leading attributes, global declarations, and named vararg parameters.
+      - Lua parsing now accepts Unicode identifiers, hashbang lines, and
+      additional numeric forms including LuaJIT binary, LL/ULL, and imaginary
+      literals.
+      - Lua AST conversion now preserves elseif branches in source order,
+      including when an else branch is present, and correctly retains
+      member-assignment receivers and colon-method declaration names.
+      - Lua string ASTs now separate single-quoted and long-bracket delimiters
+      from their content, consistently with double-quoted strings. Escape
+      contents remain uninterpreted.
+      - Lua parsing now handles builtin names such as next as ordinary
+      callable identifiers.
+      - This also replaces the C++ scanner with one coded in C.
+      
+      Pin: `a943944e` →
+      [`10fe0054`](https://github.com/tree-sitter-grammars/tree-sitter-lua/tree/10fe0054734eec83049514ea2e718b2a56acd0c9)
+      (**v0.5.0**)
+      
+      
+      Test plan:
+      
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---

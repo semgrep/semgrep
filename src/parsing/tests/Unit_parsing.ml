@@ -244,12 +244,69 @@ let parsing_rules_tests () =
 (* Tests *)
 (*****************************************************************************)
 
+let rule_path_anchoring_tests () =
+  let candidates = [ "/test.py"; "/a/test.py"; "/x/a/test.py" ] in
+  let cases =
+    [
+      ("/test.py", [ "/test.py" ]);
+      ("test.py", candidates);
+      ("a/test.py", [ "/a/test.py" ]);
+      ("/a/test.py", [ "/a/test.py" ]);
+      ("**/a/test.py", [ "/a/test.py"; "/x/a/test.py" ]);
+      ("a/", [ "/a/test.py"; "/x/a/test.py" ]);
+    ]
+  in
+  Testo.categorize "Rule path anchoring"
+    (List.concat_map
+       (fun filter_kind ->
+         List.map
+           (fun (pattern, expected) ->
+             t (spf "%s %s" filter_kind pattern) (fun () ->
+                 let contents =
+                   spf
+                     "rules:\n\
+                      - id: path-anchoring\n\
+                     \  pattern: hello\n\
+                     \  languages: [python]\n\
+                     \  message: found\n\
+                     \  severity: ERROR\n\
+                     \  paths:\n\
+                     \    %s: ['%s']\n"
+                     filter_kind pattern
+                 in
+                 UTmp.with_temp_file ~suffix:".yaml" ~contents (fun file ->
+                     let rules = Parse_rule.parse file |> Result.get_ok in
+                     let rule =
+                       match rules with
+                       | [ rule ] -> rule
+                       | _ -> Alcotest.fail "expected exactly one rule"
+                     in
+                     let paths = Option.get rule.Rule.paths in
+                     let globs =
+                       if String.equal filter_kind "include" then paths.require
+                       else paths.exclude
+                     in
+                     let actual =
+                       List.filter
+                         (fun path ->
+                           List.exists
+                             (fun (glob : Rule.glob) ->
+                               Glob.Match.run glob.compiled_pattern path)
+                             globs)
+                         candidates
+                     in
+                     Alcotest.(check (list string))
+                       "matched paths" expected actual)))
+           cases)
+       [ "include"; "exclude" ])
+
 let make_tests langs_with_tolerance =
   List_.flatten
     [
       lang_parsing_tests langs_with_tolerance;
       parsing_error_tests ();
       parsing_rules_tests ();
+      rule_path_anchoring_tests ();
     ]
 
 let langs_with_error_tolerance =

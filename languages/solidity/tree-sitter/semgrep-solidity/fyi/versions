@@ -26,7 +26,7 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-solidity/grammar.js
 Git repo name: workspace
-Latest commit in repo: b4061fa81baf4f69101698a66827fc84fb5ad2f5
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
   commit f8e6c96e50156031e3e7552477ae914e25506fba
   Author: Marc-André Laverdière <marc-andre@semgrep.com>

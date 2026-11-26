@@ -43,9 +43,8 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize("legacy_behavior", [True, False], ids=["legacy", "standard"])
 @pytest.mark.parametrize(
-    "patterns, expected_kept, expected_kept_legacy",
+    "patterns, expected_kept",
     [
         pytest.param(
             ["*.py"],
@@ -61,7 +60,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo/bar.go",
                 "/foo/bar.java",
             ],
-            None,
             id="All_python_files",
         ),
         pytest.param(
@@ -83,7 +81,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo/bar.java",
                 "/foo/bar.py",
             ],
-            None,
             id="All_go_files",
         ),
         pytest.param(
@@ -102,7 +99,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo.py",
                 "/foo/bar.py",
             ],
-            None,
             id="All_go_and_java_files",
         ),
         pytest.param(
@@ -116,7 +112,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo.java",
                 "/foo.py",
             ],
-            None,
             id="All_files_named_foo_or_in_a_foo_directory_ancestor",
         ),
         pytest.param(
@@ -124,22 +119,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
             [
                 # not a match because bar/baz is anchored:
                 "/foo/bar/baz/a.py",
-                "/bar/foo/baz/bar.go",
-                "/bar/foo/foo.py",
-                "/baz.go",
-                "/baz.java",
-                "/baz.py",
-                "/baz/foo",
-                "/foo",
-                "/foo.go",
-                "/foo.java",
-                "/foo.py",
-                "/foo/bar.go",
-                "/foo/bar.java",
-                "/foo/bar.py",
-            ],
-            # legacy:
-            [
                 "/bar/foo/baz/bar.go",
                 "/bar/foo/foo.py",
                 "/baz.go",
@@ -178,7 +157,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo/bar.java",
                 "/foo/bar.py",
             ],
-            None,
             id="All_go_files_with_a_direct_ancestor_named_foo",
         ),
         pytest.param(
@@ -192,26 +170,6 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/bar/baz/qux/foo/a.py",
                 # pattern is anchored, not matching this:
                 "/bar/foo/baz/bar.go",
-                "/bar/foo/foo.py",
-                "/baz.go",
-                "/baz.java",
-                "/baz.py",
-                "/baz/foo",
-                "/foo",
-                "/foo.go",
-                "/foo.java",
-                "/foo.py",
-                "/foo/bar.java",
-                "/foo/bar.py",
-            ],
-            # legacy:
-            [
-                "/foo/bar/baz/a.py",
-                "/bar/baz",
-                "/bar/baz/foo/a.py",
-                "/bar/baz/foo/b.py",
-                "/bar/baz/foo/c.py",
-                "/bar/baz/qux/foo/a.py",
                 "/bar/foo/foo.py",
                 "/baz.go",
                 "/baz.java",
@@ -245,11 +203,9 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/foo/bar.go",
                 "/foo/bar.java",
             ],
-            None,
             id="All_py_files_with_three-characters_name",
         ),
         pytest.param(
-            # Different results depending on legacy or new behavior
             ["baz/qux"],
             [
                 "/foo/bar/baz/a.py",
@@ -257,31 +213,7 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
                 "/bar/baz/foo/a.py",
                 "/bar/baz/foo/b.py",
                 "/bar/baz/foo/c.py",
-                # excluded in legacy implementation only:
                 "/bar/baz/qux/foo/a.py",
-                "/bar/foo/baz/bar.go",
-                "/bar/foo/foo.py",
-                "/baz.go",
-                "/baz.java",
-                "/baz.py",
-                "/baz/foo",
-                "/foo",
-                "/foo.go",
-                "/foo.java",
-                "/foo.py",
-                "/foo/bar.go",
-                "/foo/bar.java",
-                "/foo/bar.py",
-            ],
-            # Special expectations for legacy behavior:
-            [
-                "/foo/bar/baz/a.py",
-                "/bar/baz",
-                "/bar/baz/foo/a.py",
-                "/bar/baz/foo/b.py",
-                "/bar/baz/foo/c.py",
-                # excluded in legacy implementation only:
-                # "/bar/baz/qux/foo/a.py",
                 "/bar/foo/baz/bar.go",
                 "/bar/foo/foo.py",
                 "/baz.go",
@@ -300,17 +232,9 @@ CANDIDATES = fake_targets_of_paths(Path(name) for name in CANDIDATE_NAMES)
         ),
     ],
 )
-def test_filter_exclude(
-    patterns, expected_kept, expected_kept_legacy, legacy_behavior: bool
-):
-    expected_kept = (
-        expected_kept_legacy
-        if legacy_behavior and expected_kept_legacy is not None
-        else expected_kept
-    )
+def test_filter_exclude(patterns, expected_kept):
     actual = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        legacy_rule_filtering=legacy_behavior,
     ).filter_excludes(rule_id="foo", excludes=patterns, candidates=CANDIDATES)
     expected_kept = fake_targets_of_paths(Path(name) for name in expected_kept)
     print(f"expected selection: {sorted([str(x.ppath) for x in expected_kept])}")
@@ -330,11 +254,6 @@ EQUIVALENT_ANCHORED_PATTERNS = [
     "baz/qux/**",
 ]
 
-EQUIVALENT_ANCHORED_PATTERNS_LEGACY = [
-    "/baz/qux",
-    "/baz/qux/",
-]
-
 EQUIVALENT_FLOATING_PATTERNS = [
     # unanchored
     "qux",
@@ -347,57 +266,28 @@ EQUIVALENT_FLOATING_PATTERNS = [
 ]
 
 
-def _test_filter_exclude_equivalent_variants(
-    pattern: str, pattern_variant: str, legacy_filtering: bool
-):
+def _test_filter_exclude_equivalent_variants(pattern: str, pattern_variant: str):
     """Test some different variations of the pattern yield the same result."""
     expected_result = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        legacy_rule_filtering=legacy_filtering,
     ).filter_excludes(rule_id="foo", excludes=[pattern], candidates=CANDIDATES)
     actual_result = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        legacy_rule_filtering=legacy_filtering,
     ).filter_excludes(rule_id="foo", excludes=[pattern_variant], candidates=CANDIDATES)
     assert actual_result == expected_result
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize(
-    "pattern_variants, legacy_filtering",
-    [
-        (EQUIVALENT_ANCHORED_PATTERNS, False),
-        (EQUIVALENT_ANCHORED_PATTERNS_LEGACY, True),
-    ],
-    ids=["standard", "legacy"],
-)
-def test_filter_exclude_anchored_variants(
-    pattern_variants: str, legacy_filtering: bool
-):
-    reference_pattern = (
-        EQUIVALENT_ANCHORED_PATTERNS_LEGACY[0]
-        if legacy_filtering
-        else EQUIVALENT_ANCHORED_PATTERNS[0]
-    )
-    for pattern_variant in pattern_variants:
+def test_filter_exclude_anchored_variants():
+    for pattern_variant in EQUIVALENT_ANCHORED_PATTERNS:
         _test_filter_exclude_equivalent_variants(
-            reference_pattern, pattern_variant, legacy_filtering=legacy_filtering
+            EQUIVALENT_ANCHORED_PATTERNS[0], pattern_variant
         )
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize(
-    "pattern_variants, legacy_filtering",
-    [
-        (EQUIVALENT_FLOATING_PATTERNS, False),
-        (EQUIVALENT_FLOATING_PATTERNS, True),
-    ],
-)
-def test_filter_exclude_floating_variants(
-    pattern_variants: str, legacy_filtering: bool
-):
-    reference_pattern = EQUIVALENT_FLOATING_PATTERNS[0]
-    for pattern_variant in pattern_variants:
+def test_filter_exclude_floating_variants():
+    for pattern_variant in EQUIVALENT_FLOATING_PATTERNS:
         _test_filter_exclude_equivalent_variants(
-            reference_pattern, pattern_variant, legacy_filtering=legacy_filtering
+            EQUIVALENT_FLOATING_PATTERNS[0], pattern_variant
         )

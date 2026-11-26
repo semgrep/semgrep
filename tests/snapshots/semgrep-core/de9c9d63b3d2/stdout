@@ -1,4 +1,6 @@
 Test name: with git > disable gitignore with exclude
+--- Scanning roots ---
+.
 --- Files added before 'git add' ---
 .gitignore
 src/package.json

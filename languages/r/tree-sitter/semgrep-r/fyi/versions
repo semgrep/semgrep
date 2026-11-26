@@ -19,12 +19,207 @@ Last change in file:
       Co-authored-by: Davis Vaughan <davis@posit.co>
 ---
 File: semgrep-grammars/src/semgrep-r/grammar.js
-Git repo name: semgrep-proprietary
-Latest commit in repo: c6612b885937e0916883811adfd2f9b530cf30e7
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit c6612b885937e0916883811adfd2f9b530cf30e7
-  Author: t <t@example.com>
-  Date:   Thu Sep 24 20:58:26 2026 -0600
+  commit 855b1ce6fdc309908d128fe49949b7eb2637f6cb
+  Author: semgrep-ci[bot] <106279034+semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Thu Oct 1 11:57:04 2026 -0600
   
-      fix: probe patterns under newly reserved grammar prefixes
+      Update tree-sitter grammars: r (#7135)
+      
+      Automated grammar update for **r**.
+      
+      ### r
+      
+      - R target parsing now supports unary and binary help expressions (?)
+      and exponentiation written with **.
+      - R target parsing correctly represents hexadecimal fractional and
+      exponent literals, including imaginary forms, and decimal or exponent
+      notation with the L suffix.
+      - R target parsing now supports quoted namespace and slot names, such as
+      "base"::"mean" and x@"slot".
+      - R parsing preserves else branches placed on a new line within braced
+      expressions.
+      - R string parsing preserves literal newlines and excludes raw-string
+      delimiters from string values. Short hexadecimal and Unicode escape
+      spellings are accepted; escape decoding remains unchanged.
+      - R parsing preserves omitted argument positions in calls and
+      subscripts, and retains the indexed expression for single-index
+      subscripts.
+      
+      Pin: `205c2877` → `346d3707` (**v1.3.0**)
+      
+      ### Complete upstream grammar delta
+      
+      This pin crosses the complete upstream v1.0 grammar rewrite and the
+      v1.1, v1.2, and v1.3 releases. This list covers grammar/parser behavior,
+      excluding bindings, queries, highlighting, packaging, and CI-only
+      changes.
+      
+      #### Pre-v1.0 and v1.0 rewrite
+      
+      - Replaced the old grammar with the rewritten `next` grammar and an
+      explicit R-aligned precedence table.
+      - Added unary and binary help expressions (`?`).
+      - Reworked precedence and associativity for assignments, formulas,
+      logical/comparison/arithmetic operators, special operators, pipes,
+      colon, unary operators, exponentiation, extraction, namespaces, calls,
+      and subscripts.
+      - Moved newline, delimiter, raw-string, and `else` handling into the
+      external scanner.
+      - Corrected top-level and nested newline/semicolon handling.
+      - Added stable fields and explicit delimiters for calls, parameters,
+      blocks, parentheses, subsets, namespaces, extraction, and strings.
+      - Allowed newlines after function parameter lists and improved call
+      precedence.
+      - Added `_` identifiers for native-pipe placeholders and broader
+      Unicode/backtick identifier handling.
+      - Improved complex numbers, literal locations, string/escape nodes,
+      escaped newlines, keyword handling, and unmatched-delimiter rejection.
+      
+      #### v1.1
+      
+      - Made function, loop, block, and parenthesized-expression body/close
+      fields non-optional.
+      - Ensured programs start at `(0, 0)`, including with leading whitespace.
+      - Corrected eager newline skipping.
+      
+      #### v1.2
+      
+      - Added quoted-string `open` and `close` fields.
+      - Fixed duplicate closing-bracket candidates in raw strings.
+      - Added hexadecimal binary exponents.
+      - Allowed `NULL` as a named argument.
+      - Accepted `...` and `..i` in more positions, including extraction.
+      - Rejected adjacent arguments without commas (`fn(a b)`).
+      - Allowed newlines after `function` / `\` and after `else`.
+      - Required one parenthesized body expression.
+      - Simplified hexadecimal and default-parameter productions.
+      
+      #### v1.3
+      
+      - Unified quoted/raw string node shapes as `open` / optional `content` /
+      `close`.
+      - Made unclosed raw strings parse errors.
+      - Parsed `return` as an ordinary identifier.
+      - Added fractional hexadecimal constants and leading-decimal `.1L` /
+      `.1i` forms.
+      - Prevented eager `else` prefix consumption.
+      - Excluded trailing `\r` from CRLF comment nodes.
+      
+      ### Generated and copied files
+      
+      -
+      `OSS/languages/r/tree-sitter/semgrep-r/fyi/semgrep-grammars/src/semgrep-r/grammar.js`
+      — copied from `semgrep-r/grammar.js`
+      -
+      `OSS/languages/r/tree-sitter/semgrep-r/fyi/semgrep-grammars/src/tree-sitter-r/grammar.js`
+      — copied from [upstream
+      `grammar.js`](https://github.com/r-lib/tree-sitter-r/blob/346d3707b8c9301f1051e8f6e32666e67529f7d2/grammar.js)
+      - `OSS/languages/r/tree-sitter/semgrep-r/fyi/tree-sitter-version` —
+      auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/fyi/versions` — auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/Boilerplate.ml` —
+      auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/CST.ml` — auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/Parse.ml` — auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/bindings.c` —
+      auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/dune` — auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/parser.c` — auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/scanner.c` — copied from
+      [upstream
+      `src/scanner.c`](https://github.com/r-lib/tree-sitter-r/blob/346d3707b8c9301f1051e8f6e32666e67529f7d2/src/scanner.c)
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/scanner.cc` —
+      auto-generated
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/tree_sitter/alloc.h` —
+      copied from [upstream
+      `src/tree_sitter/alloc.h`](https://github.com/r-lib/tree-sitter-r/blob/346d3707b8c9301f1051e8f6e32666e67529f7d2/src/tree_sitter/alloc.h)
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/tree_sitter/array.h` —
+      copied from [upstream
+      `src/tree_sitter/array.h`](https://github.com/r-lib/tree-sitter-r/blob/346d3707b8c9301f1051e8f6e32666e67529f7d2/src/tree_sitter/array.h)
+      - `OSS/languages/r/tree-sitter/semgrep-r/lib/tree_sitter/parser.h` —
+      auto-generated
+      
+      Test plan:
+      
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
+      
+      \--- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      
+      - [x] Documentation is up-to-date
+      - [x] N/A An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Verification details:
+      
+      - R target parsing now supports unary and binary help expressions (?)
+      and exponentiation written with \*\*. Before: The pre-bump generated
+      parser at workspace c6612b885937e0916883811adfd2f9b530cf30e7 produces
+      ERROR nodes for ?mean, utils?help, and 2 ** 3. R uses this tree-sitter
+      parser without a fallback. Evidence:
+      `OSS/tests/parsing/r/grammar_operators.r`,
+      `OSS/tests/patterns/r/grammar_help.r`,
+      `OSS/tests/patterns/r/grammar_binary_help.r`,
+      `OSS/tests/patterns/r/grammar_power.r`
+      - R target parsing correctly represents hexadecimal fractional and
+      exponent literals, including imaginary forms, and decimal or exponent
+      notation with the L suffix. Before: The pre-bump generated parser splits
+      examples such as 0x1.8p2, 1.0L, and 1e2L into separate numeric and
+      identifier expressions rather than preserving each numeric literal.
+      Evidence: `OSS/tests/parsing/r/grammar_numbers.r`,
+      `OSS/tests/snapshots/semgrep-core/3289286fa601/stdout`,
+      `OSS/tests/patterns/r/grammar_hex_float.r`,
+      `OSS/tests/patterns/r/grammar_integer.r`
+      - R target parsing now supports quoted namespace and slot names, such as
+      "base"::"mean" and x@"slot". Before: The pre-bump generated parser
+      produces ERROR nodes for quoted namespace and slot names; the old
+      productions require identifiers in these positions. Evidence:
+      `OSS/tests/parsing/r/grammar_names.r`,
+      `OSS/tests/patterns/r/grammar_namespace.r`,
+      `OSS/tests/patterns/r/grammar_slot.r`
+      - R parsing preserves else branches placed on a new line within braced
+      expressions. Before: The pre-bump parser parses the multiline
+      conditional in grammar_control.r without its alternative, treating else
+      as a separate identifier expression. Evidence:
+      `OSS/tests/parsing/r/grammar_control.r`,
+      `OSS/tests/snapshots/semgrep-core/9429438e24d7/stdout`,
+      `OSS/tests/patterns/r/grammar_else.r`
+      - R string parsing preserves literal newlines and excludes raw-string
+      delimiters from string values. Short hexadecimal and Unicode escape
+      spellings are accepted; escape decoding remains unchanged. Before: The
+      old string grammar excludes literal newlines from content and rejects
+      short hexadecimal/Unicode escapes. The pre-bump converter includes the
+      entire raw-string token, including delimiters, in its string value.
+      Evidence: `OSS/tests/parsing/r/grammar_strings.r`,
+      `OSS/tests/snapshots/semgrep-core/e9011c830b42/stdout`,
+      `OSS/tests/patterns/r/grammar_raw_string.r`,
+      `OSS/tests/patterns/r/grammar_multiline_string.r`
+      - R parsing preserves omitted argument positions in calls and
+      subscripts, and retains the indexed expression for single-index
+      subscripts. Before: The pre-bump converter discards commas representing
+      omitted arguments and incorrectly reuses the index expression as the
+      base of a single-index ArrayAccess. Evidence:
+      `OSS/tests/parsing/r/grammar_arguments.r`,
+      `OSS/tests/snapshots/semgrep-core/d9c550726b4c/stdout`,
+      `OSS/tests/patterns/r/grammar_missing_args.r`,
+      `OSS/tests/patterns/r/grammar_subset.r`
+      
+      ---------
+      
+      Co-authored-by: semgrep-ci <semgrep-ci[bot]@users.noreply.github.com>
+      Co-authored-by: Cursor Agent <cursoragent@cursor.com>
+      Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
 ---

@@ -135,6 +135,7 @@ let tests =
         Unit_gitignore.tests;
         Unit_include_filter.tests;
         Unit_disk_cache.tests;
+        Unit_core_error.tests;
         Unit_parsing.tests ();
         Unit_parsing_python.tests;
         Unit_parsing_scala.tests;

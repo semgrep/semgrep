@@ -1,0 +1,20 @@
+#! /usr/bin/env bash
+# Copy the provisioned tree-sitter CLI to <target>, falling back to Cargo.
+set -eu -o pipefail
+
+version_file="${1:?usage: install-tree-sitter-cli <version-file> <repo-dir> <exe-ext> <target>}"
+repo="${2:?usage: install-tree-sitter-cli <version-file> <repo-dir> <exe-ext> <target>}"
+exe_ext="${3?usage: install-tree-sitter-cli <version-file> <repo-dir> <exe-ext> <target>}"
+target="${4:?usage: install-tree-sitter-cli <version-file> <repo-dir> <exe-ext> <target>}"
+
+here=$(cd "$(dirname "$0")" && pwd)
+version=$(tr -d '[:space:]' < "$version_file")
+
+if bash "$here/provision-tree-sitter" "$version"; then
+  cp "$here/../tree-sitter-$version/bin/tree-sitter${exe_ext}" "$target"
+else
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+  cargo build --release --manifest-path "$repo/Cargo.toml" --target-dir "$work"
+  cp "$work/release/tree-sitter${exe_ext}" "$target"
+fi

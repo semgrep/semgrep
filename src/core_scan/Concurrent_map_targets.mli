@@ -11,6 +11,7 @@
    LICENSE for more details.
 *)
 val map_targets :
+  ?element_cost:[ `Coarse | `Cheap_uniform | `Cheap_variable ] ->
   conf:Parallelism_config.eio_state ->
   num_jobs:int ->
   (Target.t -> 'a) ->
@@ -18,4 +19,6 @@ val map_targets :
   ('a, Target.t * exn) result list
 (** [map_targets] basically wraps {!Concurrent.map} but with some extra Semgrep
     specific tweaks, such as hacks to get telemetry to work across domain
-    spawns *)
+    spawns. [element_cost] is passed on to {!Concurrent.map}: use
+    [`Cheap_variable] when scanning a target is usually cheap, as it is for
+    most source files, and [`Coarse] (the default) when it is expensive. *)

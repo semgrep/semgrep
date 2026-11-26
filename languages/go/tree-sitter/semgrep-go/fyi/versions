@@ -21,43 +21,76 @@ Last change in file:
       Co-authored-by: Diego Marcilio <diego.marcilio@uber.com>
 ---
 File: semgrep-grammars/src/semgrep-go/grammar.js
-Git repo name: semgrep-proprietary
-Latest commit in repo: b993e276b1ba58ccdd0bf1215872ab0c334bd68c
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-  commit b993e276b1ba58ccdd0bf1215872ab0c334bd68c
+  commit feddcf08f1a47403372ff1ffe88e0687d5cb8f95
   Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Oct 30 16:13:32 2026 -0600
+  Date:   Thu Oct 8 10:09:47 2026 -0600
   
-      feat: load grammar wrapper guidance and default to Sol 6.1 High (#7414)
+      Update tree-sitter grammars: go (#7153)
       
-      ## What
+      Automated grammar update for **go**.
       
-      - Load optional wrapper-local `AGENTS.md` guidance during grammar,
-      converter, and validation repair.
-      - Add Scala guidance from the v0.25.1 update and default agents to
-      GPT-6.1-Sol High.
-      - Refresh the pricing catalog and remove stale release cutoffs
+      ### go
       
-      ## Why?
-      Repeated failures updating Scala showed that some languages grammars
-      have pecularities that we can't really encode in the skills.
+      - Go target parsing now supports composite type-set constraints and
+      shorthand union constraints on type parameters, preserving
+      underlying-type markers and all union members. Literal generic
+      rule-pattern syntax remains unchanged.
+      - Go target parsing now supports embedded generic struct fields,
+      including pointer and package-qualified embeddings, while retaining
+      their type arguments.
+      - Go target parsing now supports standalone generic function
+      instantiations with multiple or composite type arguments, such as
+      Pair[int, string] and Identity[[]int], including qualified function
+      names.
+      - Go target parsing now accepts Unicode decimal digits after the first
+      character of an identifier, including Arabic-Indic and Devanagari
+      digits.
       
-      I ran an unattended test comparing Sol 6.1 medium/high vs Astra 6.0 low
-      and Sol high gave the best results.
+      Pin: `05900faa` → `3c3775fa` (**v0.23.4**)
+      
       
       Test plan:
-      - Existing / updated unit tests.
-      - Unattended Scala v0.25.1 dry run at `a80c2b1d84`: validated with the
-      locked default Sol High configuration; core, core-test, Forge and six
-      in-repo rules suites passed; 191 Scala tests passed (nine new parsing
-      fixtures and sixteen pattern tests).
       
+      - Grammar corpus and standalone CST checks.
+      - Parser and rule matching tests.
       
       --- Text above this line is public. Place SENSITIVE info below! ---
       
+      
+      ### Generated and copied files
+      
+      -
+      `OSS/languages/go/tree-sitter/semgrep-go/fyi/semgrep-grammars/src/semgrep-go/grammar.js`
+      — copied from `semgrep-go/grammar.js`
+      -
+      `OSS/languages/go/tree-sitter/semgrep-go/fyi/semgrep-grammars/src/tree-sitter-go/grammar.js`
+      — copied from [upstream
+      `grammar.js`](https://github.com/tree-sitter/tree-sitter-go/blob/3c3775faa968158a8b4ac190a7fda867fd5fb748/grammar.js)
+      - `OSS/languages/go/tree-sitter/semgrep-go/fyi/tree-sitter-version` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/fyi/versions` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/Boilerplate.ml` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/CST.ml` — auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/Parse.ml` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/parser.c` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/tree_sitter/alloc.h` —
+      copied from [upstream
+      `src/tree_sitter/alloc.h`](https://github.com/tree-sitter/tree-sitter-go/blob/3c3775faa968158a8b4ac190a7fda867fd5fb748/src/tree_sitter/alloc.h)
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/tree_sitter/array.h` —
+      auto-generated
+      - `OSS/languages/go/tree-sitter/semgrep-go/lib/tree_sitter/parser.h` —
+      auto-generated
+      
       PR checklist:
       - [x] Documentation is up-to-date
-      - [x] N/A An entry was added to
+      - [x] An entry was added to
       [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
       for user-facing changes, and to [CLI
       notes](https://golinks.io/cli-notes) for customer support (if needed)

@@ -95,7 +95,7 @@ Add an entry to `$ots/lang/upstream-grammars.json`:
 "mylang": {
   "url": "https://github.com/OWNER/tree-sitter-mylang.git",
   "commit": "FULL_UPSTREAM_COMMIT_SHA",
-  "tree_sitter": "0.26.3",
+  "tree_sitter": "0.26.11",
   "regen": ["mylang"]
 }
 ```

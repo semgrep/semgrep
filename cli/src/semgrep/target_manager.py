@@ -719,11 +719,10 @@ class ScanningRoot:
         # get_targets_from_filesystem), so we can construct the result here
         # without the overhead of starting a subprocess.
         #
-        # The ppath (project-relative path) is computed relative to CWD,
-        # which is correct when CWD is the project root (the common case).
-        # If the file isn't under CWD (e.g. an absolute path to a file in
-        # another directory), we fall through to the OCaml RPC which
-        # discovers the project root properly.
+        # TODO: This doesn't honor the project root when set by --project-root.
+        # From repo/src with --project-root .., scanning app.py yields /app.py
+        # instead of /src/app.py, so paths.exclude: ["src/app.py"] misses the file.
+        # See https://linear.app/semgrep/issue/CODE-10352
         if self.path.is_file() and self._is_under_cwd():
             rel = self.path.resolve().relative_to(Path.cwd())
             ppath_str = "/" + str(PurePosixPath(rel))
@@ -802,30 +801,9 @@ class ScanningRoot:
         ).selected_files
 
 
-@dataclass
-class PatternInfo:
-    """Pattern info used to provide deprecation warning for patterns
-    that are now anchored but we keep unanchored for some time."""
-
-    is_anchored: bool
-    is_anchored_legacy: bool
-
-
-def is_anchored_glob_pattern(pattern: str) -> PatternInfo:
-    """Determine if a glob pattern is anchored according to the Gitignore spec.
-    A glob pattern is left-anchored iff it contains at least one
-    non-trailing slash.
-    """
-    is_anchored = re.match(".*/[^/]+", pattern) is not None
-    is_anchored_legacy = is_anchored
-
-    if is_anchored:
-        starts_with_slash = pattern.startswith("/")
-        starts_with_ellipsis = pattern.startswith("**/")
-        if not starts_with_slash and not starts_with_ellipsis:
-            is_anchored_legacy = False
-
-    return PatternInfo(is_anchored=is_anchored, is_anchored_legacy=is_anchored_legacy)
+def is_anchored_glob_pattern(pattern: str) -> bool:
+    """A Gitignore glob is left-anchored if it has a non-trailing slash."""
+    return re.match(".*/[^/]+", pattern) is not None
 
 
 def _is_shebang_pattern_for_executable(line: str, executable_name: str) -> bool:
@@ -887,8 +865,6 @@ class TargetManager:
     respect_semgrepignore: bool = True
     semgrepignore_filename: Optional[str] = None
     targeting_conf: Mapping[out.Product, out.TargetingConf] = field(init=False)
-    # coupling: must match the value of 'legacy_rule_filtering' in the OCaml code base
-    legacy_rule_filtering: bool = True
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
@@ -953,40 +929,16 @@ class TargetManager:
         return None
 
     @staticmethod
-    def preprocess_path_patterns(
-        *,
-        rule_id: str,
-        patterns: Sequence[str],
-        is_include: bool,
-        legacy_rule_filtering: bool,
-    ) -> List[str]:
-        """Convert semgrep's path include/exclude patterns to wcmatch's glob patterns.
+    def preprocess_path_patterns(patterns: List[str]) -> List[str]:
+        """Convert Gitignore-style rule path patterns to wcmatch globs.
 
-        In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
-        "x/foo/bar/x". It implicitly matches zero or more directories at the beginning and the end
-        of the pattern. In contrast, we have to explicitly specify the globstar (**) patterns in
-        wcmatch. This function will convert a pattern "foo/bar" into "**/foo/bar" and
-        "**/foo/bar/**". We need the pattern without the trailing "/**" because "foo/bar.py/**"
-        won't match "foo/bar.py".
+        Patterns containing a non-trailing slash are relative to the project
+        root; basename patterns match at any depth. Every pattern also matches
+        descendants, so emit variants with and without a trailing globstar.
         """
         result = []
         for pattern in patterns:
-            # Follow Gitignore spec for left-anchoring patterns
-            pat_info = is_anchored_glob_pattern(pattern)
-            # show deprecation warning only if the legacy behavior is requested
-            if legacy_rule_filtering:
-                if pat_info.is_anchored and not pat_info.is_anchored_legacy:
-                    include_or_exclude = "include" if is_include else "exclude"
-                    logger.warning(
-                        f"Rule {rule_id} contains an {include_or_exclude} pattern '{pattern}' that will soon be interpreted as '/{pattern}' "
-                        f"to comply with the Semgrepignore v2 and Gitignore specifications. "
-                        f"To make this pattern permanently unanchored, edit rule {rule_id} and change it to '**/{pattern}'. "
-                        f"To confirm the anchored behavior and avoid this warning, change it to '/{pattern}'."
-                    )
-            # legacy behavior: some anchored patterns were treated as unanchored
-            if not pat_info.is_anchored or (
-                legacy_rule_filtering and not pat_info.is_anchored_legacy
-            ):
+            if not is_anchored_glob_pattern(pattern):
                 if not pattern.startswith("**/"):
                     pattern = "**/" + pattern
                 result.append(pattern)
@@ -1103,12 +1055,7 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         kept = set()
-        for pattern in TargetManager.preprocess_path_patterns(
-            rule_id=rule_id,
-            patterns=includes,
-            is_include=True,
-            legacy_rule_filtering=self.legacy_rule_filtering,
-        ):
+        for pattern in TargetManager.preprocess_path_patterns(list(includes)):
             kept.update(self.globfilter(candidates, pattern))
         return FilteredFiles(frozenset(kept), frozenset(candidates - kept))
 
@@ -1124,12 +1071,7 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         removed = set()
-        for pattern in TargetManager.preprocess_path_patterns(
-            rule_id=rule_id,
-            patterns=excludes,
-            is_include=False,
-            legacy_rule_filtering=self.legacy_rule_filtering,
-        ):
+        for pattern in TargetManager.preprocess_path_patterns(list(excludes)):
             removed.update(self.globfilter(candidates, pattern))
 
         return FilteredFiles(frozenset(candidates - removed), frozenset(removed))

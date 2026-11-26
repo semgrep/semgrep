@@ -21,7 +21,28 @@ type t = {
   lazy_content : string Lazy_safe.t;
   lazy_utf8_valid : bool Lazy_safe.t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) Lazy_safe.t;
+  prefilter : case_sensitive:bool -> string -> bool option;
 }
+
+let make ?prefilter ~path ~analyzer ~lazy_content ~lazy_ast_and_errors () =
+  let prefilter =
+    match prefilter with
+    | None -> fun ~case_sensitive:_ _ -> None
+    | Some prefilter ->
+        let prefilter = Lazy_safe.map prefilter lazy_content in
+        fun ~case_sensitive needle ->
+          Lazy_safe.force prefilter ~case_sensitive needle
+  in
+  {
+    path;
+    analyzer;
+    lazy_content;
+    lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
+    lazy_ast_and_errors;
+    prefilter;
+  }
+
+let with_ast xtarget lazy_ast_and_errors = { xtarget with lazy_ast_and_errors }
 
 let parse_file parser (analyzer : Analyzer.t) path =
   let lang =
@@ -39,21 +60,15 @@ let parse_file parser (analyzer : Analyzer.t) path =
   in
   parser lang path
 
-let resolve_with_ast ast (target : Target.t) : t =
-  let lazy_content =
-    lazy_safe (UFile.read_file target.path.internal_path_to_content)
-  in
-  {
-    path = target.path;
-    analyzer = target.analyzer;
-    lazy_content;
-    lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
-    lazy_ast_and_errors = ast;
-  }
+let resolve_with_ast ?prefilter ast (target : Target.t) : t =
+  make ?prefilter ~path:target.path ~analyzer:target.analyzer
+    ~lazy_content:
+      (lazy_safe (UFile.read_file target.path.internal_path_to_content))
+    ~lazy_ast_and_errors:ast ()
 
-let resolve parser (target : Target.t) : t =
+let resolve ?prefilter parser (target : Target.t) : t =
   let ast =
     lazy_safe
       (parse_file parser target.analyzer target.path.internal_path_to_content)
   in
-  resolve_with_ast ast target
+  resolve_with_ast ?prefilter ast target

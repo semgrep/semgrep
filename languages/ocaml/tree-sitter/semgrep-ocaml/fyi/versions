@@ -1,6 +1,6 @@
 File: semgrep-grammars/src/tree-sitter-ocaml/LICENSE
 Git repo name: tree-sitter-ocaml
-Latest commit in repo: 4a885a615634dd447ae6b9d8f2cee4a3ea495087
+Latest commit in repo: 0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff
 Last change in file:
   commit 0cb17f823bd118ca21bc2ebb178ff6082bd32c08
   Author: Pieter Goetschalckx <pieter@gtschlckx.be>
@@ -8,170 +8,66 @@ Last change in file:
   
       Add license. Closes #44.
 ---
-File: semgrep-grammars/src/tree-sitter-ocaml/ocaml/grammar.js
+File: semgrep-grammars/src/tree-sitter-ocaml/grammars/ocaml/grammar.js
 Git repo name: tree-sitter-ocaml
-Latest commit in repo: 4a885a615634dd447ae6b9d8f2cee4a3ea495087
+Latest commit in repo: 0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff
 Last change in file:
-  commit f4214a1606ff9a294e9f5ac0db79c23471db16d4
+  commit c2e9fad0cf0fccfa696324c4d94806ff4e1ef483
   Author: Pieter Goetschalckx <github@gtschlckx.be>
-  Date:   Tue May 30 22:43:34 2023 +0200
+  Date:   Thu May 29 15:45:32 2025 +0200
   
-      Use named nodes for infix operator subtypes (#77)
+      Support OCaml 5.4 (#122)
       
-      * Avoid creating leaf nodes for some operators
+      * Support labeled tuples
       
-      * Rename and_operator to let_and_operator
-      
-      * Make infix_operator a supertype
+      * Regenerate
 ---
 File: semgrep-grammars/src/semgrep-ocaml/grammar.js
 Git repo name: workspace
-Latest commit in repo: 0627f36717370e4f3e6d12bfd2fd82ba23722c34
+Latest commit in repo: 239db0f7f772b300743596dc5bd8e91a20c996f5
 Last change in file:
-  commit f8e6c96e50156031e3e7552477ae914e25506fba
-  Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Sep 11 20:44:29 2026 -0600
+  commit 972c01a9657c5f05179d0f333461e24112b04449
+  Author: semgrep-ci <semgrep-ci[bot]@users.noreply.github.com>
+  Date:   Thu Nov 12 23:02:11 2026 +0000
   
-      feat: ots grammar operator (registry, test/regen, check-vendored-ots) (#7026)
+      Update tree-sitter grammars: ocaml
       
-      ## Summary
+      Automated grammar update for **ocaml**.
       
-      Converts the ocaml-tree-sitter-semgrep submodule into a part of the
-      Semgrep code base.
-      Most files are copied as-is, but some modifications are necessary.
+      ### ocaml
       
-      ## Details
+      - OCaml target parsing now accepts raw identifiers such as \#type and Unicode identifiers in declarations and qualified references. Writing these spellings directly in rule patterns remains unsupported.
+      - OCaml target parsing now supports effect-handler cases, retaining effect arguments, continuation bindings, guards, and handler bodies. Direct effect-handler syntax in rule patterns remains unsupported.
+      - OCaml target parsing now supports labeled tuple expressions, binding and match patterns, and types, including shorthand and typed components. Direct labeled-tuple syntax in rule patterns remains unsupported.
+      - OCaml target parsing now accepts local opens in types, including dotted module paths and applicative functor paths. Existing limitations in polymorphic-variant and package-type AST detail remain.
+      - OCaml target parsing now accepts short dependent functor types such as (X : S) -> S. Detailed module-type matching and this syntax in rule patterns remain unsupported.
+      - OCaml target parsing now accepts quoted strings whose Unicode delimiters use equivalent composed and decomposed spellings, preserving their literal contents.
       
-      1. Registry: we no longer include and pin upstream grammars as
-      .gitmodules because that creates large checkouts for a part of code
-      that's not needed in the build. Instead, we have a registry
-      (`upstream-grammars.json`) and a command-line utility for querying it
-      (`grammar_registry.py`). Relevant scripts now use the registry CLI.
+      Pin: `4a885a61` → [`0cc270ff`](https://github.com/tree-sitter/tree-sitter-ocaml/tree/0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff) (**v0.24.2**)
       
-      2. Integrity check: we check the integrity of what's copied using
-      `scripts/check-vendored-ots`. That script also lists the exclusions -
-      files that were not needed in the new repo or needed to be updated along
-      the way.
+      Parser and CST files are regenerated; vendored grammar sources are copied from the selected upstream revisions.
       
-      3. CI updates:
+      Test plan:
       
-      * `ots_is_submodule=false` now set, and increased conformity with the
-      rest of the repo for pinning and caching
-      * Improved dependencies caching for grammar tests, which were otherwise
-      flaky due to too many jobs hitting OPAM at once.
-      
-      5. Script updates: besides what is mentioned in 1., we also ensured that
-      all relevant scripts are in `OSS/lib/ocaml-tree-sitter-semgrep/scripts`
-      
-      6. Intentional omissions and removal:
-      
-      * Nothing related to update automation. This will be included in a
-      future PR.
-      * Removed temporary CI workflows that are no longer needed after the
-      integration of the semgrep-LANG submodules.
-      
-      ## Test plan
-      
-      - [x] CI tests passing
+      - Grammar corpus and standalone CST checks.
+      - Full build and OSS + Pro regression validation.
       
       --- Text above this line is public. Place SENSITIVE info below! ---
       
-      Dogfood follow-ups: CODE-9919, CODE-9921.
-      Closes CODE-9913.
-      
-      ## Reviewer guide: pre-existing files
-      
-      Compared with the merge base of `origin/develop` and HEAD. Excludes
-      newly added files and all contents of the former OTS submodule. Small
-      but behavior-changing integration edits are included as substantive.
-      Generated files and deletions are listed separately so none of the
-      pre-existing changed paths are hidden.
-      
-      ### Substantive integration changes
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +6/−2 | Include
-      shared OSS workflow changes in triggers. |
-      | `.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` | +2/−2 |
-      Switch from submodule checkout to in-tree grammar tooling. |
-      | `.github/workflows/regen-grammar.jsonnet` | +11/−7 | Use integrated
-      generator and shared build setup for Solidity canary. |
-      | `.gitignore` | +0/−6 | Remove temporary OTS Docker-context exclusion.
-      |
-      | `.gitmodules` | +0/−4 | Remove OTS submodule configuration. |
-      | `.pre-commit-config.yaml` | +7/−4 | Keep upstream core/lang excluded;
-      lint integration scripts; test typing exclusions. |
-      | `OSS/.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +74/−58 | Root
-      OCaml/Python test targets, shared setup and build caching. |
-      | `OSS/.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` |
-      +6/−6 | In-tree grammar checkout and script paths. |
-      | `OSS/.github/workflows/ocaml-tree-sitter.libsonnet` | +67/−50 | Shared
-      dependency setup, build paths, CLI/build caches, lockfile hashes and
-      triggers. |
-      | `OSS/.gitignore` | +2/−5 | Replace broad OTS exclusion with ephemeral
-      grammar-clone exclusion. |
-      | `OSS/.gitmodules` | +0/−5 | Remove OTS submodule configuration. |
-      | `OSS/.pre-commit-config.yaml` | +5/−3 | Keep upstream core/lang
-      excluded; lint integration scripts; test typing exclusions. |
-      | `OSS/Makefile` | +39/−4 | Root grammar build/test/setup targets; OTS
-      tests in test-all; cleanup integration. |
-      | `OSS/semgrep.opam.template` | +1/−1 | Pin tree-sitter to the vendored
-      local core instead of a remote repository. |
-      
-      ### Removed or replaced files
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/check-vendored-grammars.jsonnet` | +0/−145 |
-      Replaced by the in-tree OTS tooling/documentation. |
-      | `.github/workflows/check-vendored-grammars.yml` | +0/−98 | Replaced by
-      the in-tree OTS tooling/documentation. |
-      | `OSS/languages/GRAMMAR_INTEGRATION.md` | +0/−136 | Replaced by the
-      in-tree OTS tooling/documentation. |
-      | `OSS/libs/ocaml-tree-sitter-semgrep` | +0/−1 | Gitlink replaced by
-      ordinary vendored files; this was not an ordinary source file. |
-      | `OSS/scripts/regen-grammar` | +0/−168 | Replaced by the in-tree OTS
-      tooling/documentation. |
-      | `scripts/check-vendored-grammars` | +0/−133 | Replaced by the in-tree
-      OTS tooling/documentation. |
-      | `scripts/newly-vendored-grammars` | +0/−31 | Replaced by the in-tree
-      OTS tooling/documentation. |
-      
-      
-      ### Small supporting edits
-      
-      | File | Lines | Review focus |
-      |---|---:|---|
-      | `.github/workflows/Makefile` | +1/−1 | Documentation, comment, or
-      build wiring update. |
-      | `AGENTS.md` | +6/−0 | Documentation, comment, or build wiring update.
-      |
-      | `Makefile` | +1/−0 | Documentation, comment, or build wiring update. |
-      | `OSS/AGENTS.md` | +7/−0 | Documentation, comment, or build wiring
-      update. |
-      | `OSS/dune-project` | +2/−1 | Documentation, comment, or build wiring
-      update. |
-      | `README.md` | +1/−5 | Documentation, comment, or build wiring update.
-      |
-      | `WINDOWS.md` | +1/−5 | Documentation, comment, or build wiring update.
-      |
-      
       PR checklist:
-      
-      - [x] Documentation is up-to-date
-      * Updated `OSS/libs/ocaml-tree-sitter-semgrep/README.md`,
-      `doc/add-or-update-grammar.md`, `OSS/AGENTS.md`
-        * Removed OSS/languages/GRAMMAR_INTEGRATION.md
-        * TODO PR for website update
-      - [x] An entry was added to
-      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
-      for user-facing changes, and to [CLI
-      notes](https://golinks.io/cli-notes) for customer support (if needed)
-      - [x] Change has no security implications (otherwise, ping security
-      team)
-      - [x] Change does not log any sensitive information to the INFO,
-      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      - [ ] Documentation is up-to-date
+      - [ ] An entry was added to [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for user-facing changes, and to [CLI notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [ ] Change has no security implications (otherwise, ping security team)
+      - [ ] Change does not log any sensitive information to the INFO, WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
       
       See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      Verification details:
+      
+      - OCaml target parsing now accepts raw identifiers such as \#type and Unicode identifiers in declarations and qualified references. Writing these spellings directly in rule patterns remains unsupported. Before: At upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087, isolated parser probes for raw and Unicode identifiers produced ERROR nodes; the unchanged Menhir fallback also rejected both forms. The regenerated parser and repaired converter parse them cleanly. Evidence: `OSS/tests/parsing/ocaml/raw_unicode_identifiers.ml`, `OSS/tests/parsing/ocaml/raw_unicode_identifiers.ast.expect`, `OSS/tests/patterns/ocaml/raw_identifier.ml`, `OSS/tests/patterns/ocaml/raw_identifier.sgrep`
+      - OCaml target parsing now supports effect-handler cases, retaining effect arguments, continuation bindings, guards, and handler bodies. Direct effect-handler syntax in rule patterns remains unsupported. Before: The parser at upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 produced ERROR nodes for a minimal effect-handler case, and the unchanged Menhir fallback rejected it. The updated target parser produces a clean AST with both effect and continuation patterns. Evidence: `OSS/tests/parsing/ocaml/effect_handlers.ml`, `OSS/tests/parsing/ocaml/effect_handlers.ast.expect`, `OSS/tests/patterns/ocaml/effect_handler_body.ml`, `OSS/tests/patterns/ocaml/effect_handler_body.sgrep`
+      - OCaml target parsing now supports labeled tuple expressions, binding and match patterns, and types, including shorthand and typed components. Direct labeled-tuple syntax in rule patterns remains unsupported. Before: At upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087, a minimal labeled tuple produced parser ERROR nodes and was rejected by the unchanged Menhir fallback. The updated conversion retains labels, component values, types, and binding patterns. Evidence: `OSS/tests/parsing/ocaml/labeled_tuples.ml`, `OSS/tests/parsing/ocaml/labeled_tuples.ast.expect`, `OSS/tests/patterns/ocaml/labeled_tuple_children.ml`, `OSS/tests/patterns/ocaml/labeled_tuple_children.sgrep`, `OSS/tests/patterns/ocaml/labeled_tuple_distinct.ml`, `OSS/tests/patterns/ocaml/labeled_tuple_distinct.sgrep`
+      - OCaml target parsing now accepts local opens in types, including dotted module paths and applicative functor paths. Existing limitations in polymorphic-variant and package-type AST detail remain. Before: A local type open such as type t = M.(u * v) produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 and was rejected by the unchanged Menhir fallback. The updated converter retains the opened path, including functor arguments, and the inner type. Evidence: `OSS/tests/parsing/ocaml/local_open_types.ml`, `OSS/tests/parsing/ocaml/local_open_types.ast.expect`
+      - OCaml target parsing now accepts short dependent functor types such as (X : S) -> S. Detailed module-type matching and this syntax in rule patterns remain unsupported. Before: The short dependent functor-type probe produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087 and was rejected by the unchanged Menhir fallback. The updated target parser accepts it; module-type AST detail remains at its existing limited level. Evidence: `OSS/tests/parsing/ocaml/short_functor_types.mli`, `OSS/tests/parsing/ocaml/short_functor_types.ast.expect`
+      - OCaml target parsing now accepts quoted strings whose Unicode delimiters use equivalent composed and decomposed spellings, preserving their literal contents. Before: A quoted string using composed à in its opening delimiter and decomposed à in its closing delimiter produced ERROR nodes with upstream revision 4a885a615634dd447ae6b9d8f2cee4a3ea495087; the unchanged Menhir fallback also rejected it. The updated parser produces the expected string literal. Evidence: `OSS/tests/parsing/ocaml/quoted_literals_extensions.ml`, `OSS/tests/parsing/ocaml/quoted_literals_extensions.ast.expect`, `OSS/tests/patterns/ocaml/unicode_quoted_string.ml`, `OSS/tests/patterns/ocaml/unicode_quoted_string.sgrep`
 ---
