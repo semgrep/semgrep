@@ -1,0 +1,6 @@
+(* ERROR: match *)
+let three = consume (1, 2, 3) "middle" (4, 5)
+(* ERROR: match *)
+let two = consume (1, 2) (3, 4, 5)
+let one = consume (1, 2, 3)
+let other = produce (1, 2, 3) "middle" (4, 5)

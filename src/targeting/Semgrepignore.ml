@@ -72,6 +72,14 @@ let contents_of_builtin_semgrepignore = function
   | Empty -> ""
   | Semgrep_scan_legacy -> default_semgrepignore_for_semgrep_scan
 
+let parse_cli_patterns cli_patterns =
+  List.concat_map
+    (Parse_gitignore.from_string ~name:"exclude pattern from command line"
+       ~source_kind:"exclude" ~anchor:Glob.Pattern.root_pattern)
+    cli_patterns
+
+let check_cli_patterns cli_patterns = ignore (parse_cli_patterns cli_patterns)
+
 let create ?(cli_patterns = [])
     ?(semgrepignore_filename = default_semgrepignore_filename)
     ~default_semgrepignore_patterns ~exclusion_mechanism ~project_root () =
@@ -81,12 +89,7 @@ let create ?(cli_patterns = [])
       ~source_kind:"default" ~anchor:root_anchor
       (contents_of_builtin_semgrepignore default_semgrepignore_patterns)
   in
-  let cli_patterns =
-    List.concat_map
-      (Parse_gitignore.from_string ~name:"exclude pattern from command line"
-         ~source_kind:"exclude" ~anchor:root_anchor)
-      cli_patterns
-  in
+  let cli_patterns = parse_cli_patterns cli_patterns in
   let default_semgrepignore_file_level =
     Gitignore_level_index.of_parsed_patterns
       ~level_kind:"default semgrepignore patterns" ~source_name:"<built-in>"

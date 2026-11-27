@@ -1,0 +1,25 @@
+Test name: with git > explicit gitignored file and file in .git
+--- Scanning roots ---
+gitignored.py
+.git/HEAD
+a.py
+--- Files added before 'git add' ---
+.gitignore
+a.py
+--- Files not added to git ---
+gitignored.py
+--- begin input files ---
+.gitignore
+a.py
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 a.py
+--- Errors ---
+--- Selected targets ---
+selected .git/HEAD
+selected a.py
+selected gitignored.py
+--- Skipped targets ---

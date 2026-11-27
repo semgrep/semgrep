@@ -37,17 +37,17 @@ def test_list_pinned_versions_matches_repo():
     assert versions
     assert versions == sorted(versions, key=version_sort_key)
     assert "0.22.6" in versions
-    assert "0.26.3" in versions
+    assert "0.26.11" in versions
 
 
 def test_version_for_lang_known_language():
-    assert version_for_lang("php", LANG_DIR) == "0.26.3"
+    assert version_for_lang("php", LANG_DIR) == "0.26.11"
     assert version_for_lang("scala", LANG_DIR) == "0.22.6"
 
 
 def test_version_for_lang_dialect_alias():
-    assert version_for_lang("php-only", LANG_DIR) == "0.26.3"
-    assert version_for_lang("soql", LANG_DIR) == "0.26.3"
+    assert version_for_lang("php-only", LANG_DIR) == "0.26.11"
+    assert version_for_lang("soql", LANG_DIR) == "0.26.11"
 
 
 def test_version_for_lang_missing():
@@ -72,7 +72,7 @@ def test_extract_grammar_name_from_directory_basename(tmp_path):
 
 def test_version_for_grammar_dir_delegates_to_registry():
     grammar_dir = LANG_DIR / "semgrep-grammars/src/semgrep-php/php"
-    assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.3"
+    assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.11"
 
 
 def test_version_for_grammar_dir_inherits_wrapper_pin(tmp_path):
@@ -82,7 +82,7 @@ def test_version_for_grammar_dir_inherits_wrapper_pin(tmp_path):
     (grammar_dir / "tree-sitter.json").write_text(
         '{"grammars": [{"name": "mystery-dialect", "scope": "source.x", "path": "."}]}'
     )
-    assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.3"
+    assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.11"
 
 
 def test_version_for_grammar_dir_unlisted_without_wrapper(tmp_path):
@@ -128,11 +128,11 @@ def test_version_for_grammar_dir_inherits_clone_name(tmp_path):
     "script,args,expected",
     [
         ("ts-versions", [], None),
-        ("ts-version-for-lang", ["php"], "0.26.3\n"),
+        ("ts-version-for-lang", ["php"], "0.26.11\n"),
         (
             "ts-version-for-grammar-dir",
             [str(LANG_DIR / "semgrep-grammars/src/semgrep-php/php")],
-            "0.26.3\n",
+            "0.26.11\n",
         ),
     ],
 )

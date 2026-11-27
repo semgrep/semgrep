@@ -540,7 +540,10 @@ let start_search (session : Legacy_session.t) (id : Jsonrpc.Id.t)
             {
               Match_env.default_xconfig with
               filter_irrelevant_rules =
-                Match_env.make_prefilter ~rules:(rules :> Rule.t list) ();
+                Match_env.make_prefilter
+                  ~rules:(rules :> Rule.t list)
+                  ~interfile_rule:(fun _ -> false)
+                  ();
             }
           in
           (* !!calling the engine!! *)

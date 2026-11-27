@@ -130,8 +130,113 @@ Last change in file:
       Co-authored-by: Max Brunsfeld <maxbrunsfeld@gmail.com>
 ---
 File: semgrep-grammars/src/semgrep-bash/grammar.js
-Git repo name: None
-Latest commit in repo: None
+Git repo name: workspace
+Latest commit in repo: 9bfe5ba661dfe9e2665aa5ef8d46e1e930903100
 Last change in file:
-
+  commit ec44c55b3a5eb36e650976a44d0c4480f9b57d70
+  Author: Marc-André Laverdière <marc-andre@semgrep.com>
+  Date:   Thu Oct 22 12:11:07 2026 -0600
+  
+      Update tree-sitter grammars: bash (v0.25.1) (#7223)
+      
+      Automated grammar update for **bash**: `tree-sitter-bash` `30d369ba` →
+      [`a06c2e44`](https://github.com/tree-sitter/tree-sitter-bash/tree/a06c2e4415e9bc0346c6b86d401879ffb44058f7)
+      (**v0.25.1**), tree-sitter generator `0.22.6` → `0.26.3`, and the bash
+      scanner is now C (`scanner.c`, was `scanner.cc`). Parser and CST files
+      are regenerated.
+      
+      ### User-facing changes
+      
+      - Arguments after a file redirect or heredoc delimiter stay with their
+      command (`echo a > out b`, `cat <<EOF a b`).
+      - `until` loops parse as (negated) while loops instead of separate
+      commands.
+      - Arithmetic (`$(( ))`, `$[ ]`, `(( ))`, C-style `for` headers) is
+      translated into operator trees with bash precedence and associativity,
+      and accepts `...` and `<... ...>` in patterns. It is no longer confused
+      with `$(...)`.
+      - `#` inside words and numbers (`x=foo#bar`, `2#101`) no longer
+      truncates them.
+      - ``$`cmd` `` is a literal `$` plus a backquote substitution; negated
+      assignments (`! x=1`) keep the `!`; C-style `for` headers are modeled.
+      - Constructs that failed to parse now parse: `$[ ]`, arithmetic
+      subscripts, bases and ternaries, `if` function bodies, `time ( ... )`,
+      extglob in `case` and `[[ ]]`, special-character heredoc delimiters, fd
+      here-strings, single-line case items.
+      - Patterns can end a block with a lone `...`: `while ...; do ... done`
+      and `if ...; then ... fi` now parse (they were a syntax error, also at
+      the previous pin;
+      [CODE-10062](https://linear.app/semgrep/issue/CODE-10062/bash-allow-a-trailing-before-donefi-in-patterns-eg-while-do-done)).
+      
+      **Build system change**
+      `flags.sh` now links `libunwind.a` and `libstdc++.a` as a group.
+      `forge-image` had an implicit dependency on the grammars' C++ standard
+      library binding. By removing the last `scanner.cc`, the static link
+      `forge-image` failed with `multiple definition of '_Unwind_Resume'`.
+      
+      
+      **Wrapper changes** (`semgrep-bash/grammar.js`):
+      
+      - redirected statements exclude pipelines (works around upstream
+      [#347](https://github.com/tree-sitter/tree-sitter-bash/issues/347))
+      - `function_definition` synced;
+      - a lone `...` may end a block without a terminator (a dedicated `'...'`
+      token, accepted wherever a word is). Any other command still needs one,
+      otherwise `done` would be lexed as a keyword in `for i in a; do echo
+      done; done`;
+      - upstream arithmetic precedence fixed (unary binds tighter than binary,
+      `**`, assignments and `?:` are right-associative);
+      - `prep` patches one inherited corpus expectation (`export $FOO:$BAR`)
+      so `declare -r $VAR` patterns keep working.
+      
+      **Limitations**
+      - **New in this PR (upstream v0.25.1 CST):** a heredoc followed by a
+      pipe and then `&&` or `||` is grouped as `cat | (grep x && echo ok)`
+      instead of `(cat | grep x) && echo ok`, so patterns that depend on pipe
+      versus `&&`/`||` structure can give wrong results. The previous pin
+      grouped it correctly. Plain `cat <<EOF | grep x` is unaffected.
+      Reproducer: `printf 'cat <<EOF | grep x && echo ok\nbody\nEOF\n' > t.sh;
+      semgrep-core -lang bash -dump_ast t.sh` shows `Pipe(cat, And(grep x,
+      echo ok))`. Not fixed here: it is an upstream parsing bug.
+      - A command literally named `...` followed directly by a keyword (`for i
+      in a; do ... done; done`) now closes the block early. Other uses of
+      `...` as an argument (`do foo ... done`) are invalid bash, so they stay
+      syntax errors.
+      - **Pre-existing:** `[ ]`/`[[ ]]` tests and `${...}` with a subscript or
+      `${#!}` stay `BashTodo`; heredoc bodies are not in the generic AST;
+      `$X=$X` does not match `a=$a`.
+      - **Pre-existing:** parameter-expansion operators (`${x#pat}`,
+      `${x:-d}`, ...) collapse to the variable, so `echo ${I}` also matches
+      `echo ${I#*;}`.
+      
+      
+      **Validation:** harness gate passed; `make -C OSS test-grammar-bash`
+      (131 corpus cases); OSS bash tests 142/142, Dockerfile 130/130; all 82
+      upstream corpus inputs parse and translate. The full OSS suite had one
+      failure, a Terraform parse error in `semgrep-rules`
+      (`keyvault-ensure-secret-expires.tf`) in code this PR does not touch.
+      For the `...` change, old and new grammars were compared on 259 bash
+      test files and about 45 probe snippets: parse trees are identical except
+      for the newly accepted patterns.
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      PR checklist:
+      - [x] Documentation is up-to-date
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
+      
+      ---------
+      
+      Co-authored-by: Claude Opus 5.5 <noreply@anthropic.com>
+      Co-authored-by: Cursor Agent <cursoragent@cursor.com>
+      Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
 ---

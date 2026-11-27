@@ -1,0 +1,1 @@
+Rule paths.include and paths.exclude patterns containing a non-trailing slash (such as 'a/b') now match relative to the project root. The deprecation warning about this behavior has been removed. If you were still relying on this behavior, change anchored patterns to '**/a/b' to match at any depth. Basename patterns such as 'test.py' continue to match at any depth.

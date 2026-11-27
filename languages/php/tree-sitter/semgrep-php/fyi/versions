@@ -1,6 +1,6 @@
 File: semgrep-grammars/src/tree-sitter-php/LICENSE
 Git repo name: tree-sitter-php
-Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Latest commit in repo: 8b7d06271bc91573c0e981c391d52191df661dc9
 Last change in file:
   commit ad1c8c837e34222839c804bf96466e518787e180
   Author: Amaan Qureshi <amaanq12@gmail.com>
@@ -10,7 +10,7 @@ Last change in file:
 ---
 File: semgrep-grammars/src/tree-sitter-php/common/define-grammar.js
 Git repo name: tree-sitter-php
-Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Latest commit in repo: 8b7d06271bc91573c0e981c391d52191df661dc9
 Last change in file:
   commit 43fbdd53c34a82d9a27c83f9798a2918b3dcd270
   Author: Caleb White <cdwhite3@pm.me>
@@ -20,7 +20,7 @@ Last change in file:
 ---
 File: semgrep-grammars/src/tree-sitter-php/php/grammar.js
 Git repo name: tree-sitter-php
-Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Latest commit in repo: 8b7d06271bc91573c0e981c391d52191df661dc9
 Last change in file:
   commit ba383c7670e163b596efe11a0fd81d5b2af4b14c
   Author: Caleb White <cdwhite3@pm.me>
@@ -29,8 +29,8 @@ Last change in file:
       Split parser into php/php_only dialects with common files
 ---
 File: semgrep-grammars/src/semgrep-php/php/grammar.js
-Git repo name: semgrep-sync-php-go
-Latest commit in repo: e773db87131068f57bea3a5dfdcfe04f7a2cbdbc
+Git repo name: workspace
+Latest commit in repo: 56c873d1fb4a94e11af58dab6cc10a4cf1d7072e
 Last change in file:
   commit f8e6c96e50156031e3e7552477ae914e25506fba
   Author: Marc-André Laverdière <marc-andre@semgrep.com>
@@ -180,8 +180,8 @@ Last change in file:
       See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---
 File: semgrep-grammars/src/semgrep-php/common/semgrep-ext.js
-Git repo name: semgrep-sync-php-go
-Latest commit in repo: e773db87131068f57bea3a5dfdcfe04f7a2cbdbc
+Git repo name: workspace
+Latest commit in repo: 56c873d1fb4a94e11af58dab6cc10a4cf1d7072e
 Last change in file:
   commit f8e6c96e50156031e3e7552477ae914e25506fba
   Author: Marc-André Laverdière <marc-andre@semgrep.com>

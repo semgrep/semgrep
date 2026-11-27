@@ -21,7 +21,7 @@
    grammar.json.orig
    node-types.json
    (dir tree_sitter))
-  (deps ../grammar.js ../../../tree-sitter)
+  (deps ../grammar.js ../../../tree-sitter%{ext_exe})
   (action
    (chdir
     ..

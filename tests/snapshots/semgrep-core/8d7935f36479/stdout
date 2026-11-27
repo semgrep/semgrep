@@ -1,4 +1,6 @@
 Test name: without git > .png file without magic bytes is kept
+--- Scanning roots ---
+.
 --- Files not added to git ---
 notes.png
 --- begin input files ---
