@@ -405,3 +405,149 @@ namespace $N;
   (global_statement
     (expression_statement
       (ellipsis))))
+
+================================================================================
+File-based app directives are part of the tree
+================================================================================
+
+#!/usr/bin/env dotnet
+#:package Newtonsoft.Json@13.0.1
+#:property LangVersion=preview
+#:project ../Lib
+class C { }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (shebang_directive)
+  (ignored_directive
+    (directive_kind)
+    (directive_name)
+    (directive_separator)
+    (directive_value))
+  (ignored_directive
+    (directive_kind)
+    (directive_name)
+    (directive_separator)
+    (directive_value))
+  (ignored_directive
+    (directive_kind)
+    (directive_value))
+  (class_declaration
+    (identifier)
+    (declaration_list)))
+
+================================================================================
+Variadic metavariable in a collection expression
+================================================================================
+
+var a = [1, $...REST];
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        (implicit_type)
+        (variable_declarator
+          (identifier)
+          (collection_expression
+            (collection_element
+              (expression_element
+                (integer_literal)))
+            (collection_element
+              (semgrep_variadic_metavariable))))))))
+
+================================================================================
+Ellipsis in a list pattern
+================================================================================
+
+if ($X is [1, ..., 9]) { }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (if_statement
+      (is_pattern_expression
+        (identifier)
+        (list_pattern
+          (constant_pattern
+            (integer_literal))
+          (ellipsis)
+          (constant_pattern
+            (integer_literal))))
+      (block))))
+
+================================================================================
+Extension block with ellipsis, and extension as an identifier
+================================================================================
+
+extension($T $X) { ... }
+extension(x);
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (extension_declaration
+    (receiver_parameter
+      (identifier)
+      (identifier))
+    (extension_body
+      (ellipsis)))
+  (global_statement
+    (expression_statement
+      (invocation_expression
+        (identifier)
+        (argument_list
+          (argument
+            (identifier)))))))
+
+================================================================================
+Enum members with commas inside #if
+================================================================================
+
+enum E {
+  A,
+#if X
+  B,
+#else
+  C,
+#endif
+  D
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (enum_declaration
+    (identifier)
+    (enum_member_declaration_list
+      (enum_member_declaration
+        (identifier))
+      (preproc_if
+        (identifier)
+        (enum_member_declaration
+          (identifier))
+        (preproc_else
+          (enum_member_declaration
+            (identifier))))
+      (enum_member_declaration
+        (identifier)))))
+
+================================================================================
+Lone case pattern
+================================================================================
+
+case $X:
+  ...
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (switch_section
+    (constant_pattern
+      (identifier))
+    (expression_statement
+      (ellipsis))))

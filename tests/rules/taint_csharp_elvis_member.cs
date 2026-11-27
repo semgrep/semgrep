@@ -1,4 +1,4 @@
-class Box { public string Value; }
+class Box { public string Value; public string Other; }
 
 class C {
     void Foo(Box? b) {
@@ -8,9 +8,11 @@ class C {
         sink(s);
     }
 
+    // Only `b.Other` is tainted: reading `b?.Value` stays clean.
     void Safe(Box? b) {
+        b.Other = source();
         string s = b?.Value;
-        // OK: taint
+        // ok: taint
         sink(s);
     }
 }

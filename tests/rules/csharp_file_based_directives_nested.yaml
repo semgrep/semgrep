@@ -1,0 +1,11 @@
+rules:
+  - id: package-version
+    languages: [csharp]
+    message: Newtonsoft.Json $V
+    severity: WARNING
+    pattern: "#:package Newtonsoft.Json@$V"
+  - id: any-sdk
+    languages: [csharp]
+    message: sdk $S
+    severity: WARNING
+    pattern: "#:sdk $S"

@@ -1,0 +1,1 @@
+Generated tree-sitter parsers that tree-sitter < 0.27.2 compiles with `-O0` under GCC now keep jump tables enabled (as tree-sitter 0.27.2 does), which makes them about twice as fast; the C# parser is the first affected.

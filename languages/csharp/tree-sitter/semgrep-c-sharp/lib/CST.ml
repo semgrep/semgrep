@@ -84,6 +84,7 @@ type reserved_identifier = [
   | `When of Token.t (* "when" *)
   | `Where of Token.t (* "where" *)
   | `Yield of Token.t (* "yield" *)
+  | `Exte of Token.t (* "extension" *)
 ]
 
 type preproc_else_if_start = Token.t
@@ -247,6 +248,32 @@ type identifier = [
   | `Semg_meta of semgrep_metavariable (*tok*)
 ]
 
+type ignored_directive = (
+    Token.t (* "#:" *)
+  * [
+        `Choice_imm_tok_pack_opt_dire_name_opt_dire_sepa_opt_dire_value of (
+            [
+                `Imm_tok_pack of imm_tok_pack (*tok*)
+              | `Imm_tok_sdk of imm_tok_sdk (*tok*)
+              | `Imm_tok_prop of imm_tok_prop (*tok*)
+            ]
+          * (
+                directive_name (*tok*)
+              * directive_separator (*tok*) option
+              * directive_value (*tok*) option
+            )
+              option
+        )
+      | `Imm_tok_pat_555404d_opt_dire_value of (
+            imm_tok_pat_555404d
+          * directive_value (*tok*) option
+        )
+      | `Imm_tok_pat_5381807 of imm_tok_pat_5381807
+    ]
+      option
+  * pat_1d78758
+)
+
 type character_literal = (
     Token.t (* "'" *)
   * [
@@ -403,16 +430,10 @@ and accessor_list = (
 
 and address_of_expression = (Token.t (* "&" *) * lvalue_expression)
 
-and anon_choice_enum_member_decl_fe2c440 = [
-    `Enum_member_decl of enum_member_declaration
-  | `Prep_if_in_enum_member_decl of (
-        pat_3df6e71
-      * preproc_expression
-      * pat_1d78758
-      * enum_member_declaration option
-      * anon_choice_prep_else_in_enum_member_decl_ef97f12 option
-      * pat_c46d1b2
-    )
+and anon_choice_choice_top_level_item_no_stmt_485bee8 = [
+    `Choice_choice_extern_alias_dire of
+      anon_choice_top_level_item_no_stmt_65e2afd
+  | `Igno_dire of ignored_directive
 ]
 
 and anon_choice_exp_elem_3bb8381 = [
@@ -436,9 +457,10 @@ and anon_choice_param_rep_COMMA_choice_param_6325c4d = (
   * (Token.t (* "," *) * anon_choice_param_ce11a32) list (* zero or more *)
 )
 
-and anon_choice_pat_29be9ad = [
+and anon_choice_pat_dee696d = [
     `Pat of pattern
   | `Slice_pat of slice_pattern
+  | `Ellips of Token.t (* "..." *)
 ]
 
 and anon_choice_prep_else_8b52b0f = [
@@ -491,13 +513,13 @@ and anon_choice_prep_else_in_else_e2f3ee0 = [
 and anon_choice_prep_else_in_enum_member_decl_ef97f12 = [
     `Prep_else_in_enum_member_decl of (
         pat_56631e5
-      * enum_member_declaration option
+      * enum_member_items option
     )
   | `Prep_elif_in_enum_member_decl of (
         pat_bfeb4bb
       * preproc_expression
       * pat_1d78758
-      * enum_member_declaration option
+      * enum_member_items option
       * anon_choice_prep_else_in_enum_member_decl_ef97f12 option
     )
 ]
@@ -555,13 +577,15 @@ and anon_choice_prep_else_in_stmt_tail_95f56b9 = [
 and anon_choice_prep_else_in_top_level_0825411 = [
     `Prep_else_in_top_level of (
         pat_56631e5
-      * anon_choice_top_level_item_no_stmt_65e2afd list (* zero or more *)
+      * anon_choice_choice_top_level_item_no_stmt_485bee8
+          list (* zero or more *)
     )
   | `Prep_elif_in_top_level of (
         pat_bfeb4bb
       * preproc_expression
       * pat_1d78758
-      * anon_choice_top_level_item_no_stmt_65e2afd list (* zero or more *)
+      * anon_choice_choice_top_level_item_no_stmt_485bee8
+          list (* zero or more *)
       * anon_choice_prep_else_in_top_level_0825411 option
     )
 ]
@@ -812,6 +836,7 @@ and class_declaration_initializer = (
 and collection_element = [
     `Exp_elem of expression_element
   | `Spread_elem of (Token.t (* ".." *) * expression_element)
+  | `Semg_vari_meta of semgrep_variadic_metavariable (*tok*)
 ]
 
 and collection_items = [
@@ -965,17 +990,9 @@ and declaration = [
       * anon_choice_prep_else_8b52b0f option
       * pat_c46d1b2
     )
-  | `Exte_decl of (
-        attribute_list_ list (* zero or more *)
-      * Token.t (* "extension" *)
-      * type_parameter_list option
-      * Token.t (* "(" *)
-      * receiver_parameter
-      * Token.t (* ")" *)
-      * type_parameter_constraints_clause list (* zero or more *)
-      * extension_body
-    )
+  | `Exte_decl of extension_declaration
   | `Ellips of Token.t (* "..." *)
+  | `Igno_dire of ignored_directive
 ]
 
 and declaration_expression = (type_pattern * identifier)
@@ -1049,15 +1066,17 @@ and enum_member_declaration = [
 
 and enum_member_declaration_list = (
     Token.t (* "{" *)
-  * (
-        anon_choice_enum_member_decl_fe2c440
-      * (Token.t (* "," *) * anon_choice_enum_member_decl_fe2c440)
-          list (* zero or more *)
-    )
-      option
-  * Token.t (* "," *) option
+  * enum_member_items option
   * Token.t (* "}" *)
 )
+
+and enum_member_items =
+  [
+      `Enum_member_decl of enum_member_declaration
+    | `COMMA of Token.t (* "," *)
+    | `Prep_if_in_enum_member_decl of preproc_if_in_enum_member_declaration
+  ]
+    list (* one or more *)
 
 and explicit_interface_specifier = (name * Token.t (* "." *))
 
@@ -1121,9 +1140,24 @@ and expression_statement_expression = [
 
 and extension_body = (
     Token.t (* "{" *)
-  * extension_member_declaration list (* zero or more *)
+  * [
+        `Exte_member_decl of extension_member_declaration
+      | `Ellips of Token.t (* "..." *)
+    ]
+      list (* zero or more *)
   * Token.t (* "}" *)
   * Token.t (* ";" *) option
+)
+
+and extension_declaration = (
+    attribute_list_ list (* zero or more *)
+  * Token.t (* "extension" *)
+  * type_parameter_list option
+  * Token.t (* "(" *)
+  * receiver_parameter
+  * Token.t (* ")" *)
+  * type_parameter_constraints_clause list (* zero or more *)
+  * extension_body
 )
 
 and extension_member_declaration = [
@@ -1325,8 +1359,8 @@ and list_pattern = [
 and list_pattern_body = (
     Token.t (* "[" *)
   * (
-        anon_choice_pat_29be9ad
-      * (Token.t (* "," *) * anon_choice_pat_29be9ad) list (* zero or more *)
+        anon_choice_pat_dee696d
+      * (Token.t (* "," *) * anon_choice_pat_dee696d) list (* zero or more *)
       * Token.t (* "," *) option
     )
       option
@@ -1694,6 +1728,15 @@ and preproc_if_in_else = (
   * pat_c46d1b2
 )
 
+and preproc_if_in_enum_member_declaration = (
+    pat_3df6e71
+  * preproc_expression
+  * pat_1d78758
+  * enum_member_items option
+  * anon_choice_prep_else_in_enum_member_decl_ef97f12 option
+  * pat_c46d1b2
+)
+
 and preproc_if_in_initializer = (
     pat_3df6e71
   * preproc_expression
@@ -1716,7 +1759,7 @@ and preproc_if_in_top_level = (
     pat_3df6e71
   * preproc_expression
   * pat_1d78758
-  * anon_choice_top_level_item_no_stmt_65e2afd list (* zero or more *)
+  * anon_choice_choice_top_level_item_no_stmt_485bee8 list (* zero or more *)
   * anon_choice_prep_else_in_top_level_0825411 option
   * pat_c46d1b2
 )
@@ -2269,8 +2312,12 @@ and with_body = (
 and with_initializer = (identifier * Token.t (* "=" *) * expression_element)
 
 type top_level_item = [
-    `Choice_extern_alias_dire of top_level_item_no_statement
-  | `Global_stmt of global_statement
+    `Choice_choice_extern_alias_dire of [
+        `Choice_extern_alias_dire of top_level_item_no_statement
+      | `Global_stmt of global_statement
+    ]
+  | `Igno_dire of ignored_directive
+  | `Exte_decl of extension_declaration
 ]
 
 type compilation_unit = [
@@ -2279,6 +2326,7 @@ type compilation_unit = [
       * top_level_item list (* zero or more *)
     )
   | `Semg_exp of (Token.t (* "__SEMGREP_EXPRESSION" *) * expression_element)
+  | `Switch_sect of switch_section
 ]
 
 type preproc_directive (* inlined *) =
@@ -2356,32 +2404,6 @@ type raw_string_literal (* inlined *) = (
 
 type preproc_error (* inlined *) = (
     pat_8a5c9c8 * preproc_arg (*tok*) * pat_1d78758
-)
-
-type ignored_directive (* inlined *) = (
-    Token.t (* "#:" *)
-  * [
-        `Choice_imm_tok_pack_opt_dire_name_opt_dire_sepa_opt_dire_value of (
-            [
-                `Imm_tok_pack of imm_tok_pack (*tok*)
-              | `Imm_tok_sdk of imm_tok_sdk (*tok*)
-              | `Imm_tok_prop of imm_tok_prop (*tok*)
-            ]
-          * (
-                directive_name (*tok*)
-              * directive_separator (*tok*) option
-              * directive_value (*tok*) option
-            )
-              option
-        )
-      | `Imm_tok_pat_555404d_opt_dire_value of (
-            imm_tok_pat_555404d
-          * directive_value (*tok*) option
-        )
-      | `Imm_tok_pat_5381807 of imm_tok_pat_5381807
-    ]
-      option
-  * pat_1d78758
 )
 
 type extern_alias_directive (* inlined *) = (
@@ -2613,17 +2635,6 @@ type event_field_declaration (* inlined *) = (
   * Token.t (* "event" *)
   * variable_declaration
   * Token.t (* ";" *)
-)
-
-type extension_declaration (* inlined *) = (
-    attribute_list_ list (* zero or more *)
-  * Token.t (* "extension" *)
-  * type_parameter_list option
-  * Token.t (* "(" *)
-  * receiver_parameter
-  * Token.t (* ")" *)
-  * type_parameter_constraints_clause list (* zero or more *)
-  * extension_body
 )
 
 type field_declaration (* inlined *) = (
@@ -2861,7 +2872,7 @@ type preproc_elif_in_enum_member_declaration (* inlined *) = (
     pat_bfeb4bb
   * preproc_expression
   * pat_1d78758
-  * enum_member_declaration option
+  * enum_member_items option
   * anon_choice_prep_else_in_enum_member_decl_ef97f12 option
 )
 
@@ -2901,7 +2912,7 @@ type preproc_elif_in_top_level (* inlined *) = (
     pat_bfeb4bb
   * preproc_expression
   * pat_1d78758
-  * anon_choice_top_level_item_no_stmt_65e2afd list (* zero or more *)
+  * anon_choice_choice_top_level_item_no_stmt_485bee8 list (* zero or more *)
   * anon_choice_prep_else_in_top_level_0825411 option
 )
 
@@ -2927,7 +2938,7 @@ type preproc_else_in_else (* inlined *) = (
 
 type preproc_else_in_enum_member_declaration (* inlined *) = (
     pat_56631e5
-  * enum_member_declaration option
+  * enum_member_items option
 )
 
 type preproc_else_in_expression (* inlined *) = (
@@ -2952,7 +2963,7 @@ type preproc_else_in_statement_tail (* inlined *) = (
 
 type preproc_else_in_top_level (* inlined *) = (
     pat_56631e5
-  * anon_choice_top_level_item_no_stmt_65e2afd list (* zero or more *)
+  * anon_choice_choice_top_level_item_no_stmt_485bee8 list (* zero or more *)
 )
 
 type preproc_if (* inlined *) = (
@@ -2970,15 +2981,6 @@ type preproc_if_in_attribute_list (* inlined *) = (
   * pat_1d78758
   * attribute_list option
   * anon_choice_prep_else_in_attr_list_44dddc1 option
-  * pat_c46d1b2
-)
-
-type preproc_if_in_enum_member_declaration (* inlined *) = (
-    pat_3df6e71
-  * preproc_expression
-  * pat_1d78758
-  * enum_member_declaration option
-  * anon_choice_prep_else_in_enum_member_decl_ef97f12 option
   * pat_c46d1b2
 )
 
@@ -3135,7 +3137,6 @@ type extra = [
   | `Preproc_warning of Loc.t * preproc_warning
   | `Preproc_define of Loc.t * preproc_define
   | `Preproc_undef of Loc.t * preproc_undef
-  | `Ignored_directive of Loc.t * ignored_directive
 ]
 
 type extras = extra list

@@ -1,0 +1,4 @@
+switch ($X) {
+  case $V:
+    ...
+}

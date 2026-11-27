@@ -1593,11 +1593,23 @@ and m_container_operator a b =
       fail ()
 
 and m_container_ordered_elements a b =
-  m_list_with_dots m_expr
-    (function
-      | { e = G.Ellipsis _; _ } -> true
-      | _ -> false)
-    ~less_is_ok:false (* empty list can not match non-empty list *) a b
+  let is_dots = function
+    | { G.e = G.Ellipsis _; _ } -> true
+    | _ -> false
+  in
+  (* `[1, $...REST]`: bind the remaining elements, as for arguments. *)
+  let is_metavar_ellipsis = function
+    | { G.e = G.N (G.Id ((s, tok), _)); _ } when Mvar.is_metavar_ellipsis s ->
+        Some ((s, tok), fun xs -> MV.Args (List.map (fun e -> G.Arg e) xs))
+    | _ -> None
+  in
+  (* empty list can not match non-empty list *)
+  if List.exists (fun x -> is_metavar_ellipsis x <> None) a then
+    m_list_with_dots_and_metavar_ellipsis ~f:m_expr ~is_dots
+      ~is_metavar_ellipsis ~less_is_ok:false a b
+  else
+    (* keeps the fast path of m_list_with_dots for `[..., P, ...]` *)
+    m_list_with_dots m_expr is_dots ~less_is_ok:false a b
 
 (* Poor's man typechecker. Note that some of the typing work is also
  * done in Naming_AST.get_resolved_type() (or in deepSemgrep in
@@ -3125,7 +3137,13 @@ and m_pattern a b =
           m_PatConstructor ~default ~m_pattern (a1, a2) (b1, b2)
       | None -> default ())
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
-  | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
+  | G.PatList a1, B.PatList b1 ->
+      (* `[1, ..., 9]` *)
+      m_bracket
+        (m_list_with_dots ~less_is_ok:false m_pattern (function
+          | G.PatEllipsis _ -> true
+          | _ -> false))
+        a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
   | G.PatKeyVal (a1, a2), B.PatKeyVal (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_pattern a2 b2
@@ -3963,7 +3981,13 @@ and m_directive_basic a b =
       m_tok a0 b0 >>= fun () -> m_dotted_name a1 b1
   | G.PackageEnd a1, B.PackageEnd b1 -> m_tok a1 b1
   | G.Pragma (a1, a2), B.Pragma (b1, b2) ->
-      m_ident a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_ident a1 b1 >>= fun () ->
+      (* `...` among the arguments (e.g. C# `#:package $P` in a pattern,
+         which also matches a versioned `#:package Name@1.0`). *)
+      (m_list_with_dots ~less_is_ok:false m_any (function
+        | G.E { e = G.Ellipsis _; _ } -> true
+        | _ -> false))
+        a2 b2
   | G.OtherDirective (a1, a2), B.OtherDirective (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ImportFrom _, _

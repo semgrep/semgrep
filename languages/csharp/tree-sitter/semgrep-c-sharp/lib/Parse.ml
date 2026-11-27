@@ -37,7 +37,6 @@ let extras = [
   "preproc_warning";
   "preproc_define";
   "preproc_undef";
-  "ignored_directive";
 ]
 
 let children_regexps : (string * Run.exp option) list = [
@@ -142,6 +141,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Literal "when");
       Token (Literal "where");
       Token (Literal "yield");
+      Token (Literal "extension");
     |];
   );
   "pat_b56baf5", None;
@@ -1238,6 +1238,7 @@ let children_regexps : (string * Run.exp option) list = [
     Alt [|
       Token (Name "expression_element");
       Token (Name "spread_element");
+      Token (Name "semgrep_variadic_metavariable");
     |];
   );
   "collection_expression",
@@ -1419,6 +1420,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "preproc_if");
       Token (Name "extension_declaration");
       Token (Name "ellipsis");
+      Token (Name "ignored_directive");
     |];
   );
   "declaration_expression",
@@ -1590,27 +1592,20 @@ let children_regexps : (string * Run.exp option) list = [
     Seq [
       Token (Literal "{");
       Opt (
-        Seq [
-          Alt [|
-            Token (Name "enum_member_declaration");
-            Token (Name "preproc_if_in_enum_member_declaration");
-          |];
-          Repeat (
-            Seq [
-              Token (Literal ",");
-              Alt [|
-                Token (Name "enum_member_declaration");
-                Token (Name "preproc_if_in_enum_member_declaration");
-              |];
-            ];
-          );
-        ];
-      );
-      Opt (
-        Token (Literal ",");
+        Token (Name "enum_member_items");
       );
       Token (Literal "}");
     ];
+  );
+  "enum_member_items",
+  Some (
+    Repeat1 (
+      Alt [|
+        Token (Name "enum_member_declaration");
+        Token (Literal ",");
+        Token (Name "preproc_if_in_enum_member_declaration");
+      |];
+    );
   );
   "event_declaration",
   Some (
@@ -1713,7 +1708,10 @@ let children_regexps : (string * Run.exp option) list = [
     Seq [
       Token (Literal "{");
       Repeat (
-        Token (Name "extension_member_declaration");
+        Alt [|
+          Token (Name "extension_member_declaration");
+          Token (Name "ellipsis");
+        |];
       );
       Token (Literal "}");
       Opt (
@@ -2306,6 +2304,7 @@ let children_regexps : (string * Run.exp option) list = [
           Alt [|
             Token (Name "pattern");
             Token (Name "slice_pattern");
+            Token (Name "ellipsis");
           |];
           Repeat (
             Seq [
@@ -2313,6 +2312,7 @@ let children_regexps : (string * Run.exp option) list = [
               Alt [|
                 Token (Name "pattern");
                 Token (Name "slice_pattern");
+                Token (Name "ellipsis");
               |];
             ];
           );
@@ -2948,7 +2948,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "preproc_expression");
       Token (Name "pat_1d78758");
       Opt (
-        Token (Name "enum_member_declaration");
+        Token (Name "enum_member_items");
       );
       Opt (
         Alt [|
@@ -3043,17 +3043,20 @@ let children_regexps : (string * Run.exp option) list = [
       Repeat (
         Alt [|
           Alt [|
-            Token (Name "extern_alias_directive");
-            Token (Name "using_directive");
-            Token (Name "global_attribute");
-            Token (Name "preproc_if_in_top_level");
             Alt [|
-              Token (Name "namespace_declaration");
-              Token (Name "type_declaration");
+              Token (Name "extern_alias_directive");
+              Token (Name "using_directive");
+              Token (Name "global_attribute");
+              Token (Name "preproc_if_in_top_level");
+              Alt [|
+                Token (Name "namespace_declaration");
+                Token (Name "type_declaration");
+              |];
+              Token (Name "file_scoped_namespace_declaration");
             |];
-            Token (Name "file_scoped_namespace_declaration");
+            Token (Name "statement");
           |];
-          Token (Name "statement");
+          Token (Name "ignored_directive");
         |];
       );
       Opt (
@@ -3108,7 +3111,7 @@ let children_regexps : (string * Run.exp option) list = [
     Seq [
       Token (Name "pat_56631e5");
       Opt (
-        Token (Name "enum_member_declaration");
+        Token (Name "enum_member_items");
       );
     ];
   );
@@ -3163,17 +3166,20 @@ let children_regexps : (string * Run.exp option) list = [
       Repeat (
         Alt [|
           Alt [|
-            Token (Name "extern_alias_directive");
-            Token (Name "using_directive");
-            Token (Name "global_attribute");
-            Token (Name "preproc_if_in_top_level");
             Alt [|
-              Token (Name "namespace_declaration");
-              Token (Name "type_declaration");
+              Token (Name "extern_alias_directive");
+              Token (Name "using_directive");
+              Token (Name "global_attribute");
+              Token (Name "preproc_if_in_top_level");
+              Alt [|
+                Token (Name "namespace_declaration");
+                Token (Name "type_declaration");
+              |];
+              Token (Name "file_scoped_namespace_declaration");
             |];
-            Token (Name "file_scoped_namespace_declaration");
+            Token (Name "statement");
           |];
-          Token (Name "statement");
+          Token (Name "ignored_directive");
         |];
       );
     ];
@@ -3260,7 +3266,7 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "preproc_expression");
       Token (Name "pat_1d78758");
       Opt (
-        Token (Name "enum_member_declaration");
+        Token (Name "enum_member_items");
       );
       Opt (
         Alt [|
@@ -3360,17 +3366,20 @@ let children_regexps : (string * Run.exp option) list = [
       Repeat (
         Alt [|
           Alt [|
-            Token (Name "extern_alias_directive");
-            Token (Name "using_directive");
-            Token (Name "global_attribute");
-            Token (Name "preproc_if_in_top_level");
             Alt [|
-              Token (Name "namespace_declaration");
-              Token (Name "type_declaration");
+              Token (Name "extern_alias_directive");
+              Token (Name "using_directive");
+              Token (Name "global_attribute");
+              Token (Name "preproc_if_in_top_level");
+              Alt [|
+                Token (Name "namespace_declaration");
+                Token (Name "type_declaration");
+              |];
+              Token (Name "file_scoped_namespace_declaration");
             |];
-            Token (Name "file_scoped_namespace_declaration");
+            Token (Name "statement");
           |];
-          Token (Name "statement");
+          Token (Name "ignored_directive");
         |];
       );
       Opt (
@@ -4366,17 +4375,21 @@ let children_regexps : (string * Run.exp option) list = [
   Some (
     Alt [|
       Alt [|
-        Token (Name "extern_alias_directive");
-        Token (Name "using_directive");
-        Token (Name "global_attribute");
-        Token (Name "preproc_if_in_top_level");
         Alt [|
-          Token (Name "namespace_declaration");
-          Token (Name "type_declaration");
+          Token (Name "extern_alias_directive");
+          Token (Name "using_directive");
+          Token (Name "global_attribute");
+          Token (Name "preproc_if_in_top_level");
+          Alt [|
+            Token (Name "namespace_declaration");
+            Token (Name "type_declaration");
+          |];
+          Token (Name "file_scoped_namespace_declaration");
         |];
-        Token (Name "file_scoped_namespace_declaration");
+        Token (Name "global_statement");
       |];
-      Token (Name "global_statement");
+      Token (Name "ignored_directive");
+      Token (Name "extension_declaration");
     |];
   );
   "compilation_unit",
@@ -4391,6 +4404,7 @@ let children_regexps : (string * Run.exp option) list = [
         );
       ];
       Token (Name "semgrep_expression");
+      Token (Name "switch_section");
     |];
   );
 ]
@@ -4779,6 +4793,10 @@ let trans_reserved_identifier ((kind, body) : mt) : CST.reserved_identifier =
           )
       | Alt (27, v) ->
           `Yield (
+            Run.trans_token (Run.matcher_token v)
+          )
+      | Alt (28, v) ->
+          `Exte (
             Run.trans_token (Run.matcher_token v)
           )
       | _ -> assert false
@@ -7279,6 +7297,10 @@ and trans_collection_element ((kind, body) : mt) : CST.collection_element =
           `Spread_elem (
             trans_spread_element (Run.matcher_token v)
           )
+      | Alt (2, v) ->
+          `Semg_vari_meta (
+            trans_semgrep_variadic_metavariable (Run.matcher_token v)
+          )
       | _ -> assert false
       )
   | Leaf _ -> assert false
@@ -7722,6 +7744,10 @@ and trans_declaration ((kind, body) : mt) : CST.declaration =
           `Ellips (
             trans_ellipsis (Run.matcher_token v)
           )
+      | Alt (21, v) ->
+          `Igno_dire (
+            trans_ignored_directive (Run.matcher_token v)
+          )
       | _ -> assert false
       )
   | Leaf _ -> assert false
@@ -8028,62 +8054,41 @@ and trans_enum_member_declaration_list ((kind, body) : mt) : CST.enum_member_dec
   match body with
   | Children v ->
       (match v with
-      | Seq [v0; v1; v2; v3] ->
+      | Seq [v0; v1; v2] ->
           (
             Run.trans_token (Run.matcher_token v0),
             Run.opt
-              (fun v ->
-                (match v with
-                | Seq [v0; v1] ->
-                    (
-                      (match v0 with
-                      | Alt (0, v) ->
-                          `Enum_member_decl (
-                            trans_enum_member_declaration (Run.matcher_token v)
-                          )
-                      | Alt (1, v) ->
-                          `Prep_if_in_enum_member_decl (
-                            trans_preproc_if_in_enum_member_declaration (Run.matcher_token v)
-                          )
-                      | _ -> assert false
-                      )
-                      ,
-                      Run.repeat
-                        (fun v ->
-                          (match v with
-                          | Seq [v0; v1] ->
-                              (
-                                Run.trans_token (Run.matcher_token v0),
-                                (match v1 with
-                                | Alt (0, v) ->
-                                    `Enum_member_decl (
-                                      trans_enum_member_declaration (Run.matcher_token v)
-                                    )
-                                | Alt (1, v) ->
-                                    `Prep_if_in_enum_member_decl (
-                                      trans_preproc_if_in_enum_member_declaration (Run.matcher_token v)
-                                    )
-                                | _ -> assert false
-                                )
-                              )
-                          | _ -> assert false
-                          )
-                        )
-                        v1
-                    )
-                | _ -> assert false
-                )
-              )
+              (fun v -> trans_enum_member_items (Run.matcher_token v))
               v1
             ,
-            Run.opt
-              (fun v -> Run.trans_token (Run.matcher_token v))
-              v2
-            ,
-            Run.trans_token (Run.matcher_token v3)
+            Run.trans_token (Run.matcher_token v2)
           )
       | _ -> assert false
       )
+  | Leaf _ -> assert false
+
+and trans_enum_member_items ((kind, body) : mt) : CST.enum_member_items =
+  match body with
+  | Children v ->
+      Run.repeat1
+        (fun v ->
+          (match v with
+          | Alt (0, v) ->
+              `Enum_member_decl (
+                trans_enum_member_declaration (Run.matcher_token v)
+              )
+          | Alt (1, v) ->
+              `COMMA (
+                Run.trans_token (Run.matcher_token v)
+              )
+          | Alt (2, v) ->
+              `Prep_if_in_enum_member_decl (
+                trans_preproc_if_in_enum_member_declaration (Run.matcher_token v)
+              )
+          | _ -> assert false
+          )
+        )
+        v
   | Leaf _ -> assert false
 
 and trans_event_declaration ((kind, body) : mt) : CST.event_declaration =
@@ -8323,7 +8328,17 @@ and trans_extension_body ((kind, body) : mt) : CST.extension_body =
             Run.trans_token (Run.matcher_token v0),
             Run.repeat
               (fun v ->
-                trans_extension_member_declaration (Run.matcher_token v)
+                (match v with
+                | Alt (0, v) ->
+                    `Exte_member_decl (
+                      trans_extension_member_declaration (Run.matcher_token v)
+                    )
+                | Alt (1, v) ->
+                    `Ellips (
+                      trans_ellipsis (Run.matcher_token v)
+                    )
+                | _ -> assert false
+                )
               )
               v1
             ,
@@ -9471,6 +9486,10 @@ and trans_list_pattern_body ((kind, body) : mt) : CST.list_pattern_body =
                           `Slice_pat (
                             trans_slice_pattern (Run.matcher_token v)
                           )
+                      | Alt (2, v) ->
+                          `Ellips (
+                            trans_ellipsis (Run.matcher_token v)
+                          )
                       | _ -> assert false
                       )
                       ,
@@ -9488,6 +9507,10 @@ and trans_list_pattern_body ((kind, body) : mt) : CST.list_pattern_body =
                                 | Alt (1, v) ->
                                     `Slice_pat (
                                       trans_slice_pattern (Run.matcher_token v)
+                                    )
+                                | Alt (2, v) ->
+                                    `Ellips (
+                                      trans_ellipsis (Run.matcher_token v)
                                     )
                                 | _ -> assert false
                                 )
@@ -10973,9 +10996,7 @@ and trans_preproc_elif_in_enum_member_declaration ((kind, body) : mt) : CST.prep
             trans_preproc_expression (Run.matcher_token v1),
             trans_pat_1d78758 (Run.matcher_token v2),
             Run.opt
-              (fun v ->
-                trans_enum_member_declaration (Run.matcher_token v)
-              )
+              (fun v -> trans_enum_member_items (Run.matcher_token v))
               v3
             ,
             Run.opt
@@ -11166,48 +11187,58 @@ and trans_preproc_elif_in_top_level ((kind, body) : mt) : CST.preproc_elif_in_to
               (fun v ->
                 (match v with
                 | Alt (0, v) ->
-                    `Choice_extern_alias_dire (
+                    `Choice_choice_extern_alias_dire (
                       (match v with
                       | Alt (0, v) ->
-                          `Extern_alias_dire (
-                            trans_extern_alias_directive (Run.matcher_token v)
-                          )
-                      | Alt (1, v) ->
-                          `Using_dire (
-                            trans_using_directive (Run.matcher_token v)
-                          )
-                      | Alt (2, v) ->
-                          `Global_attr (
-                            trans_global_attribute (Run.matcher_token v)
-                          )
-                      | Alt (3, v) ->
-                          `Prep_if_in_top_level (
-                            trans_preproc_if_in_top_level (Run.matcher_token v)
-                          )
-                      | Alt (4, v) ->
-                          `Choice_name_decl (
+                          `Choice_extern_alias_dire (
                             (match v with
                             | Alt (0, v) ->
-                                `Name_decl (
-                                  trans_namespace_declaration (Run.matcher_token v)
+                                `Extern_alias_dire (
+                                  trans_extern_alias_directive (Run.matcher_token v)
                                 )
                             | Alt (1, v) ->
-                                `Type_decl (
-                                  trans_type_declaration (Run.matcher_token v)
+                                `Using_dire (
+                                  trans_using_directive (Run.matcher_token v)
+                                )
+                            | Alt (2, v) ->
+                                `Global_attr (
+                                  trans_global_attribute (Run.matcher_token v)
+                                )
+                            | Alt (3, v) ->
+                                `Prep_if_in_top_level (
+                                  trans_preproc_if_in_top_level (Run.matcher_token v)
+                                )
+                            | Alt (4, v) ->
+                                `Choice_name_decl (
+                                  (match v with
+                                  | Alt (0, v) ->
+                                      `Name_decl (
+                                        trans_namespace_declaration (Run.matcher_token v)
+                                      )
+                                  | Alt (1, v) ->
+                                      `Type_decl (
+                                        trans_type_declaration (Run.matcher_token v)
+                                      )
+                                  | _ -> assert false
+                                  )
+                                )
+                            | Alt (5, v) ->
+                                `File_scoped_name_decl (
+                                  trans_file_scoped_namespace_declaration (Run.matcher_token v)
                                 )
                             | _ -> assert false
                             )
                           )
-                      | Alt (5, v) ->
-                          `File_scoped_name_decl (
-                            trans_file_scoped_namespace_declaration (Run.matcher_token v)
+                      | Alt (1, v) ->
+                          `Stmt (
+                            trans_statement (Run.matcher_token v)
                           )
                       | _ -> assert false
                       )
                     )
                 | Alt (1, v) ->
-                    `Stmt (
-                      trans_statement (Run.matcher_token v)
+                    `Igno_dire (
+                      trans_ignored_directive (Run.matcher_token v)
                     )
                 | _ -> assert false
                 )
@@ -11311,9 +11342,7 @@ and trans_preproc_else_in_enum_member_declaration ((kind, body) : mt) : CST.prep
           (
             trans_pat_56631e5 (Run.matcher_token v0),
             Run.opt
-              (fun v ->
-                trans_enum_member_declaration (Run.matcher_token v)
-              )
+              (fun v -> trans_enum_member_items (Run.matcher_token v))
               v1
           )
       | _ -> assert false
@@ -11414,48 +11443,58 @@ and trans_preproc_else_in_top_level ((kind, body) : mt) : CST.preproc_else_in_to
               (fun v ->
                 (match v with
                 | Alt (0, v) ->
-                    `Choice_extern_alias_dire (
+                    `Choice_choice_extern_alias_dire (
                       (match v with
                       | Alt (0, v) ->
-                          `Extern_alias_dire (
-                            trans_extern_alias_directive (Run.matcher_token v)
-                          )
-                      | Alt (1, v) ->
-                          `Using_dire (
-                            trans_using_directive (Run.matcher_token v)
-                          )
-                      | Alt (2, v) ->
-                          `Global_attr (
-                            trans_global_attribute (Run.matcher_token v)
-                          )
-                      | Alt (3, v) ->
-                          `Prep_if_in_top_level (
-                            trans_preproc_if_in_top_level (Run.matcher_token v)
-                          )
-                      | Alt (4, v) ->
-                          `Choice_name_decl (
+                          `Choice_extern_alias_dire (
                             (match v with
                             | Alt (0, v) ->
-                                `Name_decl (
-                                  trans_namespace_declaration (Run.matcher_token v)
+                                `Extern_alias_dire (
+                                  trans_extern_alias_directive (Run.matcher_token v)
                                 )
                             | Alt (1, v) ->
-                                `Type_decl (
-                                  trans_type_declaration (Run.matcher_token v)
+                                `Using_dire (
+                                  trans_using_directive (Run.matcher_token v)
+                                )
+                            | Alt (2, v) ->
+                                `Global_attr (
+                                  trans_global_attribute (Run.matcher_token v)
+                                )
+                            | Alt (3, v) ->
+                                `Prep_if_in_top_level (
+                                  trans_preproc_if_in_top_level (Run.matcher_token v)
+                                )
+                            | Alt (4, v) ->
+                                `Choice_name_decl (
+                                  (match v with
+                                  | Alt (0, v) ->
+                                      `Name_decl (
+                                        trans_namespace_declaration (Run.matcher_token v)
+                                      )
+                                  | Alt (1, v) ->
+                                      `Type_decl (
+                                        trans_type_declaration (Run.matcher_token v)
+                                      )
+                                  | _ -> assert false
+                                  )
+                                )
+                            | Alt (5, v) ->
+                                `File_scoped_name_decl (
+                                  trans_file_scoped_namespace_declaration (Run.matcher_token v)
                                 )
                             | _ -> assert false
                             )
                           )
-                      | Alt (5, v) ->
-                          `File_scoped_name_decl (
-                            trans_file_scoped_namespace_declaration (Run.matcher_token v)
+                      | Alt (1, v) ->
+                          `Stmt (
+                            trans_statement (Run.matcher_token v)
                           )
                       | _ -> assert false
                       )
                     )
                 | Alt (1, v) ->
-                    `Stmt (
-                      trans_statement (Run.matcher_token v)
+                    `Igno_dire (
+                      trans_ignored_directive (Run.matcher_token v)
                     )
                 | _ -> assert false
                 )
@@ -11625,9 +11664,7 @@ and trans_preproc_if_in_enum_member_declaration ((kind, body) : mt) : CST.prepro
             trans_preproc_expression (Run.matcher_token v1),
             trans_pat_1d78758 (Run.matcher_token v2),
             Run.opt
-              (fun v ->
-                trans_enum_member_declaration (Run.matcher_token v)
-              )
+              (fun v -> trans_enum_member_items (Run.matcher_token v))
               v3
             ,
             Run.opt
@@ -11828,48 +11865,58 @@ and trans_preproc_if_in_top_level ((kind, body) : mt) : CST.preproc_if_in_top_le
               (fun v ->
                 (match v with
                 | Alt (0, v) ->
-                    `Choice_extern_alias_dire (
+                    `Choice_choice_extern_alias_dire (
                       (match v with
                       | Alt (0, v) ->
-                          `Extern_alias_dire (
-                            trans_extern_alias_directive (Run.matcher_token v)
-                          )
-                      | Alt (1, v) ->
-                          `Using_dire (
-                            trans_using_directive (Run.matcher_token v)
-                          )
-                      | Alt (2, v) ->
-                          `Global_attr (
-                            trans_global_attribute (Run.matcher_token v)
-                          )
-                      | Alt (3, v) ->
-                          `Prep_if_in_top_level (
-                            trans_preproc_if_in_top_level (Run.matcher_token v)
-                          )
-                      | Alt (4, v) ->
-                          `Choice_name_decl (
+                          `Choice_extern_alias_dire (
                             (match v with
                             | Alt (0, v) ->
-                                `Name_decl (
-                                  trans_namespace_declaration (Run.matcher_token v)
+                                `Extern_alias_dire (
+                                  trans_extern_alias_directive (Run.matcher_token v)
                                 )
                             | Alt (1, v) ->
-                                `Type_decl (
-                                  trans_type_declaration (Run.matcher_token v)
+                                `Using_dire (
+                                  trans_using_directive (Run.matcher_token v)
+                                )
+                            | Alt (2, v) ->
+                                `Global_attr (
+                                  trans_global_attribute (Run.matcher_token v)
+                                )
+                            | Alt (3, v) ->
+                                `Prep_if_in_top_level (
+                                  trans_preproc_if_in_top_level (Run.matcher_token v)
+                                )
+                            | Alt (4, v) ->
+                                `Choice_name_decl (
+                                  (match v with
+                                  | Alt (0, v) ->
+                                      `Name_decl (
+                                        trans_namespace_declaration (Run.matcher_token v)
+                                      )
+                                  | Alt (1, v) ->
+                                      `Type_decl (
+                                        trans_type_declaration (Run.matcher_token v)
+                                      )
+                                  | _ -> assert false
+                                  )
+                                )
+                            | Alt (5, v) ->
+                                `File_scoped_name_decl (
+                                  trans_file_scoped_namespace_declaration (Run.matcher_token v)
                                 )
                             | _ -> assert false
                             )
                           )
-                      | Alt (5, v) ->
-                          `File_scoped_name_decl (
-                            trans_file_scoped_namespace_declaration (Run.matcher_token v)
+                      | Alt (1, v) ->
+                          `Stmt (
+                            trans_statement (Run.matcher_token v)
                           )
                       | _ -> assert false
                       )
                     )
                 | Alt (1, v) ->
-                    `Stmt (
-                      trans_statement (Run.matcher_token v)
+                    `Igno_dire (
+                      trans_ignored_directive (Run.matcher_token v)
                     )
                 | _ -> assert false
                 )
@@ -13986,48 +14033,62 @@ let trans_top_level_item ((kind, body) : mt) : CST.top_level_item =
   | Children v ->
       (match v with
       | Alt (0, v) ->
-          `Choice_extern_alias_dire (
+          `Choice_choice_extern_alias_dire (
             (match v with
             | Alt (0, v) ->
-                `Extern_alias_dire (
-                  trans_extern_alias_directive (Run.matcher_token v)
-                )
-            | Alt (1, v) ->
-                `Using_dire (
-                  trans_using_directive (Run.matcher_token v)
-                )
-            | Alt (2, v) ->
-                `Global_attr (
-                  trans_global_attribute (Run.matcher_token v)
-                )
-            | Alt (3, v) ->
-                `Prep_if_in_top_level (
-                  trans_preproc_if_in_top_level (Run.matcher_token v)
-                )
-            | Alt (4, v) ->
-                `Choice_name_decl (
+                `Choice_extern_alias_dire (
                   (match v with
                   | Alt (0, v) ->
-                      `Name_decl (
-                        trans_namespace_declaration (Run.matcher_token v)
+                      `Extern_alias_dire (
+                        trans_extern_alias_directive (Run.matcher_token v)
                       )
                   | Alt (1, v) ->
-                      `Type_decl (
-                        trans_type_declaration (Run.matcher_token v)
+                      `Using_dire (
+                        trans_using_directive (Run.matcher_token v)
+                      )
+                  | Alt (2, v) ->
+                      `Global_attr (
+                        trans_global_attribute (Run.matcher_token v)
+                      )
+                  | Alt (3, v) ->
+                      `Prep_if_in_top_level (
+                        trans_preproc_if_in_top_level (Run.matcher_token v)
+                      )
+                  | Alt (4, v) ->
+                      `Choice_name_decl (
+                        (match v with
+                        | Alt (0, v) ->
+                            `Name_decl (
+                              trans_namespace_declaration (Run.matcher_token v)
+                            )
+                        | Alt (1, v) ->
+                            `Type_decl (
+                              trans_type_declaration (Run.matcher_token v)
+                            )
+                        | _ -> assert false
+                        )
+                      )
+                  | Alt (5, v) ->
+                      `File_scoped_name_decl (
+                        trans_file_scoped_namespace_declaration (Run.matcher_token v)
                       )
                   | _ -> assert false
                   )
                 )
-            | Alt (5, v) ->
-                `File_scoped_name_decl (
-                  trans_file_scoped_namespace_declaration (Run.matcher_token v)
+            | Alt (1, v) ->
+                `Global_stmt (
+                  trans_global_statement (Run.matcher_token v)
                 )
             | _ -> assert false
             )
           )
       | Alt (1, v) ->
-          `Global_stmt (
-            trans_global_statement (Run.matcher_token v)
+          `Igno_dire (
+            trans_ignored_directive (Run.matcher_token v)
+          )
+      | Alt (2, v) ->
+          `Exte_decl (
+            trans_extension_declaration (Run.matcher_token v)
           )
       | _ -> assert false
       )
@@ -14056,6 +14117,10 @@ let trans_compilation_unit ((kind, body) : mt) : CST.compilation_unit =
       | Alt (1, v) ->
           `Semg_exp (
             trans_semgrep_expression (Run.matcher_token v)
+          )
+      | Alt (2, v) ->
+          `Switch_sect (
+            trans_switch_section (Run.matcher_token v)
           )
       | _ -> assert false
       )
@@ -14123,10 +14188,6 @@ let translate_extra src (node : Tree_sitter_output_t.node) : CST.extra option =
       (match translate_tree src node trans_preproc_undef with
       | None -> None
       | Some x -> Some (`Preproc_undef (Run.get_loc node, x)))
-  | "ignored_directive" ->
-      (match translate_tree src node trans_ignored_directive with
-      | None -> None
-      | Some x -> Some (`Ignored_directive (Run.get_loc node, x)))
   | _ -> None
 
 let translate_root src root_node =

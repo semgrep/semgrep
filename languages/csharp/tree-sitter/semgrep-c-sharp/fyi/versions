@@ -34,53 +34,43 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-c-sharp/grammar.js
 Git repo name: semgrep
-Latest commit in repo: cd3b439c36f43a299dffcd1e7544f6ce7ebb03cc
+Latest commit in repo: fd85b121e73472764b21e48a1f8c56f8077ffa01
 Last change in file:
-  commit 689ab2df3aa972f2274de7f671e7238c8d79d9dc
-  Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Fri Sep 11 20:44:29 2026 -0600
+  commit fd85b121e73472764b21e48a1f8c56f8077ffa01
+  Author: Alexandre Laroche <larochealexandre@hotmail.com>
+  Date:   Fri Nov 27 18:34:07 2026 -0500
   
-      feat: ots grammar operator (registry, test/regen, check-vendored-ots) (semgrep/semgrep-proprietary#7026)
+      fix(csharp): address review of the v0.24.0 grammar bump
       
-      ## Summary
+      Parser (Parse_csharp_tree_sitter.ml):
+      - Preprocessor conditionals keep every #if/#elif/#else branch at all
+        sites (top level, declarations, initializers, collections, attribute
+        lists, enum members, function bodies, else statements, expressions,
+        return tails); expression sites become a Conditional chain on an
+        opaque #if condition.
+      - Primary constructors: class, struct and record parameters stay in
+        cparams only (no synthetic public fields); `: Base(args)` arguments
+        are kept in cextends.
+      - Recursive patterns keep the type name of `Dog(var x) d` (PatTyped),
+        property clauses become PatRecord, and parenthesized/list patterns
+        keep their designation. Collection spread is Call(Special Spread).
+      - C# 14 file-based app directives (`#:package Name@1.0`, ...) become
+        `Pragma (kind, [name; value])`; `#!` becomes a Shebang directive.
       
-      Converts the ocaml-tree-sitter-semgrep submodule into a part of the
-      Semgrep code base.
-      Most files are copied as-is, but some modifications are necessary.
+      Grammar (semgrep-c-sharp wrapper, parser regenerated):
+      - `#:` directives are top-level items instead of extras.
+      - Enum members inside #if may carry their own commas.
+      - Pattern syntax: `$...X` in collections, `...` in list patterns and
+        extension blocks, standalone `extension($T $X) { ... }` (with
+        `extension` still usable as an identifier) and lone `case P: ...`
+        (Partial PartialSwitchCase).
       
-      ## Details
+      Analysis and matching:
+      - AST_to_IL lowers `a?.f = rhs` to `if (a != null) a.f = rhs`, so the
+        write reaches `a` while staying a weak update.
+      - Container elements accept a metavariable ellipsis; list patterns
+        accept `...`.
       
-      1. Registry: we no longer include and pin upstream grammars as
-      .gitmodules because that creates large checkouts for a part of code
-      that's not needed in the build. Instead, we have a registry
-      (`upstream-grammars.json`) and a command-line utility for querying it
-      (`grammar_registry.py`). Relevant scripts now use the registry CLI.
-      
-      2. Integrity check: we check the integrity of what's copied using
-      `scripts/check-vendored-ots`. That script also lists the exclusions -
-      files that were not needed in the new repo or needed to be updated along
-      the way.
-      
-      3. CI updates:
-      
-      * `ots_is_submodule=false` now set, and increased conformity with the
-      rest of the repo for pinning and caching
-      * Improved dependencies caching for grammar tests, which were otherwise
-      flaky due to too many jobs hitting OPAM at once.
-      
-      5. Script updates: besides what is mentioned in 1., we also ensured that
-      all relevant scripts are in `OSS/lib/ocaml-tree-sitter-semgrep/scripts`
-      
-      6. Intentional omissions and removal:
-      
-      * Nothing related to update automation. This will be included in a
-      future PR.
-      * Removed temporary CI workflows that are no longer needed after the
-      integration of the semgrep-LANG submodules.
-      
-      ## Test plan
-      
-      - [x] CI tests passing
-      
-      synced from Pro f8e6c96e50156031e3e7552477ae914e25506fba
+      Tests: new rule/pattern tests for each item; AST snapshots of the new
+      C# parsing tests now live next to them as tests/parsing/csharp/*.ast.expect.
 ---

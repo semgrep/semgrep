@@ -35,7 +35,8 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+(* [extra] is true when parsing a semgrep pattern. *)
+type env = bool H.env
 
 let token = H.token
 let str = H.str
@@ -298,9 +299,22 @@ end
 
 let todo_expr _env tok = G.OtherExpr (("CSharpTodo", tok), []) |> G.e
 let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
-let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 let todo_type _env tok = G.OtherType (("Todo", tok), []) |> G.t
+
+(* Preprocessor conditionals: any `#if`/`#elif`/`#else` branch may be the
+   one that is compiled, so every branch must reach the AST (as in the ObjC
+   mapper). At list-valued sites the branches are concatenated (spliced
+   into the enclosing list). At an expression site, where only one value
+   fits, a single branch is used as is, and several become
+   `OtherExpr ("PreprocIf", [branch; ...])`: each branch is still matched,
+   taint flows through all of them, and it does not look like a `c ? a : b`
+   that a rule could mistake it for. *)
+let preproc_alternatives (tok : Tok.t) (branches : G.expr list) : G.expr =
+  match branches with
+  | [] -> G.OtherExpr (("PreprocIfExpr", tok), []) |> G.e
+  | [ e ] -> e
+  | es -> G.OtherExpr (("PreprocIf", tok), List.map (fun e -> G.E e) es) |> G.e
 
 let _opt_semi (env : env) (v1 : CST.optional_semi) =
   (* Because of compromises we had to make in the grammar, to make
@@ -567,7 +581,8 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   | `Var x
   | `When x
   | `Where x
-  | `Yield x ->
+  | `Yield x
+  | `Exte x ->
       str env x
 
 let identifier (env : env) (tok : CST.identifier) : ident =
@@ -759,24 +774,6 @@ let literal (env : env) (x : CST.literal) : literal =
 
 (* verbatim_string_literal *)
 
-(* Synthesize a public field declaration from a primary-constructor
- * parameter. Per the C# 12 spec
- * https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/primary-constructors
- * primary-constructor parameters are surfaced as auto-captured members on
- * the type. Modeling them as `public field` instead of properties
- * (getter/setter) keeps the Generic AST simple and is sufficient for taint
- * propagation through `instance.x` reads — the fidelity loss
- * (field-vs-property distinction) doesn't matter to rule writers because
- * the matcher already treats both alike. *)
-let parameter_to_field (p : G.parameter) : G.stmt option =
-  match p with
-  | G.Param { pname = Some n; ptype; pdefault; pattrs; _ } ->
-      let public = G.KeywordAttr (G.Public, fake "public") in
-      let entity = G.basic_entity ~attrs:(public :: pattrs) n in
-      let def = G.VarDef { vinit = pdefault; vtype = ptype; vtok = G.no_sc } in
-      Some (G.DefStmt (entity, def) |> G.s)
-  | _ -> None
-
 (* "void" *)
 let rec type_pattern (env : env) (x : CST.type_pattern) = type_ env x
 
@@ -854,36 +851,18 @@ and when_clause (env : env) ((v1, v2) : CST.when_clause) =
   let v2 = expression env v2 in
   v2
 
+(* `< e`, `<= e`, `> e`, `>= e`: kept with their operator and operand. *)
 and relational_pattern (env : env) (x : CST.relational_pattern) =
-  match x with
-  | `LT_exp (v1, v2) ->
-      let v1 =
-        token env v1
-        (* "<" *)
-      in
-      let _v2 = expression env v2 in
-      todo_pat env v1
-  | `LTEQ_exp (v1, v2) ->
-      let v1 =
-        token env v1
-        (* "<=" *)
-      in
-      let _v2 = expression env v2 in
-      todo_pat env v1
-  | `GT_exp (v1, v2) ->
-      let v1 =
-        token env v1
-        (* ">" *)
-      in
-      let _v2 = expression env v2 in
-      todo_pat env v1
-  | `GTEQ_exp (v1, v2) ->
-      let v1 =
-        token env v1
-        (* ">=" *)
-      in
-      let _v2 = expression env v2 in
-      todo_pat env v1
+  let op, e =
+    match x with
+    | `LT_exp (v1, v2)
+    | `LTEQ_exp (v1, v2)
+    | `GT_exp (v1, v2)
+    | `GTEQ_exp (v1, v2) ->
+        (v1, v2)
+  in
+  let op = str env op in
+  OtherPat (op, [ E (expression env e) ])
 
 and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
   match x with
@@ -1053,7 +1032,7 @@ and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
     token env v1
     (* "{" *)
   in
-  let v2 = List.map (statement env) v2 in
+  let v2 = statements env v2 in
   let v3 =
     token env v3
     (* "}" *)
@@ -1331,18 +1310,26 @@ and initializer_expression (env : env)
   (v1, v2, v3)
 
 (* Items of `{ a, b, ... }`. An `#if` block may hold whole comma-terminated
-   items; like the other preprocessor sites, only the `#if` branch is kept. *)
+   items; the items of every branch are kept. *)
 and initializer_items (env : env) (x : CST.initializer_items) : expr list =
+  let items_opt = function
+    | Some inner -> initializer_items env inner
+    | None -> []
+  in
+  let rec else_branches = function
+    | None -> []
+    | Some (`Prep_else_in_init (_, inner)) -> items_opt inner
+    | Some (`Prep_elif_in_init (_, _, _, inner, more)) ->
+        items_opt inner @ else_branches more
+  in
   match x with
   | `Rep1_choice_exp_COMMA_opt_exp (items, last) ->
       let items =
         List.concat_map
           (function
             | `Exp_COMMA (e, _comma) -> [ expression env e ]
-            | `Prep_if_in_init (_if, _cond, _nl, inner, _else, _endif) -> (
-                match inner with
-                | Some inner -> initializer_items env inner
-                | None -> []))
+            | `Prep_if_in_init (_if, _cond, _nl, inner, else_opt, _endif) ->
+                items_opt inner @ else_branches else_opt)
           items
       in
       items @ Option.to_list (Option.map (expression env) last)
@@ -1415,14 +1402,29 @@ and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
     token env v1
     (* "catch" *)
   in
+  (* A filter `when (cond)` is kept as `CatchPattern (PatWhen (p, cond))`,
+     with `p` the declaration as a typed pattern (`(E e)`: `PatTyped (e, E)`). *)
+  let as_pattern = function
+    | CatchPattern p -> p
+    | CatchParam { pname; ptype; pinfo; _ } -> (
+        let p =
+          match pname with
+          | Some id -> PatId (id, pinfo)
+          | None -> PatWildcard (fake "_")
+        in
+        match ptype with
+        | Some t -> PatTyped (p, t)
+        | None -> p)
+    | OtherCatch _ as x -> OtherPat (("Catch", fake "catch"), [ Ce x ])
+  in
   let exn =
     List.fold_left
       (fun acc x ->
         match x with
         | `Catch_decl decl -> catch_declaration env decl
         | `Catch_filter_clause f ->
-            let _filterTODO = catch_filter_clause env f in
-            acc)
+            let cond = catch_filter_clause env f in
+            CatchPattern (PatWhen (as_pattern acc, cond)))
       (CatchPattern (PatWildcard (fake "_")))
       v2
   in
@@ -1541,7 +1543,25 @@ and member_access_expression env (v1, v2, v3) =
 and invocation_expression env (v1, v2) =
   let v1 = expression env v1 in
   let v2 = argument_list env v2 in
-  G.Call (v1, v2) |> G.e
+  match v1.e with
+  | Call
+      ( { e = Special (Instanceof, _); _ },
+        (_, [ Arg x; ArgType ({ t = TyN _; _ } as ty) ], _) ) ->
+      (* `x is Point(1, y)` read as `(x is Point)(1, y)`, which only the
+         expression-level parse of a semgrep pattern does: give it the
+         shape it has in code, the positional pattern
+         `LetPattern (PatTyped (PatTuple [1; y], Point), x)`. *)
+      let lp, args, rp = v2 in
+      let sub = List.map (argument_to_pattern lp) args in
+      LetPattern (PatTyped (PatTuple (lp, sub, rp), ty), x) |> G.e
+  | _ -> G.Call (v1, v2) |> G.e
+
+and argument_to_pattern tok (arg : G.argument) : G.pattern =
+  match arg with
+  | G.Arg e -> H2.expr_to_pattern e
+  | G.ArgKwd (id, e) ->
+      PatKeyVal (PatId (id, empty_id_info ()), H2.expr_to_pattern e)
+  | arg -> OtherPat (("Arg", tok), [ G.Ar arg ])
 
 and cast_expression env (v1, v2, v3, v4) =
   let v1 =
@@ -1610,12 +1630,7 @@ and lvalue_expression (env : env) (x : CST.lvalue_expression) : G.expr =
   | `Member_access_exp x -> member_access_expression env x
   | `Tuple_exp x -> tuple_expression env x
   | `Simple_name x -> simple_name_expression env x
-  | `Elem_access_exp (v1, v2) ->
-      let v1 = expression env v1 in
-      let v2 = element_binding_expression env v2 in
-      let open_br, _exprsTODO, close_br = v2 in
-      (* TODO we map multidim arrays as jagged arrays when creating arrays, with as tuples here. *)
-      ArrayAccess (v1, (open_br, Container (Tuple, v2) |> G.e, close_br)) |> G.e
+  | `Elem_access_exp x -> element_access_expression env x
   | `Brac_arg_list x ->
       Container (Tuple, element_binding_expression env x) |> G.e
   | `Poin_indi_exp (v1, v2) ->
@@ -1639,6 +1654,14 @@ and lvalue_expression (env : env) (x : CST.lvalue_expression) : G.expr =
       DeRef (token env v1, operand) |> G.e
   | `Paren_lvalue_exp (_v1, v2, _v3) -> lvalue_expression env v2
   | `Cond_access_exp x -> conditional_access_expression env x
+
+and element_access_expression (env : env)
+    ((v1, v2) : CST.element_access_expression) =
+  let v1 = expression env v1 in
+  let v2 = element_binding_expression env v2 in
+  let open_br, _exprsTODO, close_br = v2 in
+  (* TODO we map multidim arrays as jagged arrays when creating arrays, with as tuples here. *)
+  ArrayAccess (v1, (open_br, Container (Tuple, v2) |> G.e, close_br)) |> G.e
 
 and conditional_access_expression (env : env)
     ((v1, v2, v3) : CST.conditional_access_expression) =
@@ -1879,22 +1902,31 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       in
       let v3 = type_ env v3 in
       Call (Special (Instanceof, v2) |> G.e, fb [ Arg v1; ArgType v3 ]) |> G.e
-  | `Is_pat_exp (v1, v2, v3) ->
+  | `Is_pat_exp (v1, v2, v3) -> (
       let v1 = expression env v1 in
-      let _v2 =
+      let v2 =
         token env v2
         (* "is" *)
       in
       let v3 = pattern env v3 in
-      LetPattern (v3, v1) |> G.e
+      (* `o is Foo` is ambiguous in the grammar: the type test above, or a
+         constant pattern naming `Foo`, depending on the context. Lower a
+         bare name (or type) pattern as the type test, so that code and
+         patterns agree whichever reading the parser picks. *)
+      let type_test ty =
+        Call (Special (Instanceof, v2) |> G.e, fb [ Arg v1; ArgType ty ]) |> G.e
+      in
+      match v3 with
+      | PatId (id, _) -> type_test (TyN (Id (id, empty_id_info ())) |> G.t)
+      | PatConstructor (n, []) -> type_test (TyN n |> G.t)
+      | PatType ty -> type_test ty
+      | _ -> LetPattern (v3, v1) |> G.e)
   | `Lambda_exp (init, arrow, body) ->
       (* lambda_expression is now (init, =>, body) where init bundles
          attributes/static-async/return-type/parameters. *)
       let v1_attrs, v2_static_async, v3_rettype, v4_params = init in
-      let _v1TODO = List.concat_map (attribute_list_ env) v1_attrs in
-      let _v2TODO =
-        List.map (map_anon_choice_static_d4628a0 env) v2_static_async
-      in
+      let v1 = List.concat_map (attribute_list_ env) v1_attrs in
+      let v2 = List.map (map_anon_choice_static_d4628a0 env) v2_static_async in
       let v3 = Option.map (type_pattern env) v3_rettype in
       let v4 =
         match v4_params with
@@ -1911,8 +1943,16 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
         | `Blk x -> G.FBStmt (block env x)
         | `Exp x -> G.FBExpr (expression env x)
       in
-      Lambda { fkind = (Arrow, v5); fparams = v4; frettype = v3; fbody = v6 }
-      |> G.e
+      let def =
+        { fkind = (Arrow, v5); fparams = v4; frettype = v3; fbody = v6 }
+      in
+      let e = Lambda def |> G.e in
+      (* The generic AST has no attributes on a lambda (as for JS): at least
+         make its range cover the attributes and `static`/`async`. *)
+      H2.set_e_range_with_anys
+        (G.Dk (G.FuncDef def) :: List.map (fun a -> G.At a) (v1 @ v2))
+        e;
+      e
   | `Make_exp (v1, v2, v3, v4) ->
       let v1 =
         token env v1
@@ -2073,18 +2113,42 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
   | `Addr_of_exp (amp, e) ->
       let t = token env amp in
       Ref (t, lvalue_expression env e) |> G.e
-  | `Prep_if_in_exp _ -> G.OtherExpr (("PreprocIfExpr", fake "#if"), []) |> G.e
+  | `Prep_if_in_exp (if_tok, _cond, _nl, e_opt, else_opt, _endif) ->
+      (* `x = 1 + #if A 2 #else 3 #endif;`: one expression per branch. *)
+      let rec else_branches = function
+        | None -> []
+        | Some (`Prep_else_in_exp (_, e)) -> Option.to_list e
+        | Some (`Prep_elif_in_exp (_, _, _, e, more)) ->
+            Option.to_list e @ else_branches more
+      in
+      Option.to_list e_opt @ else_branches else_opt
+      |> List.map (expression env)
+      |> preproc_alternatives (token env if_tok)
 
 (* Elements of `[ a, ..b ]`. An `#if` block may hold whole comma-terminated
-   elements; like the other preprocessor sites, only the `#if` branch is kept. *)
+   elements; the elements of every branch are kept. *)
 and collection_items (env : env) (x : CST.collection_items) : G.expr list =
   let element (e : CST.collection_element) : G.expr =
     match e with
     | `Exp_elem ee -> expression env ee
     | `Spread_elem (dots, ee) ->
+        (* `..xs`, lowered like the spread/splat of the other languages. *)
         let dots = token env dots in
         let inner = expression env ee in
-        G.OtherExpr (("Spread", dots), [ G.E inner ]) |> G.e
+        G.Call (G.Special (G.Spread, dots) |> G.e, fb [ G.Arg inner ]) |> G.e
+    | `Semg_vari_meta t ->
+        (* `[1, $...REST]` *)
+        G.N (G.Id (str env t, G.empty_id_info ())) |> G.e
+  in
+  let items_opt = function
+    | Some inner -> collection_items env inner
+    | None -> []
+  in
+  let rec else_branches = function
+    | None -> []
+    | Some (`Prep_else_in_coll (_, inner)) -> items_opt inner
+    | Some (`Prep_elif_in_coll (_, _, _, inner, more)) ->
+        items_opt inner @ else_branches more
   in
   match x with
   | `Rep1_choice_coll_elem_COMMA_opt_coll_elem (items, last) ->
@@ -2092,10 +2156,8 @@ and collection_items (env : env) (x : CST.collection_items) : G.expr list =
         List.concat_map
           (function
             | `Coll_elem_COMMA (e, _comma) -> [ element e ]
-            | `Prep_if_in_coll (_if, _cond, _nl, inner, _else, _endif) -> (
-                match inner with
-                | Some inner -> collection_items env inner
-                | None -> []))
+            | `Prep_if_in_coll (_if, _cond, _nl, inner, else_opt, _endif) ->
+                items_opt inner @ else_branches else_opt)
           items
       in
       items @ Option.to_list (Option.map element last)
@@ -2180,9 +2242,10 @@ and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
             pinfo = empty_id_info ();
           } )
 
-and map_anon_choice_pat_29be9ad (env : env) (x : CST.anon_choice_pat_29be9ad) =
+and map_anon_choice_pat_29be9ad (env : env) (x : CST.anon_choice_pat_dee696d) =
   match x with
   | `Pat x -> pattern env x
+  | `Ellips t -> PatEllipsis (token env t)
   | `Slice_pat x ->
       let tok, opt_pat =
         match x with
@@ -2309,6 +2372,17 @@ and expr_statement (env : env) (x : CST.expression_statement) : stmt =
       let v1 = typed_metavariable env v1 in
       let v2 = (* ";" *) token env v2 in
       G.ExprStmt (v1, v2) |> G.s
+
+(* A list of statements, with the statements of `#if` blocks spliced in
+   (rather than nested in a block) so that patterns can match sequences
+   that span the `#if`, as in the ObjC mapper. *)
+and statements (env : env) (xs : CST.statement list) : stmt list =
+  List.concat_map
+    (fun (x : CST.statement) ->
+      match x with
+      | `Prep_if_in_top_level p -> preproc_if_in_top_level env p
+      | _ -> [ statement env x ])
+    xs
 
 and statement (env : env) (x : CST.statement) =
   match x with
@@ -2527,21 +2601,40 @@ and statement (env : env) (x : CST.statement) =
         | Some (`Else_stmt (_else, v2)) -> Some (statement env v2)
         | Some (`Prep_if_in_else_opt_else_stmt (pp, trailing)) -> (
             (* `if (a) { } #if X else if (b) { } #endif else { }`: the
-               `else` lives inside the `#if`. Keep the `#if` branch, as at
-               the other preprocessor sites; a plain `else` after `#endif`
-               continues the chain from that branch. *)
-            let _if, _cond, _nl, branch, _else, _endif = pp in
-            let inner =
-              Option.map (fun (_else, st) -> global_statement env st) branch
+               `else` lives inside the `#if`. Every branch's `else` is kept
+               (in a block when there are several); a plain `else` after
+               `#endif` continues the chain of each branch ending in an
+               `else if` without its own `else`. *)
+            let _if, _cond, _nl, branch, else_opt, _endif = pp in
+            let rec else_branches = function
+              | None -> []
+              | Some (`Prep_else_in_else (_, b)) -> Option.to_list b
+              | Some (`Prep_elif_in_else (_, _, _, b, more)) ->
+                  Option.to_list b @ else_branches more
             in
             let trailing =
               Option.map (fun (_else, st) -> statement env st) trailing
             in
-            match (inner, trailing) with
-            | Some { G.s = G.If (t, c, th, None); _ }, Some _ ->
-                Some (G.If (t, c, th, trailing) |> G.s)
-            | Some st, _ -> Some st
-            | None, trailing -> trailing)
+            (* The `else` after `#endif` belongs to the last `if` of the
+               branch's `else if` chain. *)
+            let rec attach_trailing (st : G.stmt) =
+              match (st, trailing) with
+              | { G.s = G.If (t, c, th, None); _ }, Some _ ->
+                  { st with s = G.If (t, c, th, trailing) }
+              | ( { G.s = G.If (t, c, th, Some ({ G.s = G.If _; _ } as el)); _ },
+                  Some _ ) ->
+                  { st with s = G.If (t, c, th, Some (attach_trailing el)) }
+              | st, _ -> st
+            in
+            let branches =
+              Option.to_list branch @ else_branches else_opt
+              |> List.map (fun (_else, st) ->
+                  attach_trailing (global_statement env st))
+            in
+            match branches with
+            | [] -> trailing
+            | [ st ] -> Some st
+            | sts -> Some (G.Block (fb sts) |> G.s))
         | None -> None
       in
       G.If (v1, G.Cond v3, v5, v6) |> G.s
@@ -2632,18 +2725,29 @@ and statement (env : env) (x : CST.statement) =
           in
           Return (v1, e, sc) |> G.s
       | `Cond_ending_in_prep
-          (cond, _qmark, conseq, _colon, (if_tok, _, _, branch, _, _)) ->
+          (cond, _qmark, conseq, _colon, (if_tok, _, _, branch, else_opt, _)) ->
           (* `return c ? a : #if X b; #else d; #endif`: the alternative and
-             the `;` live inside the `#if`. As at the other preprocessor
-             sites, only the `#if` branch is kept. *)
+             the `;` live inside the `#if`. The alternative of every branch
+             is kept. *)
+          let rec else_branches = function
+            | None -> []
+            | Some (`Prep_else_in_stmt_tail (_, b)) -> Option.to_list b
+            | Some (`Prep_elif_in_stmt_tail (_, _, _, b, more)) ->
+                Option.to_list b @ else_branches more
+          in
           let cond = expression env cond in
           let conseq = expression env conseq in
-          let alt, sc =
-            match branch with
-            | Some (e, sc) -> (expression env e, token env sc)
-            | None ->
-                let t = token env if_tok in
-                (G.OtherExpr (("PreprocIfExpr", t), []) |> G.e, t)
+          let if_t = token env if_tok in
+          let branches = Option.to_list branch @ else_branches else_opt in
+          let alt =
+            branches
+            |> List.map (fun (e, _sc) -> expression env e)
+            |> preproc_alternatives if_t
+          in
+          let sc =
+            match branches with
+            | (_e, sc) :: _ -> token env sc
+            | [] -> if_t
           in
           Return (v1, Some (G.Conditional (cond, conseq, alt) |> G.e), sc)
           |> G.s)
@@ -2771,21 +2875,11 @@ and statement (env : env) (x : CST.statement) =
         (* ";" *)
       in
       ExprStmt (Yield (v1, v2, false) |> G.e, v3) |> G.s
-  | `Prep_if_in_top_level (_if_tok, _cond, _nl, items, _else_opt, _endif) ->
-      (* Preprocessor `#if`. The grammar only exposes the if-branch
-         items at this slot; we walk them so guarded declarations remain
-         visible to semgrep (most real .NET codebases gate code with
-         `#if DEBUG`). The else-branch is dropped — semgrep doesn't pick
-         a conditional. *)
-      let stmts =
-        List.concat_map
-          (fun (x : CST.anon_choice_top_level_item_no_stmt_65e2afd) ->
-            match x with
-            | `Choice_extern_alias_dire t -> top_level_item_no_statement env t
-            | `Stmt s -> [ global_statement env s ])
-          items
-      in
-      G.Block (fb stmts) |> G.s
+  | `Prep_if_in_top_level x ->
+      (* Preprocessor `#if`: semgrep doesn't pick a configuration, so the
+         items of every branch stay visible (most real .NET codebases gate
+         code with `#if DEBUG`). *)
+      G.Block (fb (preproc_if_in_top_level env x)) |> G.s
 
 and interpolated_string_expression (env : env)
     (x : CST.interpolated_string_expression) =
@@ -2859,12 +2953,10 @@ and constant_pattern_aux env (x : CST.constant_pattern) : G.expr =
       let callee =
         match callee_choice with
         | `Member_access_exp x -> member_access_expression env x
-        | `Elem_access_exp _ ->
-            G.OtherExpr (("ElemAccess", fake "["), []) |> G.e
+        | `Elem_access_exp x -> element_access_expression env x
         | `Invo_exp x -> invocation_expression env x
         | `Paren_exp x -> parenthesized_expression env x
-        | `Cond_access_exp _ ->
-            G.OtherExpr (("CondAccess", fake "?."), []) |> G.e
+        | `Cond_access_exp x -> conditional_access_expression env x
         | `Cast_exp x -> cast_expression env x
       in
       let args = argument_list env args in
@@ -2906,18 +2998,22 @@ and case_pattern_to_case env (case_tok : Tree_sitter_run.Token.t)
     token env case_tok
     (* "case" *)
   in
-  let mapped = pattern env pat in
   (* When the user wrote `case <constant-expr>:` (no `when`), the new
-     grammar routes bare identifiers, dotted-names, and literals through
-     the pattern arm. Lift those back to `CaseEqualExpr` so downstream
-     analyses see an expression-equality switch label, not a pattern. *)
-  match (when_opt, mapped) with
-  | None, PatLiteral lit -> G.CaseEqualExpr (v1, G.L lit |> G.e)
-  | None, PatId (id, _) ->
-      G.CaseEqualExpr (v1, G.N (G.Id (id, empty_id_info ())) |> G.e)
-  | None, PatConstructor (n, []) -> G.CaseEqualExpr (v1, G.N n |> G.e)
-  | None, _ -> G.Case (v1, mapped)
-  | Some x, _ -> G.Case (v1, PatWhen (mapped, when_clause env x))
+     grammar routes it through the pattern arm, as a constant pattern
+     (`case Color.Red:`, `case -1:`, `case 1 + 2:`). Lift it back to
+     `CaseEqualExpr` on the expression itself so downstream analyses see an
+     expression-equality switch label, not a pattern. *)
+  match (when_opt, pat) with
+  | None, `Cst_pat c -> G.CaseEqualExpr (v1, constant_pattern_aux env c)
+  | _ -> (
+      let mapped = pattern env pat in
+      match (when_opt, mapped) with
+      | None, PatLiteral lit -> G.CaseEqualExpr (v1, G.L lit |> G.e)
+      | None, PatId (id, _) ->
+          G.CaseEqualExpr (v1, G.N (G.Id (id, empty_id_info ())) |> G.e)
+      | None, PatConstructor (n, []) -> G.CaseEqualExpr (v1, G.N n |> G.e)
+      | None, _ -> G.Case (v1, mapped)
+      | Some x, _ -> G.Case (v1, PatWhen (mapped, when_clause env x)))
 
 and query_clause (env : env) (x : CST.query_clause) =
   match x with
@@ -3066,17 +3162,28 @@ and switch_section (env : env) ((v1, _colon, v3) : CST.switch_section) :
   in
   (* global_statement is just `statement`; inline rather than depend on
      a function defined in a later recursive group. *)
-  let v3 = List.map (statement env) v3 in
+  let v3 = statements env v3 in
   (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
   CasesAndBody ([ label ], G.stmt1 v3)
 
 (* New `attribute_list_` wrapper distinguishes a real attribute list from
-   a preprocessor `#if`-guarded one. Preprocessor branches don't survive
-   into the AST, so we drop them and recurse only on real attribute lists. *)
+   a preprocessor `#if`-guarded one. The attributes of every branch are
+   kept, as at the other preprocessor sites. *)
 and attribute_list_ (env : env) (x : CST.attribute_list_) : attribute list =
   match x with
   | `Attr_list al -> attribute_list env al
-  | `Prep_if_in_attr_list _ -> []
+  | `Prep_if_in_attr_list (_if, _cond, _nl, al, else_opt, _endif) ->
+      let of_opt = function
+        | Some al -> attribute_list env al
+        | None -> []
+      in
+      let rec else_branches = function
+        | None -> []
+        | Some (`Prep_else_in_attr_list (_, al)) -> of_opt al
+        | Some (`Prep_elif_in_attr_list (_, _, _, al, more)) ->
+            of_opt al @ else_branches more
+      in
+      of_opt al @ else_branches else_opt
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
     attribute list =
@@ -3120,6 +3227,14 @@ and bracketed_argument_list (env : env)
 
 and pattern (env : env) (x : CST.pattern) : G.pattern =
   match x with
+  | `Cst_pat (`Name_invo_pat (n, args)) ->
+      (* `Point(1, x)` read as a constant pattern (it can be, in an
+         expression-level semgrep pattern): give it the shape of the
+         positional pattern it is in code, `PatTyped (PatTuple, Point)`. *)
+      let t = TyN (name env n) |> G.t in
+      let lp, args, rp = argument_list env args in
+      let sub = List.map (argument_to_pattern lp) args in
+      PatTyped (PatTuple (lp, sub, rp), t)
   | `Cst_pat x -> constant_pattern env x
   | `Decl_pat (v1, v2) -> (
       (* The "type" of a declaration pattern may be implicit (`var`),
@@ -3138,43 +3253,26 @@ and pattern (env : env) (x : CST.pattern) : G.pattern =
       in
       let v2 = variable_designation env v2 in
       v2
+  (* The pattern combinators keep their operands (the generic AST has no
+     `not`/`and` pattern), so that e.g. `(1 or 2)` does not match `(3 or 4)`. *)
   | `Nega_pat (v1, v2) ->
-      let v1 =
-        token env v1
-        (* "not" *)
-      in
-      let _v2 = pattern env v2 in
-      todo_pat env v1
-  | `Paren_pat (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "(" *)
-      in
-      let _v2 = pattern env v2 in
-      let _v3 =
-        token env v3
-        (* ")" *)
-      in
-      todo_pat env v1
+      let v1 = (* "not" *) token env v1 in
+      OtherPat (("not", v1), [ P (pattern env v2) ])
+  | `Paren_pat (_v1, v2, _v3) -> pattern env v2
   | `Rela_pat x -> relational_pattern env x
   | `And_pat (v1, v2, v3) ->
-      let _v1 = pattern env v1 in
+      let v1 = pattern env v1 in
       let v2 = (* "and" *) token env v2 in
-      let _v3 = pattern env v3 in
-      todo_pat env v2
-  | `Or_pat (v1, v2, v3) ->
-      let _v1 = pattern env v1 in
-      let v2 = (* "or" *) token env v2 in
-      let _v3 = pattern env v3 in
-      todo_pat env v2
+      let v3 = pattern env v3 in
+      OtherPat (("and", v2), [ P v1; P v3 ])
+  | `Or_pat (v1, _v2, v3) -> PatDisj (pattern env v1, pattern env v3)
   | `List_pat x ->
       (* C# 11 list pattern, with an optional trailing variable_designation
-         (dropped, as before). *)
-      let v1, items_opt, v3 =
+         (`[1, .. var rest] all`), kept as `PatAs`. *)
+      let (v1, items_opt, v3), vd_opt =
         match x with
-        | `List_pat_body (v1, items_opt, v3)
-        | `List_pat_body_var_desi ((v1, items_opt, v3), _) ->
-            (v1, items_opt, v3)
+        | `List_pat_body body -> (body, None)
+        | `List_pat_body_var_desi (body, vd) -> (body, Some vd)
       in
       let v1 = (* "[" *) token env v1 in
       let v2 =
@@ -3190,34 +3288,60 @@ and pattern (env : env) (x : CST.pattern) : G.pattern =
         | None -> []
       in
       let v3 = (* "]" *) token env v3 in
-      PatList (v1, v2, v3)
-  | `Type_pat x ->
-      let _xTODO = type_pattern env x in
-      todo_pat env (fake "TODO_type_pattern")
-  | `Paren_pat_with_desi (_lp, p, _rp, _vd) -> pattern env p
+      pat_with_desi_opt env (PatList (v1, v2, v3)) vd_opt
+  | `Type_pat x -> PatType (type_pattern env x)
+  | `Paren_pat_with_desi (_lp, p, _rp, vd) ->
+      pat_with_desi (pattern env p) (variable_designation env vd)
 
 (* The new grammar enumerates each shape recursive_pattern can take as
    its own poly-variant arm instead of `(type?, body, var_desi?)`. We
-   materialize the type prefix as `PatTyped`, fold the positional and
-   property clauses into a single positional pattern (with the property
-   subpatterns appended), and append the variable designation as
-   `PatAs(...)`. *)
-and property_pattern_clause_subpatterns env
-    ((_lb, items_opt, _trail, _rb) : CST.property_pattern_clause) :
-    G.pattern list =
-  match items_opt with
-  | None -> []
-  | Some (first, rest) ->
-      subpattern env first :: List.map (fun (_c, p) -> subpattern env p) rest
+   materialize the type (or deconstructor name) prefix as `PatTyped`, a
+   property clause `{ A: p, B.C: q }` as `PatRecord`, append it to the
+   positional clause when both are present, and wrap the variable
+   designation as `PatAs(...)`. *)
+and property_pattern_clause (env : env)
+    ((lb, items_opt, _trail, rb) : CST.property_pattern_clause) : G.pattern =
+  let lb = (* "{" *) token env lb in
+  let rb = (* "}" *) token env rb in
+  let items =
+    match items_opt with
+    | None -> []
+    | Some (first, rest) -> first :: List.map snd rest
+  in
+  let fields = List.map (property_subpattern env) items in
+  if List.for_all Option.is_some fields then
+    PatRecord (lb, List.filter_map Fun.id fields, rb)
+  else
+    (* A member that isn't a (dotted) name: keep the subpatterns. *)
+    PatTuple (lb, List.map (subpattern env) items, rb)
+
+(* `Name: p` or the C# 10 extended form `A.B: p`. *)
+and property_subpattern (env : env) ((v1, v2) : CST.subpattern) :
+    (G.dotted_ident * G.pattern) option =
+  let rec dotted (e : G.expr) =
+    match e.e with
+    | G.N (G.Id (id, _)) -> Some [ id ]
+    | G.N (G.IdQualified _ as n) -> Some (H2.dotted_ident_of_name n)
+    | G.DotAccess (e, _, G.FN (G.Id (id, _))) ->
+        Option.map (fun ids -> ids @ [ id ]) (dotted e)
+    | _ -> None
+  in
+  let key =
+    match v1 with
+    | Some (`Id_COLON (id, t)) -> Some [ name_colon env (id, t) ]
+    | Some (`Exp_COLON (e, t)) -> dotted (fst (expression_colon env (e, t)))
+    | None -> None
+  in
+  Option.map (fun key -> (key, pattern env v2)) key
 
 and merge_pos_and_prop env pos_clause prop_opt : G.pattern =
   let pos_pat = positional_pattern_clause env pos_clause in
   match prop_opt with
   | None -> pos_pat
   | Some prop -> (
-      let extra = property_pattern_clause_subpatterns env prop in
+      let record = property_pattern_clause env prop in
       match pos_pat with
-      | PatTuple (lp, sub, rp) -> PatTuple (lp, sub @ extra, rp)
+      | PatTuple (lp, sub, rp) -> PatTuple (lp, sub @ [ record ], rp)
       | other -> other)
 
 and pat_with_desi (pat : G.pattern) (vd : G.pattern) : G.pattern =
@@ -3225,58 +3349,42 @@ and pat_with_desi (pat : G.pattern) (vd : G.pattern) : G.pattern =
   | PatId (id, _) -> PatAs (pat, (id, empty_id_info ()))
   | _ -> pat
 
+and pat_with_desi_opt env (pat : G.pattern) vd_opt : G.pattern =
+  match vd_opt with
+  | Some vd -> pat_with_desi pat (variable_designation env vd)
+  | None -> pat
+
 and recursive_pattern env (x : CST.recursive_pattern) =
   match x with
   | `Name_posi_pat_clause_opt_prop_pat_clause_var_desi (n, pos, prop_opt, vd) ->
-      let _n = name env n in
-      let pat = merge_pos_and_prop env pos prop_opt in
-      let vd = variable_designation env vd in
-      pat_with_desi pat vd
+      (* `case Dog(var x) d:` *)
+      let t = TyN (name env n) |> G.t in
+      let pat = PatTyped (merge_pos_and_prop env pos prop_opt, t) in
+      pat_with_desi_opt env pat (Some vd)
   | `Name_posi_pat_clause_opt_prop_pat_clause (n, pos, prop_opt) ->
-      let _n = name env n in
-      merge_pos_and_prop env pos prop_opt
+      let t = TyN (name env n) |> G.t in
+      PatTyped (merge_pos_and_prop env pos prop_opt, t)
   | `Posi_pat_clause_var_desi (pos, vd) ->
-      let pat = positional_pattern_clause env pos in
-      let vd = variable_designation env vd in
-      pat_with_desi pat vd
+      pat_with_desi_opt env (positional_pattern_clause env pos) (Some vd)
   | `Posi_pat_clause pos -> positional_pattern_clause env pos
   | `Type_choice_posi_pat_clause_opt_prop_pat_clause_opt_var_desi
-      (ty, choice, vd_opt) -> (
+      (ty, choice, vd_opt) ->
       let t = type_ env ty in
       let inner =
         match choice with
         | `Posi_pat_clause_opt_prop_pat_clause (pos, prop_opt) ->
             merge_pos_and_prop env pos prop_opt
-        | `Prop_pat_clause prop ->
-            let lb, _, _, rb = prop in
-            PatTuple
-              ( token env lb,
-                property_pattern_clause_subpatterns env prop,
-                token env rb )
+        | `Prop_pat_clause prop -> property_pattern_clause env prop
       in
-      let typed = PatTyped (inner, t) in
-      match vd_opt with
-      | Some vd ->
-          let vd = variable_designation env vd in
-          pat_with_desi typed vd
-      | None -> typed)
-  | `Choice_posi_pat_clause_prop_pat_clause_opt_var_desi (choice, vd_opt) -> (
+      pat_with_desi_opt env (PatTyped (inner, t)) vd_opt
+  | `Choice_posi_pat_clause_prop_pat_clause_opt_var_desi (choice, vd_opt) ->
       let pat =
         match choice with
         | `Posi_pat_clause_prop_pat_clause (pos, prop) ->
             merge_pos_and_prop env pos (Some prop)
-        | `Prop_pat_clause prop ->
-            let lb, _, _, rb = prop in
-            PatTuple
-              ( token env lb,
-                property_pattern_clause_subpatterns env prop,
-                token env rb )
+        | `Prop_pat_clause prop -> property_pattern_clause env prop
       in
-      match vd_opt with
-      | Some vd ->
-          let vd = variable_designation env vd in
-          pat_with_desi pat vd
-      | None -> pat)
+      pat_with_desi_opt env pat vd_opt
 
 and positional_pattern_clause (env : env)
     ((v1, v2, v3) : CST.positional_pattern_clause) =
@@ -3287,7 +3395,7 @@ and positional_pattern_clause (env : env)
   let v2 =
     match v2 with
     | Some (Some (first, rest)) ->
-        first :: List.map snd rest |> List.map (subpattern env)
+        first :: List.map snd rest |> List.map (positional_subpattern env)
     | Some None
     | None ->
         []
@@ -3297,6 +3405,20 @@ and positional_pattern_clause (env : env)
     (* ")" *)
   in
   PatTuple (v1, v2, v3)
+
+(* `Point(X: 1, 2)`: a named positional subpattern keeps its name, as
+   `PatKeyVal (X, p)`, so that it differs from the unnamed `Point(1, 2)`. *)
+and positional_subpattern (env : env) ((v1, _) as x : CST.subpattern) =
+  match property_subpattern env x with
+  | Some (ids, p) when v1 <> None ->
+      let key = String.concat "." (List.map fst ids) in
+      let tok =
+        match List.rev ids with
+        | (_, t) :: _ -> t
+        | [] -> fake ":"
+      in
+      PatKeyVal (PatId ((key, tok), empty_id_info ()), p)
+  | _ -> subpattern env x
 
 and subpattern (env : env) ((v1, v2) : CST.subpattern) =
   (* The new grammar splits the optional first half of a subpattern
@@ -3324,23 +3446,6 @@ and expression_colon (env : env)
   let tcolon = (* ":" *) token env v2 in
   (t, tcolon)
 
-and _property_pattern_clause (env : env)
-    ((v1, v2, _v3comma, v4) : CST.property_pattern_clause) =
-  let v1 =
-    token env v1
-    (* "{" *)
-  in
-  let _v2 =
-    match v2 with
-    | Some _x -> [ todo_pat env v1 ]
-    | None -> []
-  in
-  let _v4 =
-    token env v4
-    (* "}" *)
-  in
-  todo_pat env v1
-
 and anonymous_object_member_declarator (env : env)
     (x : CST.anonymous_object_member_declarator) =
   match x with
@@ -3355,13 +3460,33 @@ and anonymous_object_member_declarator (env : env)
 and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
   | `Plain_func_body x -> plain_function_body env x
-  | `Prep_if_in_func_body (if_tok, _cond, _nl, branch, _else, _endif) -> (
+  | `Prep_if_in_func_body (if_tok, _cond, _nl, branch, else_opt, _endif) -> (
       (* `void M() #if A { } #else => x; #endif`: the body differs per
-         branch. Keep the `#if` branch, as at the other preprocessor sites.
-         Constraint clauses inside the branch are dropped. *)
-      match branch with
-      | Some (_constraints, body) -> plain_function_body env body
-      | None -> G.FBDecl (token env if_tok))
+         branch. With one body it is used as is; with several, their
+         statements are kept in one block, as at the other preprocessor
+         sites. Constraint clauses inside the branches are dropped. *)
+      let rec else_branches = function
+        | None -> []
+        | Some (`Prep_else_in_func_body (_, b)) -> Option.to_list b
+        | Some (`Prep_elif_in_func_body (_, _, _, b, more)) ->
+            Option.to_list b @ else_branches more
+      in
+      let bodies =
+        Option.to_list branch @ else_branches else_opt
+        |> List.map (fun (_constraints, body) -> plain_function_body env body)
+      in
+      match bodies with
+      | [] -> G.FBDecl (token env if_tok)
+      | [ body ] -> body
+      | bodies ->
+          let stmts =
+            List.filter_map
+              (function
+                | G.FBStmt st -> Some st
+                | _ -> None)
+              bodies
+          in
+          G.FBStmt (G.Block (fb stmts) |> G.s))
 
 and plain_function_body (env : env) (x : CST.plain_function_body) :
     G.function_body =
@@ -3396,20 +3521,35 @@ and parameter (env : env) (v1 : CST.parameter) : G.parameter =
       explicit_parameter env x
   | `Ellips v1 -> ParamEllipsis (token env v1)
 
+(* `this`, `scoped`, `ref`, `readonly`, `out`, `in` on a parameter, kept as
+   keyword attributes so rules can tell e.g. `ref int x` from `int x`. *)
+and parameter_modifiers (env : env)
+    (mods : CST.anon_choice_choice_this_6a06011 list) : G.attribute list =
+  mods
+  |> List.map (fun (m : CST.anon_choice_choice_this_6a06011) ->
+      let t =
+        match m with
+        | `Choice_this (`This t | `Scoped t | `Ref t | `Read t)
+        | `Choice_out (`Out t | `In t) ->
+            t
+      in
+      G.unhandled_keywordattr (str env t))
+
 and parameter_type_with_modifiers (env : env)
-    ((v1_mods, v2_ty) : CST.parameter_type_with_modifiers) =
-  (* The new grammar collapses the four legacy modifier slots
-     (this?, scoped?, ref-kind?, base-type) into
-     `(modifier list, type_pattern)` where each modifier in the list
-     is `This|Scoped|Ref|Out|In|Read`. We drop the modifier list for
-     now and route the type through `type_`. *)
-  let _v1TODO = List.map (fun _ -> ()) v1_mods in
-  let _ = _v1TODO in
-  type_ env v2_ty
+    ((v1_mods, v2_ty) : CST.parameter_type_with_modifiers) :
+    G.attribute list * G.type_ =
+  (parameter_modifiers env v1_mods, type_ env v2_ty)
 
 and explicit_parameter (env : env) (v1, v2, v3, v4) =
   let v1 = List.concat_map (attribute_list_ env) v1 in
-  let v2 = Option.map (parameter_type_with_modifiers env) v2 in
+  let mods, v2 =
+    match v2 with
+    | Some x ->
+        let mods, ty = parameter_type_with_modifiers env x in
+        (mods, Some ty)
+    | None -> ([], None)
+  in
+  let v1 = v1 @ mods in
   let v3 =
     identifier env v3
     (* identifier *)
@@ -3849,19 +3989,19 @@ and enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
       OrEnum (v2, v3)
   | `Ellips tok -> OrEllipsis (token env tok)
 
-(* base_list now carries an optional `argument_list` next to each
-   parent type to express primary-constructor base calls
-   (`: Base(args)`). We thread the args list as an argument list TODO
-   for now; the existing AST shape doesn't carry it directly. *)
-and base_list (env : env) ((v1, v2, _args1, rest) : CST.base_list) :
+(* base_list carries an optional `argument_list` next to each parent type
+   for primary-constructor base calls (`class D(string n) : B(n)`); the
+   arguments are kept in the class_parent, as for records. *)
+and base_list (env : env) ((v1, v2, args1, rest) : CST.base_list) :
     G.class_parent list =
   let _v1 =
     token env v1
     (* ":" *)
   in
-  let v2 = type_pattern env v2 in
-  let rest = List.map (fun (_comma, ty, _args) -> type_pattern env ty) rest in
-  v2 :: rest |> List.map (fun t -> (t, None))
+  let parent ty args =
+    (type_pattern env ty, Option.map (argument_list env) args)
+  in
+  parent v2 args1 :: List.map (fun (_comma, ty, args) -> parent ty args) rest
 
 and accessor_list (env : env) ((v1, v2, v3) : CST.accessor_list) =
   let v1 =
@@ -3876,38 +4016,56 @@ and accessor_list (env : env) ((v1, v2, v3) : CST.accessor_list) =
   (v1, v2, v3)
 
 and enum_member_declaration_list (env : env)
-    ((v1, v2, v3, v4) : CST.enum_member_declaration_list) =
-  let _v1 =
-    token env v1
-    (* "{" *)
-  in
-  let unwrap_emd env x =
-    match (x : CST.anon_choice_enum_member_decl_fe2c440) with
-    | `Enum_member_decl x -> Some (enum_member_declaration env x)
-    | `Prep_if_in_enum_member_decl _ -> None
-  in
-  let v2 =
-    match v2 with
-    | Some (first, rest) ->
-        let first = unwrap_emd env first in
-        let rest = List.map (fun (_comma, x) -> unwrap_emd env x) rest in
-        first :: rest |> List.filter_map Fun.id
+    ((v1, items_opt, v3) : CST.enum_member_declaration_list) =
+  let _v1 = (* "{" *) token env v1 in
+  let _v3 = (* "}" *) token env v3 in
+  match items_opt with
+  | Some items -> enum_member_items env items
+  | None -> []
+
+(* Members of an enum: a sequence of members, commas and `#if` blocks (the
+   grammar accepts commas anywhere); the members of every `#if` branch are
+   kept. *)
+and enum_member_items (env : env) (x : CST.enum_member_items) =
+  let items_opt = function
+    | Some inner -> enum_member_items env inner
     | None -> []
   in
-  let _v3 =
-    Option.map (token env) v3
-    (* "," *)
+  let rec else_branches = function
+    | None -> []
+    | Some (`Prep_else_in_enum_member_decl (_, inner)) -> items_opt inner
+    | Some (`Prep_elif_in_enum_member_decl (_, _, _, inner, more)) ->
+        items_opt inner @ else_branches more
   in
-  let _v4 =
-    token env v4
-    (* "}" *)
-  in
-  v2
+  x
+  |> List.concat_map (function
+    | `Enum_member_decl m -> [ enum_member_declaration env m ]
+    | `COMMA _ -> []
+    | `Prep_if_in_enum_member_decl (_if, _cond, _nl, inner, else_opt, _endif) ->
+        items_opt inner @ else_branches else_opt)
 
 and declaration_list (env : env)
     ((open_bracket, body, close_bracket) : CST.declaration_list) =
-  let xs = List.map (declaration env) body in
+  let xs = declarations env body in
   (token env open_bracket, xs, token env close_bracket)
+
+(* Members of a type, with the members of `#if` blocks spliced in. *)
+and declarations (env : env) (xs : CST.declaration list) : stmt list =
+  List.concat_map
+    (fun (x : CST.declaration) ->
+      match x with
+      | `Prep_if (_if_tok, _cond, _nl, decls, else_opt, _endif) ->
+          preproc_if_declarations env decls else_opt
+      | _ -> [ declaration env x ])
+    xs
+
+and preproc_if_declarations env decls else_opt : stmt list =
+  let rec else_branches = function
+    | None -> []
+    | Some (`Prep_else (_, decls)) -> decls
+    | Some (`Prep_elif (_, _, _, decls, more)) -> decls @ else_branches more
+  in
+  declarations env (decls @ else_branches else_opt)
 
 and _extern_alias_directive (env : env)
     ((v1, v2, v3, v4) : CST.extern_alias_directive) =
@@ -4016,17 +4174,93 @@ and namespace_member_declaration (env : env)
 
 and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
   match xs with
-  | `Opt_sheb_dire_rep_top_level_item (_sheb_opt, items) ->
+  | `Opt_sheb_dire_rep_top_level_item (sheb_opt, items) ->
+      let shebang =
+        sheb_opt
+        |> Option.map (fun t ->
+            let d = G.OtherDirective (("Shebang", token env t), []) |> G.d in
+            G.DirectiveStmt d |> G.s)
+      in
       let stmts = List.concat_map (top_level_item env) items in
-      G.Pr stmts
+      G.Pr (Option.to_list shebang @ stmts)
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       G.E v2
+  | `Switch_sect x ->
+      (* Only in semgrep patterns: a lone `case P: ...`. *)
+      G.Partial (G.PartialSwitchCase (switch_section env x))
 
 and top_level_item (env : env) (x : CST.top_level_item) : stmt list =
   match x with
-  | `Choice_extern_alias_dire x -> top_level_item_no_statement env x
-  | `Global_stmt x -> [ global_statement env x ]
+  | `Choice_choice_extern_alias_dire (`Choice_extern_alias_dire x) ->
+      top_level_item_no_statement env x
+  | `Choice_choice_extern_alias_dire (`Global_stmt x) -> statements env [ x ]
+  | `Exte_decl x ->
+      (* Only in semgrep patterns: `extension($T $X) { ... }` on its own. *)
+      [ declaration env (`Exte_decl x) ]
+  | `Igno_dire x -> [ ignored_directive env x ]
+
+(* C# 14 file-based app directive, e.g. `#:package Name@1.0` or
+   `#:project ../Lib`. The compiler ignores it and the SDK reads it.
+   Lowered to `Pragma (kind, [name; value])` so that rules can match (and
+   bind metavariables in) the kind, name and value. In a pattern, a
+   directive with a name but no value (`#:package $P`) also matches one
+   with a value. *)
+and ignored_directive (env : env)
+    ((hash_colon, body, _nl) : CST.ignored_directive) : stmt =
+  let hash_colon = token env hash_colon in
+  let id t = G.I (str env t) in
+  let kind, args =
+    match body with
+    | Some
+        (`Choice_imm_tok_pack_opt_dire_name_opt_dire_sepa_opt_dire_value
+           (kind, rest)) ->
+        let kind =
+          match kind with
+          | `Imm_tok_pack t
+          | `Imm_tok_sdk t
+          | `Imm_tok_prop t ->
+              str env t
+        in
+        let args =
+          match rest with
+          | None -> []
+          | Some (name, _sep, Some value) -> [ id name; id value ]
+          | Some (name, _sep, None) ->
+              let in_pattern = env.extra in
+              if in_pattern then
+                [ id name; G.E (G.Ellipsis (snd (str env name)) |> G.e) ]
+              else [ id name ]
+        in
+        (kind, args)
+    | Some (`Imm_tok_pat_555404d_opt_dire_value (kind, value)) ->
+        (str env kind, Option.to_list (Option.map id value))
+    | Some (`Imm_tok_pat_5381807 value) ->
+        (* Malformed, e.g. `#: package X`: no kind, only a value. *)
+        (("#:", hash_colon), [ id value ])
+    | None -> (("#:", hash_colon), [])
+  in
+  G.DirectiveStmt (G.Pragma (kind, args) |> G.d) |> G.s
+
+and preproc_if_in_top_level (env : env)
+    ((_if, _cond, _nl, items, else_opt, _endif) : CST.preproc_if_in_top_level) :
+    stmt list =
+  let items_of =
+    List.concat_map
+      (fun (x : CST.anon_choice_choice_top_level_item_no_stmt_485bee8) ->
+        match x with
+        | `Choice_choice_extern_alias_dire (`Choice_extern_alias_dire t) ->
+            top_level_item_no_statement env t
+        | `Choice_choice_extern_alias_dire (`Stmt s) -> statements env [ s ]
+        | `Igno_dire d -> [ ignored_directive env d ])
+  in
+  let rec else_branches = function
+    | None -> []
+    | Some (`Prep_else_in_top_level (_, items)) -> items_of items
+    | Some (`Prep_elif_in_top_level (_, _, _, items, more)) ->
+        items_of items @ else_branches more
+  in
+  items_of items @ else_branches else_opt
 
 and top_level_item_no_statement (env : env)
     (x : CST.top_level_item_no_statement) : stmt list =
@@ -4047,17 +4281,12 @@ and top_level_item_no_statement (env : env)
       [ G.DirectiveStmt (d |> G.d) |> G.s ]
   | `Using_dire u -> [ using_directive env u ]
   | `Global_attr ga -> [ global_attribute_list env ga ]
-  | `Prep_if_in_top_level (_if_tok, _cond, _nl, items, _else_opt, _endif) ->
-      (* Preprocessor `#if`. Walk the if-branch items so guarded
+  | `Prep_if_in_top_level x ->
+      (* Preprocessor `#if`. Walk the items of every branch so guarded
          declarations survive — many real .NET codebases gate their
          entire file content with `#if !(NET20 || NET35 || …)`, and
          returning an empty block here drops the whole namespace. *)
-      List.concat_map
-        (fun (x : CST.anon_choice_top_level_item_no_stmt_65e2afd) ->
-          match x with
-          | `Choice_extern_alias_dire t -> top_level_item_no_statement env t
-          | `Stmt s -> [ global_statement env s ])
-        items
+      preproc_if_in_top_level env x
   | `Choice_name_decl nmd -> [ namespace_member_declaration env nmd ]
   | `File_scoped_name_decl fs -> [ file_scoped_namespace_declaration env fs ]
 
@@ -4172,9 +4401,6 @@ and class_interface_struct (env : env) class_kind
     | Some pl -> parameter_list env pl
     | None -> fb []
   in
-  let primary_ctor_fields =
-    cparams |> Tok.unbracket |> List.filter_map parameter_to_field
-  in
   let v7 = List.map (type_parameter_constraints_clause env) v7 in
   let open_bra, stmts, close_bra =
     match v8_body with
@@ -4183,7 +4409,7 @@ and class_interface_struct (env : env) class_kind
         let t = token env tok in
         (t, [], t)
   in
-  let fields = List.map (fun x -> G.F x) (primary_ctor_fields @ stmts) in
+  let fields = List.map (fun x -> G.F x) stmts in
   let tparams = type_parameters_with_constraints v5 v7 in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
@@ -4238,9 +4464,6 @@ and struct_declaration (env : env) ((init, body) : CST.struct_declaration) =
     | Some pl -> parameter_list env pl
     | None -> fb []
   in
-  let primary_ctor_fields =
-    cparams |> Tok.unbracket |> List.filter_map parameter_to_field
-  in
   let lb, fields_stmts, rb =
     match body with
     | `Decl_list_opt_semi (dl, _semi) -> declaration_list env dl
@@ -4248,7 +4471,7 @@ and struct_declaration (env : env) ((init, body) : CST.struct_declaration) =
         let t = token env tok in
         (t, [], t)
   in
-  let fields = List.map (fun x -> G.F x) (primary_ctor_fields @ fields_stmts) in
+  let fields = List.map (fun x -> G.F x) fields_stmts in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2 @ v3; tparams } in
   G.DefStmt
@@ -4341,9 +4564,6 @@ and record_declaration env ((init, body) : CST.record_declaration) =
       tparam_choice
     |> Option.value ~default:(fb [])
   in
-  let primary_ctor_fields =
-    primary_params |> Tok.unbracket |> List.filter_map parameter_to_field
-  in
   let v7_extends =
     match base_opt with
     | None -> []
@@ -4380,7 +4600,10 @@ and record_declaration env ((init, body) : CST.record_declaration) =
         let t = token env tok in
         (t, [], t)
   in
-  let fields = List.map (fun x -> G.F x) (primary_ctor_fields @ fields_stmts) in
+  (* As for Scala case classes, the positional parameters stay in cparams
+     only: AST_to_IL turns cparams into class fields, so `r.X` is tracked,
+     and no field declaration is invented for rules to match. *)
+  let fields = List.map (fun x -> G.F x) fields_stmts in
   let idinfo = empty_id_info () in
   let ent =
     {
@@ -4407,6 +4630,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
   | `Ellips v1 ->
       let v1 = token env v1 in
       G.ExprStmt (G.Ellipsis v1 |> G.e, sc) |> G.s
+  | `Igno_dire x -> ignored_directive env x
   | `Class_decl (init, body) ->
       let attrs, mods, kw, id, tparams_choice, constraints = init in
       let tparams_opt, base_opt, primary_params_opt =
@@ -4857,12 +5081,13 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)
       |> G.s
   | `Using_dire x -> using_directive env x
-  | `Prep_if (_if_tok, _cond, _nl, decls, _else_opt, _endif) ->
-      (* `#if`/`#endif` guarded declaration block. Walk the items so
-         guarded members (e.g. `#if DEBUG public void Log() {}`) reach
-         the AST. *)
-      let stmts = List.map (declaration env) decls in
-      G.Block (fb stmts) |> G.s
+  | `Prep_if (_if_tok, _cond, _nl, decls, else_opt, _endif) ->
+      (* `#if`/`#elif`/`#else` guarded declaration block. Walk the items
+         of every branch so guarded members (e.g. `#if DEBUG public void
+         Log() {}`) reach the AST. *)
+      (* Spliced into the enclosing member list by `declarations`; this
+         block is only for a `#if` in a single-declaration position. *)
+      G.Block (fb (preproc_if_declarations env decls else_opt)) |> G.s
   | `Exte_decl (attrs, ext_tok, tparams_opt, lp, recv, rp, constraints, body) ->
       (* C# 14 extension declaration. Lower to a ClassDef carrying:
          - attrs (record-class style + the user-supplied attributes)
@@ -4877,8 +5102,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let ext_attr = G.unhandled_keywordattr ("extension", ext_tok) in
       let lp = token env lp in
       let rp = token env rp in
-      let recv_attrs, _recv_modifiers, recv_ty, recv_id = recv in
-      let recv_attrs = List.concat_map (attribute_list_ env) recv_attrs in
+      let recv_attrs, recv_modifiers, recv_ty, recv_id = recv in
+      let recv_attrs =
+        List.concat_map (attribute_list_ env) recv_attrs
+        @ parameter_modifiers env recv_modifiers
+      in
       let recv_ty = type_pattern env recv_ty in
       let recv_param =
         G.Param
@@ -4904,19 +5132,19 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           members
         in
         List.map
-          (fun (x : CST.extension_member_declaration) ->
+          (fun x ->
             match x with
-            | `Meth_decl m -> declaration env (`Meth_decl m)
-            | `Prop_decl p -> declaration env (`Prop_decl p)
-            | `Op_decl o -> declaration env (`Op_decl o))
+            | `Exte_member_decl (`Meth_decl m) -> declaration env (`Meth_decl m)
+            | `Exte_member_decl (`Prop_decl p) -> declaration env (`Prop_decl p)
+            | `Exte_member_decl (`Op_decl o) -> declaration env (`Op_decl o)
+            | `Ellips t -> declaration env (`Ellips t))
           inner_members
       in
       let fields = List.map (fun s -> G.F s) member_stmts in
-      let name =
-        match recv_id with
-        | Some id -> identifier env id
-        | None -> ("_extension", ext_tok)
-      in
+      (* An extension block has no name: use the `extension` keyword rather
+         than the receiver's name, which would make the receiver parameter
+         and the block look like the same entity. *)
+      let name = ("extension", ext_tok) in
       let ent =
         {
           name = EN (Id (name, empty_id_info ()));
@@ -4940,11 +5168,20 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
+(* Preprocessor directives (`#pragma`, `#nullable`, `#region`, `#:`, ...)
+   end with a newline token in the grammar, so one on the last line of a
+   file without a final newline is a parse error. Add the newline, as for
+   Dockerfile; positions are unchanged. *)
+let ensure_trailing_newline str =
+  if str <> "" && str.[String.length str - 1] <> '\n' then str ^ "\n" else str
+
 let parse file =
   H.wrap_parser
-    (fun () -> Tree_sitter_c_sharp.Parse.file !!file)
+    (fun () ->
+      let contents = UFile.read_file file |> ensure_trailing_newline in
+      Tree_sitter_c_sharp.Parse.string ~src_file:!!file contents)
     (fun cst _extras ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = false } in
       match compilation_unit env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -4952,6 +5189,7 @@ let parse file =
 let parse_pattern_aux str =
   (* ugly: coupling: see grammar.js of csharp.
    * todo: will need to adjust position information in parsing errors! *)
+  let str = ensure_trailing_newline str in
   let expr_str = "__SEMGREP_EXPRESSION " ^ str in
   (* If possible, we always prefer to parse a pattern as an expression than
    * as a program, since an expression is also a statement, but a statement
@@ -4967,5 +5205,7 @@ let parse_pattern str =
     (fun () -> parse_pattern_aux str)
     (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
-      let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
+      let env =
+        { H.file; conv = H.line_col_to_pos_pattern str; extra = true }
+      in
       compilation_unit env cst)
