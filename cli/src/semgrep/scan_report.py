@@ -134,7 +134,10 @@ def _print_scan_plan_header(
     target_count = len(target_manager.get_all_files(product=SAST_PRODUCT))
     summary_line = f"Scanning {unit_str(target_count, 'file')}"
 
-    if target_manager.respect_git_ignore:
+    if (
+        target_manager.respect_git_ignore
+        and target_manager.any_scanning_root_in_git_repo()
+    ):
         summary_line += (
             f" {'tracked by git' if legacy_cli_ux else '(only git-tracked)'}"
         )

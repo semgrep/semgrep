@@ -249,17 +249,7 @@ class FileTargetingLog:
             # gitignore exclusions in each repo, so to be accurate with
             # this print statement we need to check if any target is in a
             # git repo.
-            roots_not_in_git = 0
-            dir_targets = 0
-            for t in self.target_manager.scanning_roots:
-                if t.path.is_dir():
-                    dir_targets += 1
-                    try:
-                        t.files_from_git_ls()
-                    except (subprocess.SubprocessError, FileNotFoundError):
-                        roots_not_in_git += 1
-                        continue
-            if roots_not_in_git != dir_targets:
+            if self.target_manager.any_scanning_root_in_git_repo():
                 limited_fragments.append("Scan was limited to files tracked by git")
 
         if self.cli_includes:
@@ -1161,6 +1151,25 @@ class TargetManager:
                 extra_glob_patterns_to_include_git_untracked_files=extra_glob_patterns_to_include_git_untracked_files,
             )
         )
+
+    def any_scanning_root_in_git_repo(self) -> bool:
+        """
+        Check whether any directory scanning root is inside a git repository.
+
+        `respect_git_ignore` is true by default even outside a git repo, so
+        it alone does not imply the scan was limited to git-tracked files.
+        Each scanning root could be a git repo, so probe each directory root
+        with `git ls-files` (via `files_from_git_ls`); a root is in a git
+        repo when the command succeeds.
+        """
+        for root in self.scanning_roots:
+            if root.path.is_dir():
+                try:
+                    root.files_from_git_ls()
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    continue
+                return True
+        return False
 
     @lru_cache(maxsize=None)
     def get_skipped_files(
