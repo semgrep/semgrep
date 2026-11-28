@@ -658,3 +658,80 @@ def test_file_scanning_root_no_subprocess(tmp_path, monkeypatch):
     result = target_manager.get_all_files(product=SAST_PRODUCT)
 
     assert_path_sets_equal(actual=result, expected={foo, bar})
+
+
+@pytest.mark.quick
+def test_any_scanning_root_in_git_repo_outside_git_repo(tmp_path, monkeypatch):
+    """
+    A directory that is not inside a git repo is not a git repo root.
+
+    `respect_git_ignore` is true by default even outside a git repo, so
+    it alone must not imply the scan was limited to git-tracked files
+    (issue #9815).
+    """
+    foo = tmp_path / "foo"
+    foo.mkdir()
+    (foo / "a.py").touch()
+
+    monkeypatch.chdir(tmp_path)
+
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([foo]),
+        respect_git_ignore=True,
+    )
+    assert not target_manager.any_scanning_root_in_git_repo()
+
+
+@pytest.mark.quick
+def test_any_scanning_root_in_git_repo_inside_git_repo(tmp_path, monkeypatch):
+    """
+    A directory inside a git repo is a git repo root.
+    """
+    foo = tmp_path / "foo"
+    foo.mkdir()
+    (foo / "a.py").touch()
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init"], cwd=foo)
+    subprocess.run(["git", "add", foo / "a.py"], cwd=foo)
+
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([foo]),
+        respect_git_ignore=True,
+    )
+    assert target_manager.any_scanning_root_in_git_repo()
+
+
+@pytest.mark.quick
+def test_any_scanning_root_in_git_repo_mixed_roots(tmp_path, monkeypatch):
+    """
+    One git repo root among non-git roots is enough for the scan to be
+    (partly) limited to git-tracked files, while a file scanning root
+    never counts as a git repo root.
+    """
+    no_git = tmp_path / "no-git"
+    no_git.mkdir()
+    (no_git / "a.py").touch()
+
+    git_root = tmp_path / "git-root"
+    git_root.mkdir()
+    (git_root / "a.py").touch()
+
+    lone_file = tmp_path / "lone.py"
+    lone_file.touch()
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init"], cwd=git_root)
+    subprocess.run(["git", "add", git_root / "a.py"], cwd=git_root)
+
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([no_git, git_root, lone_file]),
+        respect_git_ignore=True,
+    )
+    assert target_manager.any_scanning_root_in_git_repo()
+
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([no_git, lone_file]),
+        respect_git_ignore=True,
+    )
+    assert not target_manager.any_scanning_root_in_git_repo()

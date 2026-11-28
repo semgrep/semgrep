@@ -1,0 +1,1 @@
+Do not print "(only git-tracked)" in the scan-plan header when no scanning root is in a git repository
