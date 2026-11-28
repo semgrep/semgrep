@@ -503,12 +503,21 @@ let rec map_lval env eorig : lval =
   | _ -> todo (G.E eorig)
 
 and map_nested_lval env tok e_gen : lval =
-  match map_expr env e_gen with
-  | { e = Fetch lval; _ } -> lval
-  | rhs ->
-      let fresh = fresh_lval env tok in
-      add_instr env (mk_i (Assign (fresh, rhs)) (related_exp e_gen));
-      fresh
+  match (env.lang, e_gen.G.e) with
+  | ( (Lang.Csharp | Lang.Dart),
+      G.Call ({ e = G.Special (G.Op G.Elvis, _); _ }, (_, [ G.Arg x ], _)) ) ->
+      (* Reading through `x?.` (C#, Dart): `x?.f` is `x.f` or null, so read
+       * `x.f` itself and stay field-sensitive, rather than copying all of
+       * `x` into a temporary. (Writes through `x?.` are guarded earlier, by
+       * `with_null_conditional_lhs`; in Rust, `x?` is not a null test.) *)
+      map_nested_lval env tok x
+  | _ -> (
+      match map_expr env e_gen with
+      | { e = Fetch lval; _ } -> lval
+      | rhs ->
+          let fresh = fresh_lval env tok in
+          add_instr env (mk_i (Assign (fresh, rhs)) (related_exp e_gen));
+          fresh)
 
 and map_name env eorig : G.name -> lval = function
   | G.Id (("_", tok), _) ->
@@ -640,6 +649,124 @@ and map_assign_rhs_minimizing_tmps env lval rhs eorig =
       add_instr env (mk_i (Assign (lval, rhs_exp)) eorig)
 
 and map_assign ?eorig env ~g_expr lhs tok rhs : exp =
+  let eorig = Option.value eorig ~default:(SameAs g_expr) in
+  match
+    with_null_conditional_lhs env lhs tok (fun lhs' ->
+        map_assign ~eorig env ~g_expr lhs' tok rhs)
+  with
+  | Some res -> res
+  | None -> map_assign_no_null_conditional ~eorig env ~g_expr lhs tok rhs
+
+(* Null-conditional assignment `a?.f = rhs` (C# 14, Dart), also with a
+ * compound operator (`a?.f += rhs`, `a?.f ??= rhs`): the write, and the
+ * evaluation of `rhs`, only happen when `a` is not null. If `lhs` has such
+ * a `?.`, lower the assignment `assign lhs'` (where `lhs'` is `lhs`
+ * without that `?.`) as
+ *
+ *     if (a != null) { assign lhs' }
+ *
+ * so that the write reaches `a` (rather than a temporary holding `a?.`),
+ * while remaining a weak update: on the other path `a.f` keeps its
+ * previous value. A guard that is not a plain variable or field path
+ * (e.g. a call) is evaluated once, into a temporary. Any further `?.` in
+ * `lhs'` is handled when `assign` maps it, nesting the guards.
+ *
+ * Only where `x?.` means "if x is not null": in Rust, the same generic
+ * AST is the `?` operator (unwrap or return early), which is not a null
+ * test and keeps its old lowering. *)
+and with_null_conditional_lhs env (lhs : G.expr) tok (assign : G.expr -> exp) :
+    exp option =
+  let stripped =
+    match env.lang with
+    | Lang.Csharp
+    | Lang.Dart ->
+        strip_null_conditional lhs
+    | _ -> None
+  in
+  match stripped with
+  | None -> None
+  | Some (guard, rebuild) ->
+      let before = pop_stmts env in
+      let guard_exp = map_expr env guard in
+      let guard, guard_exp =
+        if is_pure_lval_path guard then (guard, guard_exp)
+        else
+          (* Evaluate `guard` once: `tmp = guard; if (tmp != null) ...`. *)
+          let id = ("_tmp_nc", Tok.fake_tok tok "_tmp_nc") in
+          let id_info = G.empty_id_info () in
+          id_info.id_resolved := Some (G.LocalVar, G.SId.mk ());
+          let tmp = lval_of_id_info env id id_info in
+          add_instr env (mk_i (Assign (tmp, guard_exp)) (related_exp guard));
+          (G.N (G.Id (id, id_info)) |> G.e, mk_e (Fetch tmp) (related_exp guard))
+      in
+      let ss_for_guard = pop_stmts env in
+      let res = assign (rebuild guard) in
+      let ss_for_assign = pop_stmts env in
+      let cond =
+        mk_e
+          (Operator
+             ( (G.NotEq, tok),
+               [
+                 Unnamed guard_exp;
+                 Unnamed (mk_e (Literal (G.Null tok)) (related_tok tok));
+               ] ))
+          (related_exp guard)
+      in
+      add_stmts env before;
+      add_stmts env ss_for_guard;
+      add_stmt env (mk_s (If (tok, cond, ss_for_assign, [])));
+      Some res
+
+(* A variable or a field path on one (`a`, `a.b.c`, `this.a`): evaluating
+ * it again has no side effect. *)
+and is_pure_lval_path (e : G.expr) : bool =
+  match e.e with
+  | G.N (G.Id _)
+  | G.N (G.IdSpecial (((G.This | G.Self), _), _)) ->
+      true
+  | G.DotAccess (e, _, G.FN (G.Id _)) -> is_pure_lval_path e
+  | _ -> false
+
+(* `x?.` is `Call (Special (Op Elvis), [x])` in the generic AST. Find the
+ * innermost `x?.` receiver in the l-value chain of `lhs`, and return `x`
+ * together with a function rebuilding `lhs` with that `x?.` replaced by
+ * its argument. *)
+and strip_null_conditional (lhs : G.expr) : (G.expr * (G.expr -> G.expr)) option
+    =
+  (* Strip in the receiver `recv` of `lhs`; `rebuild` puts a receiver back
+     into `lhs`. *)
+  let in_receiver (recv : G.expr) rebuild =
+    match recv.e with
+    | G.Call (({ e = G.Special (G.Op G.Elvis, _); _ } as f), (l, [ G.Arg x ], r))
+      -> (
+        match strip_null_conditional x with
+        | Some (guard, rebuild_x) ->
+            (* `x` itself holds a `?.`, which guards this one: strip that
+               one first and keep this `?.` for the nested guard. *)
+            Some
+              ( guard,
+                fun g ->
+                  rebuild
+                    {
+                      recv with
+                      e = G.Call (f, (l, [ G.Arg (rebuild_x g) ], r));
+                    } )
+        | None -> Some (x, rebuild))
+    | _ -> (
+        match strip_null_conditional recv with
+        | Some (guard, rebuild_recv) ->
+            Some (guard, fun g -> rebuild (rebuild_recv g))
+        | None -> None)
+  in
+  match lhs.G.e with
+  | G.DotAccess (recv, tok, fld) ->
+      in_receiver recv (fun recv ->
+          { lhs with e = G.DotAccess (recv, tok, fld) })
+  | G.ArrayAccess (recv, idx) ->
+      in_receiver recv (fun recv -> { lhs with e = G.ArrayAccess (recv, idx) })
+  | _ -> None
+
+and map_assign_no_null_conditional ?eorig env ~g_expr lhs tok rhs : exp =
   let eorig = Option.value eorig ~default:(SameAs g_expr) in
   match lhs.G.e with
   | G.N _
@@ -1025,17 +1152,23 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
        * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
        * are all represented this way too. *)
       map_assign env ~g_expr e1 tok (`Ge e2)
-  | G.AssignOp (e1, op, e2) ->
-      let exp = map_expr env e2 in
-      let lval = map_lval env e1 in
-      let lvalexp = mk_e (Fetch lval) (SameAs e1) in
-      let opexp =
-        mk_e
-          (Operator (op, [ Unnamed lvalexp; Unnamed exp ]))
-          (related_tok (snd op))
-      in
-      add_instr env (mk_i (Assign (lval, opexp)) eorig);
-      lvalexp
+  | G.AssignOp (e1, op, e2) -> (
+      match
+        with_null_conditional_lhs env e1 (snd op) (fun e1' ->
+            map_expr env { g_expr with e = G.AssignOp (e1', op, e2) })
+      with
+      | Some res -> res
+      | None ->
+          let exp = map_expr env e2 in
+          let lval = map_lval env e1 in
+          let lvalexp = mk_e (Fetch lval) (SameAs e1) in
+          let opexp =
+            mk_e
+              (Operator (op, [ Unnamed lvalexp; Unnamed exp ]))
+              (related_tok (snd op))
+          in
+          add_instr env (mk_i (Assign (lval, opexp)) eorig);
+          lvalexp)
   | G.LetPattern (pat, e) ->
       let exp = map_expr env e in
       add_stmts env (map_pattern_assign_statements env ~eorig exp pat);

@@ -1,0 +1,13 @@
+rules:
+  - id: sink-source
+    languages: [csharp]
+    message: sink(source())
+    severity: WARNING
+    pattern: sink(source())
+  - id: obsolete-method
+    languages: [csharp]
+    message: obsolete method
+    severity: WARNING
+    pattern: |
+      [Obsolete]
+      void $M() { ... }

@@ -14,7 +14,7 @@
     "url": "https://github.com/tree-sitter/tree-sitter-c.git"
   },
   "c-sharp": {
-    "commit": "e1384e2f132936019b43aaaae154cd780fb497ce",
+    "commit": "d4bbe18103c3380c6454085e589d2610938da142",
     "regen": [
       "c-sharp"
     ],

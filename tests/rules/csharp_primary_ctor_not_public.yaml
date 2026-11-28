@@ -1,0 +1,6 @@
+rules:
+  - id: public-field
+    languages: [csharp]
+    message: public field
+    severity: WARNING
+    pattern: public $T $F;

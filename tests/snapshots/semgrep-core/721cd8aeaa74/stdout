@@ -112,7 +112,8 @@
                                                                     _));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -141,7 +142,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -166,7 +168,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -196,7 +199,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -235,7 +239,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -251,7 +256,8 @@
                                                                     _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -259,7 +265,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -267,7 +274,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -275,7 +283,8 @@
                                                                     }) });
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -355,7 +364,8 @@
                                                                     _));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -384,7 +394,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -409,7 +420,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -439,7 +451,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -478,7 +491,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -494,7 +508,8 @@
                                                                     _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -502,7 +517,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -510,7 +526,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -518,7 +535,8 @@
                                                                     }) });
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -586,7 +604,8 @@
                                                                     _));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -615,7 +634,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -640,7 +660,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -670,7 +691,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -709,7 +731,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -725,7 +748,8 @@
                                                                     _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -733,7 +757,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -741,7 +766,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -749,14 +775,16 @@
                                                                     })]));
                                                                    e_id = 0;
                                                                    e_range =
-                                                                   None;
+                                                                   (Some (
+                                                                   _, _));
                                                                    is_implicit_return =
                                                                    false;
                                                                    facts =
                                                                    <opaque> })
                                                               });
                                                          e_id = 0;
-                                                         e_range = None;
+                                                         e_range =
+                                                         (Some (_, _));
                                                          is_implicit_return =
                                                          false;
                                                          facts = <opaque> })
@@ -815,7 +843,8 @@
                                                                     _));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -844,7 +873,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -869,7 +899,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -899,7 +930,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -938,7 +970,8 @@
                                                                     _ })))));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -954,7 +987,8 @@
                                                                     _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -962,7 +996,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -970,7 +1005,8 @@
                                                                     })], _)));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -978,14 +1014,16 @@
                                                                     })]));
                                                                    e_id = 0;
                                                                    e_range =
-                                                                   None;
+                                                                   (Some (
+                                                                   _, _));
                                                                    is_implicit_return =
                                                                    false;
                                                                    facts =
                                                                    <opaque> })
                                                               });
                                                          e_id = 0;
-                                                         e_range = None;
+                                                         e_range =
+                                                         (Some (_, _));
                                                          is_implicit_return =
                                                          false;
                                                          facts = <opaque> })

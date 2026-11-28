@@ -474,7 +474,8 @@
                                                                     _ })));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -484,7 +485,8 @@
                                                                     ));
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
@@ -492,7 +494,8 @@
                                                                     }) });
                                                                     e_id = 0;
                                                                     e_range =
-                                                                    None;
+                                                                    (Some (
+                                                                    _, _));
                                                                     is_implicit_return =
                                                                     false;
                                                                     facts =
